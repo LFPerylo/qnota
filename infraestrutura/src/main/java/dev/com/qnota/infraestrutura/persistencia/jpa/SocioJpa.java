@@ -49,3 +49,4 @@ class SocioRepositorioImpl implements SocioRepositorio {
 		return mapeador.map(socioJpa, Socio.class);
 	}
 }
+*/

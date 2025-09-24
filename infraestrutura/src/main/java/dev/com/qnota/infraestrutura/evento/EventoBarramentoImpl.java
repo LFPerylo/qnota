@@ -36,3 +36,4 @@ public class EventoBarramentoImpl implements EventoBarramento {
 		publicador.publishEvent(evento);
 	}
 }
+*/

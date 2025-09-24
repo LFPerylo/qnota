@@ -23,3 +23,4 @@ public class ExemplarServico {
 		return exemplarRepositorio.obter(id);
 	}
 }
+*/

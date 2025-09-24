@@ -7,3 +7,4 @@ public interface ExemplarRepositorioAplicacao {
 
 	List<ExemplarResumoExpandido> pesquisarEmprestados();
 }
+*/

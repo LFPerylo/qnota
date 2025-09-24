@@ -11,3 +11,4 @@ public interface ExemplarRepositorio {
 
 	List<Exemplar> pesquisarDisponiveis(Isbn livro);
 }
+*/

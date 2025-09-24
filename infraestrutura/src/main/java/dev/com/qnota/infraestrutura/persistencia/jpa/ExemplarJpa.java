@@ -115,3 +115,4 @@ class ExemplarRepositorioImpl implements ExemplarRepositorio, ExemplarRepositori
 		return repositorio.findExemplarResumoExpandidoByEmprestimoIsNotNull();
 	}
 }
+*/

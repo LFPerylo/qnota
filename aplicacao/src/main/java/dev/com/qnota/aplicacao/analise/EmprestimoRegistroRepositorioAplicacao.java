@@ -7,3 +7,4 @@ import dev.sauloaraujo.sgb.dominio.acervo.exemplar.ExemplarId;
 public interface EmprestimoRegistroRepositorioAplicacao {
 	EmprestimoRegistro buscar(ExemplarId exemplar, Emprestimo emprestimo);
 }
+*/

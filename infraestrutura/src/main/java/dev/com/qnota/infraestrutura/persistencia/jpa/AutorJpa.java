@@ -63,3 +63,4 @@ class AutorRepositorioImpl implements AutorRepositorio, AutorRepositorioAplicaca
 		return repositorio.findAutorResumoByOrderByNome();
 	}
 }
+*/

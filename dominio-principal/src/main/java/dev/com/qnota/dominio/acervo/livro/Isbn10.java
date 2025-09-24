@@ -12,3 +12,4 @@ class Isbn10 extends Isbn {
 		return ISBNValidator.getInstance().isValidISBN10(codigo);
 	}
 }
+*/

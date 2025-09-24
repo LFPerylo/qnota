@@ -21,3 +21,4 @@ public class ExemplarServicoAplicacao {
 		return repositorio.pesquisarEmprestados();
 	}
 }
+*/

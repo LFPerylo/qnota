@@ -17,3 +17,4 @@ public class AutorServicoAplicacao {
 		return repositorio.pesquisarResumos();
 	}
 }
+*/

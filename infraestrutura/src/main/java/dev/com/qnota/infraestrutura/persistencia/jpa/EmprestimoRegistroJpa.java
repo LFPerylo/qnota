@@ -72,3 +72,4 @@ class EmprestimoRegistroRepositorioImpl
 		return mapeador.map(emprestimoRegistroJpa, EmprestimoRegistro.class);
 	}
 }
+*/

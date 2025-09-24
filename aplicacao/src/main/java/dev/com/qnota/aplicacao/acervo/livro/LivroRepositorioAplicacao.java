@@ -7,3 +7,4 @@ public interface LivroRepositorioAplicacao {
 
 	List<LivroResumoExpandido> pesquisarResumosExpandidos();
 }
+*/

@@ -21,3 +21,4 @@ public class LivroServicoAplicacao {
 		return repositorio.pesquisarResumosExpandidos();
 	}
 }
+*/

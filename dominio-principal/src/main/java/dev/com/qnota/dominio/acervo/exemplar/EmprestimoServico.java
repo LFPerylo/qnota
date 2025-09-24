@@ -52,3 +52,4 @@ public class EmprestimoServico {
 		barramento.postar(evento);
 	}
 }
+*/

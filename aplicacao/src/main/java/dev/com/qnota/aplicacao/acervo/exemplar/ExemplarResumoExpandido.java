@@ -9,3 +9,4 @@ public interface ExemplarResumoExpandido extends ExemplarResumo {
 
 	EmprestimoResumo getEmprestimo();
 }
+*/

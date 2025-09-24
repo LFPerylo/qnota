@@ -5,3 +5,4 @@ public interface SocioResumo {
 
 	String getNome();
 }
+*/

@@ -23,3 +23,4 @@ public class AutorServico {
 		return autorRepositorio.obter(id);
 	}
 }
+*/

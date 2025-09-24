@@ -41,3 +41,4 @@ public class Autor {
 		return nome;
 	}
 }
+*/

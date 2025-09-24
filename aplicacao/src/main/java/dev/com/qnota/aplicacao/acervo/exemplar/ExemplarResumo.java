@@ -7,3 +7,4 @@ public interface ExemplarResumo {
 
 	LivroResumo getLivro();
 }
+*/

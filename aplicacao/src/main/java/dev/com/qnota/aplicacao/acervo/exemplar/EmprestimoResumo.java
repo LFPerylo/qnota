@@ -7,3 +7,4 @@ public interface EmprestimoResumo {
 
 	SocioResumo getTomador();
 }
+*/

@@ -100,3 +100,4 @@ class LivroRepositorioImpl implements LivroRepositorio, LivroRepositorioAplicaca
 		return repositorio.pesquisarResumosExpandidos();
 	}
 }
+*/

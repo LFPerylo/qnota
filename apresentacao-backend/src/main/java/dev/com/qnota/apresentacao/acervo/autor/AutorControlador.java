@@ -26,3 +26,4 @@ class AutorControlador {
 		return autorServicoConsulta.pesquisarResumos();
 	}
 }
+*/

@@ -73,3 +73,4 @@ public class Repositorio implements AutorRepositorio, LivroRepositorio, Exemplar
 				.filter(exemplar -> exemplar.getLivro().equals(livro) && exemplar.disponivel()).toList();
 	}
 	}
+*/

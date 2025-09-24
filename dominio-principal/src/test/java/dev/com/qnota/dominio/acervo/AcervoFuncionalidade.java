@@ -47,3 +47,4 @@ public class AcervoFuncionalidade implements EventoBarramento {
 		eventos.add(evento);
 	}
 }
+*/

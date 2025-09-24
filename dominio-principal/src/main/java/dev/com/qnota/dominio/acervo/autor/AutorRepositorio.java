@@ -5,3 +5,4 @@ public interface AutorRepositorio {
 
 	Autor obter(AutorId id);
 }
+*/
