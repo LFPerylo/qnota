@@ -1,0 +1,154 @@
+
+Domain QNota {
+	Subdomain GestaoAcademica
+	Subdomain Avaliacao
+	Subdomain Historico
+}
+
+ContextMap {
+	contains GestaoAcademica
+	contains Avaliacao
+	contains Historico
+
+	GestaoAcademica Shared-Kernel Avaliacao
+	Avaliacao Shared-Kernel Historico
+	GestaoAcademica Shared-Kernel Historico
+}
+
+BoundedContext GestaoAcademica implements GestaoAcademica {
+
+	Aggregate Aluno {
+		Entity Aluno {
+			aggregateRoot
+
+			-AlunoId id
+			String nome
+			Date dataNascimento
+			boolean ativo
+			-TurmaId turma
+			List<ResponsavelId> responsaveis notEmpty
+		}
+
+		ValueObject AlunoId {
+			int id
+		}
+	}
+
+	Aggregate Professor {
+		Entity Professor {
+			aggregateRoot
+
+			-ProfessorId id
+			String nome
+			String cpf
+			String email
+		}
+
+		ValueObject ProfessorId {
+			int id
+		}
+	}
+
+	Aggregate Responsavel {
+		Entity Responsavel {
+			aggregateRoot
+
+			-ResponsavelId id
+			String nome
+			String cpf
+			String email
+		}
+
+		ValueObject ResponsavelId {
+			int id
+		}
+	}
+
+	Aggregate Turma {
+		Entity Turma {
+			aggregateRoot
+
+			-TurmaId id
+			String nome
+			int anoLetivo
+			ProfessorId professor
+		}
+
+		ValueObject TurmaId {
+			int id
+		}
+	}
+
+	Aggregate Disciplina {
+		Entity Disciplina {
+			aggregateRoot
+
+			-DisciplinaId id
+			String nome
+		}
+
+		ValueObject DisciplinaId {
+			int id
+		}
+	}
+}
+
+BoundedContext Avaliacao implements Avaliacao {
+
+	Aggregate Simulado {
+		Entity Simulado {
+			aggregateRoot
+
+			-SimuladoId id
+			Date dataAplicacao
+			TurmaId turma
+			List<SimuladoDisciplina> disciplinas
+			StatusSimulado status
+		}
+
+		Enum StatusSimulado {
+			RASCUNHO, EM_EDICAO, FINALIZADO
+		}
+
+		Entity SimuladoDisciplina {
+			DisciplinaId disciplina
+			Decimal peso
+		}
+	}
+
+	Aggregate Nota {
+		Entity Nota {
+			aggregateRoot
+
+			-NotaId id
+			Decimal valor
+			AlunoId aluno
+			SimuladoId simulado
+			DisciplinaId disciplina
+		}
+
+		ValueObject NotaId {
+			int id
+		}
+	}
+}
+
+BoundedContext Historico implements Historico {
+
+	Aggregate Justificativa {
+		Entity Justificativa {
+			aggregateRoot
+
+			-JustificativaId id
+			AlunoId aluno
+			SimuladoId simulado
+			ProfessorId professor
+			String texto
+			Date dataHora
+		}
+
+		ValueObject JustificativaId {
+			int id
+		}
+	}
+}
