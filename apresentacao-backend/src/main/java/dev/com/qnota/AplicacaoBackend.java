@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb;
+/*package dev.sauloaraujo.sgb;
 
 import static org.springframework.boot.SpringApplication.run;
 

@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.dominio.acervo.exemplar;
+/*package dev.sauloaraujo.sgb.dominio.acervo.exemplar;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.infraestrutura.persistencia.jpa;
+/*package dev.sauloaraujo.sgb.infraestrutura.persistencia.jpa;
 
 import java.time.LocalDate;
 import java.util.List;

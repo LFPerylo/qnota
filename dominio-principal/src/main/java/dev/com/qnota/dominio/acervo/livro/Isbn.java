@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.dominio.acervo.livro;
+/*package dev.sauloaraujo.sgb.dominio.acervo.livro;
 
 public abstract class Isbn {
 	private final String codigo;

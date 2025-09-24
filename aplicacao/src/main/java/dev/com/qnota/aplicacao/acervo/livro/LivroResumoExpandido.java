@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.aplicacao.acervo.livro;
+/*package dev.sauloaraujo.sgb.aplicacao.acervo.livro;
 
 import dev.sauloaraujo.sgb.aplicacao.acervo.autor.AutorResumo;
 

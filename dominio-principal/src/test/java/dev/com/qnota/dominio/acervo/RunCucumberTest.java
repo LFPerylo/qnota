@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.dominio.acervo;
+/*package dev.sauloaraujo.sgb.dominio.acervo;
 
 import static io.cucumber.core.options.Constants.PLUGIN_PROPERTY_NAME;
 

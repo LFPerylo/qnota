@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.aplicacao.analise;
+/*package dev.sauloaraujo.sgb.aplicacao.analise;
 
 import dev.sauloaraujo.dominio.analise.emprestimo.EmprestimoRegistro;
 import dev.sauloaraujo.sgb.dominio.acervo.exemplar.Emprestimo;

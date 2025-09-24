@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.infraestrutura.persistencia.memoria;
+/*package dev.sauloaraujo.sgb.infraestrutura.persistencia.memoria;
 
 import static org.apache.commons.lang3.Validate.notNull;
 
@@ -18,7 +18,6 @@ import dev.sauloaraujo.sgb.dominio.acervo.livro.Livro;
 import dev.sauloaraujo.sgb.dominio.acervo.livro.LivroRepositorio;
 
 public class Repositorio implements AutorRepositorio, LivroRepositorio, ExemplarRepositorio {
-	/*-----------------------------------------------------------------------*/
 	private Map<AutorId, Autor> autores = new HashMap<>();
 
 	@Override
@@ -35,9 +34,6 @@ public class Repositorio implements AutorRepositorio, LivroRepositorio, Exemplar
 		var autor = autores.get(id);
 		return Optional.ofNullable(autor).get();
 	}
-	/*-----------------------------------------------------------------------*/
-
-	/*-----------------------------------------------------------------------*/
 	private Map<Isbn, Livro> livros = new HashMap<>();
 
 	@Override
@@ -54,9 +50,6 @@ public class Repositorio implements AutorRepositorio, LivroRepositorio, Exemplar
 		var livro = livros.get(id);
 		return Optional.ofNullable(livro).get();
 	}
-	/*-----------------------------------------------------------------------*/
-
-	/*-----------------------------------------------------------------------*/
 	private Map<ExemplarId, Exemplar> exemplares = new HashMap<>();
 
 	@Override
@@ -79,5 +72,4 @@ public class Repositorio implements AutorRepositorio, LivroRepositorio, Exemplar
 		return exemplares.values().stream()
 				.filter(exemplar -> exemplar.getLivro().equals(livro) && exemplar.disponivel()).toList();
 	}
-	/*-----------------------------------------------------------------------*/
-}
+	}

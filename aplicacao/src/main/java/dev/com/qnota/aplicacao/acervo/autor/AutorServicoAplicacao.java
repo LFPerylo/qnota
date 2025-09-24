@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.aplicacao.acervo.autor;
+/*package dev.sauloaraujo.sgb.aplicacao.acervo.autor;
 
 import static org.apache.commons.lang3.Validate.notNull;
 

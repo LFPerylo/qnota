@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.aplicacao.analise;
+/*package dev.sauloaraujo.sgb.aplicacao.analise;
 
 import static org.apache.commons.lang3.Validate.notNull;
 

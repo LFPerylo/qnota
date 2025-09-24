@@ -11,7 +11,7 @@
 	    <relativePath>../pai</relativePath>
 	</parent>
 
-	<artifactId>sgb-infraestrutura</artifactId>
+	<artifactId>qnota-infraestrutura</artifactId>
 
 	<dependencies>
 		<dependency>

@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.dominio.acervo;
+/*package dev.sauloaraujo.sgb.dominio.acervo;
 
 import static org.apache.commons.lang3.Validate.notNull;
 

@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.dominio.acervo.autor;
+/*package dev.sauloaraujo.sgb.dominio.acervo.autor;
 
 public interface AutorRepositorio {
 	void salvar(Autor autor);

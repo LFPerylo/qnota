@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.infraestrutura.evento;
+/*package dev.sauloaraujo.sgb.infraestrutura.evento;
 
 import static org.apache.commons.lang3.Validate.notNull;
 

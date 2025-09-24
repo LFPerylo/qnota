@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.dominio.acervo.exemplar;
+/*package dev.sauloaraujo.sgb.dominio.acervo.exemplar;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

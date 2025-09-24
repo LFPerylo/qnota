@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.dominio.acervo.autor;
+/*package dev.sauloaraujo.sgb.dominio.acervo.autor;
 
 import static org.apache.commons.lang3.Validate.isTrue;
 

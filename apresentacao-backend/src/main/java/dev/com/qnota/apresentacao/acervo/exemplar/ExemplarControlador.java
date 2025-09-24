@@ -1,4 +1,4 @@
-package dev.sauloaraujo.sgb.apresentacao.acervo.exemplar;
+/*package dev.sauloaraujo.sgb.apresentacao.acervo.exemplar;
 
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
