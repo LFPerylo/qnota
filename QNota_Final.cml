@@ -1,21 +1,16 @@
-
 Domain QNota {
-	Subdomain GestaoAcademica
+	Subdomain Academico
 	Subdomain Avaliacao
-	Subdomain Historico
 }
 
 ContextMap {
-	contains GestaoAcademica
+	contains Academico
 	contains Avaliacao
-	contains Historico
 
-	GestaoAcademica Shared-Kernel Avaliacao
-	Avaliacao Shared-Kernel Historico
-	GestaoAcademica Shared-Kernel Historico
+	Academico Shared-Kernel Avaliacao
 }
 
-BoundedContext GestaoAcademica implements GestaoAcademica {
+BoundedContext Academico implements Academico {
 
 	Aggregate Aluno {
 		Entity Aluno {
@@ -23,28 +18,13 @@ BoundedContext GestaoAcademica implements GestaoAcademica {
 
 			-AlunoId id
 			String nome
-			Date dataNascimento
+			LocalDate dataNascimento
 			boolean ativo
 			-TurmaId turma
 			List<ResponsavelId> responsaveis notEmpty
 		}
 
 		ValueObject AlunoId {
-			int id
-		}
-	}
-
-	Aggregate Professor {
-		Entity Professor {
-			aggregateRoot
-
-			-ProfessorId id
-			String nome
-			String cpf
-			String email
-		}
-
-		ValueObject ProfessorId {
 			int id
 		}
 	}
@@ -64,6 +44,21 @@ BoundedContext GestaoAcademica implements GestaoAcademica {
 		}
 	}
 
+	Aggregate Professor {
+		Entity Professor {
+			aggregateRoot
+
+			-ProfessorId id
+			String nome
+			String cpf
+			String email
+		}
+
+		ValueObject ProfessorId {
+			int id
+		}
+	}
+
 	Aggregate Turma {
 		Entity Turma {
 			aggregateRoot
@@ -71,11 +66,36 @@ BoundedContext GestaoAcademica implements GestaoAcademica {
 			-TurmaId id
 			String nome
 			int anoLetivo
+			boolean ativo
 			ProfessorId professor
 		}
 
 		ValueObject TurmaId {
 			int id
+		}
+	}
+}
+
+BoundedContext Avaliacao implements Avaliacao {
+
+	Aggregate Simulado {
+		Entity Simulado {
+			aggregateRoot
+
+			-SimuladoId id
+			LocalDate dataAplicacao
+			String status
+			TurmaId turma
+			List<DisciplinaPeso> disciplinas
+		}
+
+		ValueObject SimuladoId {
+			int id
+		}
+
+		ValueObject DisciplinaPeso {
+			DisciplinaId disciplina
+			double peso
 		}
 	}
 
@@ -91,60 +111,34 @@ BoundedContext GestaoAcademica implements GestaoAcademica {
 			int id
 		}
 	}
-}
-
-BoundedContext Avaliacao implements Avaliacao {
-
-	Aggregate Simulado {
-		Entity Simulado {
-			aggregateRoot
-
-			-SimuladoId id
-			Date dataAplicacao
-			TurmaId turma
-			List<SimuladoDisciplina> disciplinas
-			StatusSimulado status
-		}
-
-		Enum StatusSimulado {
-			RASCUNHO, EM_EDICAO, FINALIZADO
-		}
-
-		Entity SimuladoDisciplina {
-			DisciplinaId disciplina
-			Decimal peso
-		}
-	}
 
 	Aggregate Nota {
 		Entity Nota {
 			aggregateRoot
 
 			-NotaId id
-			Decimal valor
 			AlunoId aluno
 			SimuladoId simulado
 			DisciplinaId disciplina
+			double valor
 		}
 
 		ValueObject NotaId {
 			int id
 		}
 	}
-}
 
-BoundedContext Historico implements Historico {
-
-	Aggregate Justificativa {
-		Entity Justificativa {
+	Aggregate JustificativaRetificacao {
+		Entity JustificativaRetificacao {
 			aggregateRoot
 
 			-JustificativaId id
-			AlunoId aluno
-			SimuladoId simulado
-			ProfessorId professor
-			String texto
-			Date dataHora
+			NotaId nota
+			double notaAnterior
+			double notaCorrigida
+			String justificativa
+			LocalDateTime dataHora
+			String usuario
 		}
 
 		ValueObject JustificativaId {
