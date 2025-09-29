@@ -128,8 +128,8 @@ BoundedContext Avaliacao implements Avaliacao {
 		}
 	}
 
-	Aggregate JustificativaRetificacao {
-		Entity JustificativaRetificacao {
+	Aggregate Justificativa {
+		Entity Justificativa {
 			aggregateRoot
 
 			-JustificativaId id
@@ -138,7 +138,7 @@ BoundedContext Avaliacao implements Avaliacao {
 			double notaCorrigida
 			String justificativa
 			LocalDateTime dataHora
-			String usuario
+			ProfessorId professor
 		}
 
 		ValueObject JustificativaId {
