@@ -1,4 +1,4 @@
-package dev.com.qnota.dominio.principal.ensino;
+package dev.com.qnota.dominio.principal.academico;
 
 import java.time.*;
 import java.util.Objects;

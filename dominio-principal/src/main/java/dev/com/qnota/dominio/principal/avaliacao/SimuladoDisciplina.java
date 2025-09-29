@@ -1,4 +1,4 @@
-package dev.com.qnota.dominio.principal.cadastro;
+package dev.com.qnota.dominio.principal.avaliacao;
 
 import java.time.*;
 import java.util.Objects;
