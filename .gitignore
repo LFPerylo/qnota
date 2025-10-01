@@ -1,6 +1,5 @@
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
 !/src/main//target/
 !/src/test//target/
 
@@ -32,10 +31,10 @@ build/
 ### VS Code ###
 .vscode/
 
-/mvnw
-/mvnw.cmd
-
 /HELP.md
 
 schema.sql
 src-gen
+
+# Maven wrapper cache (ok ignorar)
+.mvn/wrapper/maven-wrapper-downloader.jar
