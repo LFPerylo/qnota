@@ -1,156 +1,151 @@
 Domain QNota {
-	Subdomain Academico
-	Subdomain Avaliacao
+    Subdomain Principal
 }
 
 ContextMap {
-	contains Academico
-	contains Avaliacao
-
-	Academico Shared-Kernel Avaliacao
+    contains Principal
 }
 
-BoundedContext Academico implements Academico {
+BoundedContext Principal implements Principal {
 
-	Aggregate Aluno {
-		Entity Aluno {
-			aggregateRoot
+    Aggregate Aluno {
+        Entity Aluno {
+            aggregateRoot
 
-			-AlunoId id
-			String nome
-			LocalDate dataNascimento
-			boolean ativo
-			-TurmaId turma
-			List<AlunoResponsavel> responsaveis notEmpty
-		}
+            -AlunoId id
+            String nome
+            LocalDate dataNascimento
+            boolean ativo
+            -TurmaId turma
+            List<VinculoResponsavel> responsaveis notEmpty
+        }
 
-		ValueObject AlunoId {
-			int id
-		}
+        ValueObject AlunoId {
+            int id
+        }
 
-		Entity AlunoResponsavel {
-			-ResponsavelId responsavel
-			boolean principal
-		}
-	}
+        ValueObject VinculoResponsavel {
+            ResponsavelId responsavel
+            String grauParentesco
+            boolean principal
+        }
+    }
 
-	Aggregate Responsavel {
-		Entity Responsavel {
-			aggregateRoot
+    Aggregate Responsavel {
+        Entity Responsavel {
+            aggregateRoot
 
-			-ResponsavelId id
-			String nome
-			String cpf
-			String email
-			boolean inadimplente
-		}
+            -ResponsavelId id
+            String nome
+            String cpf
+            String email
+            boolean inadimplente
+        }
 
-		ValueObject ResponsavelId {
-			int id
-		}
-	}
+        ValueObject ResponsavelId {
+            int id
+        }
+    }
 
-	Aggregate Professor {
-		Entity Professor {
-			aggregateRoot
+    Aggregate Professor {
+        Entity Professor {
+            aggregateRoot
 
-			-ProfessorId id
-			String nome
-			String cpf
-			String email
-			String especialidade
-		}
+            -ProfessorId id
+            String nome
+            String cpf
+            String email
+            String especialidade
+        }
 
-		ValueObject ProfessorId {
-			int id
-		}
-	}
+        ValueObject ProfessorId {
+            int id
+        }
+    }
 
-	Aggregate Turma {
-		Entity Turma {
-			aggregateRoot
+    Aggregate Turma {
+        Entity Turma {
+            aggregateRoot
 
-			-TurmaId id
-			String nome
-			int anoLetivo
-			boolean ativo
-			ProfessorId professor
-		}
+            -TurmaId id
+            String nome
+            int anoLetivo
+            boolean ativo
+            ProfessorId professor
+        }
 
-		ValueObject TurmaId {
-			int id
-		}
-	}
-}
+        ValueObject TurmaId {
+            int id
+        }
+    }
 
-BoundedContext Avaliacao implements Avaliacao {
+    Aggregate Disciplina {
+        Entity Disciplina {
+            aggregateRoot
 
-	Aggregate Simulado {
-		Entity Simulado {
-			aggregateRoot
+            -DisciplinaId id
+            String nome
+            String area
+        }
 
-			-SimuladoId id
-			LocalDate dataAplicacao
-			String status
-			TurmaId turma
-			List<DisciplinaPeso> disciplinas
-		}
+        ValueObject DisciplinaId {
+            int id
+        }
+    }
 
-		ValueObject SimuladoId {
-			int id
-		}
+    Aggregate Simulado {
+        Entity Simulado {
+            aggregateRoot
 
-		ValueObject DisciplinaPeso {
-			DisciplinaId disciplina
-			double peso
-		}
-	}
+            -SimuladoId id
+            LocalDate dataAplicacao
+            String status        // valores de uso: "EM_EDICAO" | "FINALIZADO"
+            TurmaId turma
+            List<DisciplinaPeso> disciplinas
+        }
 
-	Aggregate Disciplina {
-		Entity Disciplina {
-			aggregateRoot
+        ValueObject SimuladoId {
+            int id
+        }
 
-			-DisciplinaId id
-			String nome
-			String area
-		}
+        ValueObject DisciplinaPeso {
+            DisciplinaId disciplina
+            double peso
+        }
+    }
 
-		ValueObject DisciplinaId {
-			int id
-		}
-	}
+    Aggregate Nota {
+        Entity Nota {
+            aggregateRoot
 
-	Aggregate Nota {
-		Entity Nota {
-			aggregateRoot
+            -NotaId id
+            AlunoId aluno
+            SimuladoId simulado
+            DisciplinaId disciplina
+            double valor
+            LocalDateTime dataLancamento
+        }
 
-			-NotaId id
-			AlunoId aluno
-			SimuladoId simulado
-			DisciplinaId disciplina
-			double valor
-		}
+        ValueObject NotaId {
+            int id
+        }
+    }
 
-		ValueObject NotaId {
-			int id
-		}
-	}
+    Aggregate Justificativa {
+        Entity Justificativa {
+            aggregateRoot
 
-	Aggregate Justificativa {
-		Entity Justificativa {
-			aggregateRoot
+            -JustificativaId id
+            NotaId nota
+            double notaAnterior
+            double notaCorrigida
+            String justificativa
+            LocalDateTime dataHora
+            ProfessorId professor
+        }
 
-			-JustificativaId id
-			NotaId nota
-			double notaAnterior
-			double notaCorrigida
-			String justificativa
-			LocalDateTime dataHora
-			ProfessorId professor
-		}
-
-		ValueObject JustificativaId {
-			int id
-		}
-	}
+        ValueObject JustificativaId {
+            int id
+        }
+    }
 }
