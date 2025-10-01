@@ -21,11 +21,16 @@ BoundedContext Academico implements Academico {
 			LocalDate dataNascimento
 			boolean ativo
 			-TurmaId turma
-			List<ResponsavelId> responsaveis notEmpty
+			List<AlunoResponsavel> responsaveis notEmpty
 		}
 
 		ValueObject AlunoId {
 			int id
+		}
+
+		Entity AlunoResponsavel {
+			-ResponsavelId responsavel
+			boolean principal
 		}
 	}
 
@@ -37,6 +42,7 @@ BoundedContext Academico implements Academico {
 			String nome
 			String cpf
 			String email
+			boolean inadimplente
 		}
 
 		ValueObject ResponsavelId {
@@ -52,6 +58,7 @@ BoundedContext Academico implements Academico {
 			String nome
 			String cpf
 			String email
+			String especialidade
 		}
 
 		ValueObject ProfessorId {
@@ -105,6 +112,7 @@ BoundedContext Avaliacao implements Avaliacao {
 
 			-DisciplinaId id
 			String nome
+			String area
 		}
 
 		ValueObject DisciplinaId {

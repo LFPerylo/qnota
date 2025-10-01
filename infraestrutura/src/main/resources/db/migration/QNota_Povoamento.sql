@@ -1,58 +1,85 @@
-
 USE qnota;
 
--- Professores
-INSERT INTO professor (nome, cpf, email) VALUES
-('Ana Lúcia Costa', '123.456.789-00', 'ana.costa@escola.com'),
-('Carlos Eduardo Lima', '987.654.321-00', 'carlos.lima@escola.com');
+-- ==============================
+-- PROFESSORES
+-- ==============================
+INSERT INTO professor (nome, cpf, email, especialidade) VALUES
+('Carlos Silva', '111.111.111-11', 'carlos.silva@escola.com', 'Matemática'),
+('Fernanda Souza', '222.222.222-22', 'fernanda.souza@escola.com', 'Linguagens'),
+('Marcos Andrade', '333.333.333-33', 'marcos.andrade@escola.com', 'Ciências Humanas');
 
--- Responsáveis
-INSERT INTO responsavel (nome, cpf, email) VALUES
-('Fernanda Silva', '111.222.333-44', 'fernanda.silva@email.com'),
-('João Mendes', '555.666.777-88', 'joao.mendes@email.com');
+-- ==============================
+-- RESPONSAVEIS
+-- ==============================
+INSERT INTO responsavel (nome, cpf, email, inadimplente) VALUES
+('João Pereira', '444.444.444-44', 'joao.pereira@email.com', FALSE),
+('Maria Oliveira', '555.555.555-55', 'maria.oliveira@email.com', FALSE),
+('Ana Costa', '666.666.666-66', 'ana.costa@email.com', TRUE); -- inadimplente
 
--- Turmas
+-- ==============================
+-- TURMAS
+-- ==============================
 INSERT INTO turma (nome, ano_letivo, ativo, id_professor) VALUES
 ('Turma A', 2025, TRUE, 1),
 ('Turma B', 2025, TRUE, 2);
 
--- Alunos
+-- ==============================
+-- ALUNOS
+-- ==============================
 INSERT INTO aluno (nome, data_nascimento, ativo, id_turma) VALUES
-('Lucas Pereira', '2012-03-15', TRUE, 1),
-('Mariana Torres', '2011-10-22', TRUE, 1),
-('Rafael Souza', '2012-07-09', TRUE, 2);
+('Pedro Santos', '2010-05-12', TRUE, 1),
+('Lucas Lima', '2010-08-20', TRUE, 1),
+('Mariana Alves', '2011-02-10', TRUE, 2);
 
--- Associação aluno-responsável
-INSERT INTO aluno_responsavel (id_aluno, id_responsavel) VALUES
-(1, 1),
-(2, 1),
-(3, 2);
+-- ==============================
+-- VÍNCULOS ALUNO-RESPONSAVEL
+-- ==============================
+INSERT INTO aluno_responsavel (id_aluno, id_responsavel, principal) VALUES
+(1, 1, TRUE),  -- Pedro -> João
+(1, 2, FALSE), -- Pedro -> Maria
+(2, 2, TRUE),  -- Lucas -> Maria
+(3, 1, FALSE), -- Mariana -> João
+(3, 3, TRUE);  -- Mariana -> Ana (inadimplente, mas já estava vinculada antes)
 
--- Disciplinas
-INSERT INTO disciplina (nome) VALUES
-('Matemática'),
-('Português'),
-('Ciências');
+-- ==============================
+-- DISCIPLINAS
+-- ==============================
+INSERT INTO disciplina (nome, area) VALUES
+('Matemática', 'Exatas'),
+('Português', 'Linguagens'),
+('História', 'Humanas'),
+('Geografia', 'Humanas');
 
--- Simulados
+-- ==============================
+-- SIMULADOS
+-- ==============================
 INSERT INTO simulado (data_aplicacao, status, id_turma) VALUES
-('2025-09-10', 'FINALIZADO', 1),
-('2025-09-20', 'EM_EDICAO', 2);
+('2025-06-15', 'EM_EDICAO', 1),
+('2025-06-20', 'EM_EDICAO', 2);
 
--- SimuladoDisciplina
+-- ==============================
+-- SIMULADO_DISCIPLINA (pesos somando 10)
+-- ==============================
 INSERT INTO simulado_disciplina (id_simulado, id_disciplina, peso) VALUES
-(1, 1, 5.00),
-(1, 2, 5.00),
-(2, 1, 6.00),
-(2, 3, 4.00);
+(1, 1, 6.0), -- Matemática
+(1, 2, 4.0), -- Português
+(2, 2, 5.0), -- Português
+(2, 3, 5.0); -- História
 
--- Notas
+-- ==============================
+-- NOTAS DOS ALUNOS
+-- ==============================
 INSERT INTO nota_aluno_disciplina (id_aluno, id_simulado, id_disciplina, valor) VALUES
-(1, 1, 1, 8.5),
-(1, 1, 2, 7.0),
-(2, 1, 1, 9.0),
-(2, 1, 2, 6.5);
+(1, 1, 1, 8.50), -- Pedro - Matemática
+(1, 1, 2, 7.00), -- Pedro - Português
+(2, 1, 1, 6.00), -- Lucas - Matemática
+(2, 1, 2, 9.00), -- Lucas - Português
+(3, 2, 2, 8.00), -- Mariana - Português
+(3, 2, 3, 7.50); -- Mariana - História
 
--- Justificativa (retificação)
-INSERT INTO justificativa (texto, data_hora, id_professor, id_nota, nota_anterior, nota_corrigida) VALUES
-('Erro de digitação corrigido após revisão.', NOW(), 1, 1, 8.5, 9.0);
+-- ==============================
+-- JUSTIFICATIVA DE NOTA
+-- ==============================
+INSERT INTO justificativa (texto, id_professor, id_nota, nota_anterior, nota_corrigida)
+VALUES
+('Correção por erro de digitação no lançamento da nota.', 1, 3, 5.00, 6.00);
