@@ -17,7 +17,6 @@ public class RunCucumberTest {
 package dev.com.qnota.dominio.principal;
 
 import static io.cucumber.core.options.Constants.PLUGIN_PROPERTY_NAME;
-
 import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.SelectPackages;
