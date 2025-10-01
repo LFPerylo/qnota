@@ -1,4 +1,4 @@
-package dev.com.qnota.dominio.principal.avaliacao;
+package dev.com.qnota.dominio.avaliacao;
 
 public enum SimuladoStatus {
     RASCUNHO, EM_EDICAO, FINALIZADO

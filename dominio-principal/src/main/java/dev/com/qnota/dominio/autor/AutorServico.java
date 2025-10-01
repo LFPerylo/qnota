@@ -1,3 +1,4 @@
+package dev.com.qnota.dominio.autor;
 /*package dev.sauloaraujo.sgb.dominio.acervo.autor;
 
 import static org.apache.commons.lang3.Validate.notNull;

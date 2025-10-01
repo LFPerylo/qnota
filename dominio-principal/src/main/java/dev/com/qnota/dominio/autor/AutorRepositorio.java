@@ -1,3 +1,4 @@
+package dev.com.qnota.dominio.autor;
 /*package dev.sauloaraujo.sgb.dominio.acervo.autor;
 
 public interface AutorRepositorio {

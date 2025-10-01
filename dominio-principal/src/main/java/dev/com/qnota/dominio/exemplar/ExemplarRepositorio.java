@@ -1,3 +1,4 @@
+package dev.com.qnota.dominio.exemplar;
 /*package dev.sauloaraujo.sgb.dominio.acervo.exemplar;
 
 import java.util.List;

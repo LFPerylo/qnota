@@ -1,3 +1,4 @@
+package dev.com.qnota.dominio.livro;
 /*package dev.sauloaraujo.sgb.dominio.acervo.livro;
 
 import static org.apache.commons.lang3.Validate.notNull;
