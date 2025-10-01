@@ -55,7 +55,7 @@ BoundedContext Principal implements Principal {
             String nome
             String cpf
             String email
-            String especialidade
+            List<String> especialidades notEmpty
         }
 
         ValueObject ProfessorId {

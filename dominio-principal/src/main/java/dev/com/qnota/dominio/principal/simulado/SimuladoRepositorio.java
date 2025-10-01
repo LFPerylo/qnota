@@ -10,7 +10,7 @@ public interface SimuladoRepositorio {
     void salvar(Simulado s);
     Optional<Simulado> porId(SimuladoId id);
     int contarEmEdicaoPorTurma(TurmaId turmaId);
-    List<Simulado> porTurma(TurmaId turmaId);
+    List<Simulado> listarPorTurma(TurmaId turmaId);
 
     /** disciplinaId -> peso (ex.: 1 -> 6.0, 2 -> 4.0) */
     Map<Integer, Double> pesosDoSimulado(SimuladoId id);
