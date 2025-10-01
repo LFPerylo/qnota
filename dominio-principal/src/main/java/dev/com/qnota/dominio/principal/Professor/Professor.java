@@ -1,0 +1,1 @@
+package dev.com.qnota.dominio.principal;
