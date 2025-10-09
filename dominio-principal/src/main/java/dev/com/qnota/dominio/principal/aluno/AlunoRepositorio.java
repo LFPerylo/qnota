@@ -1,4 +1,3 @@
-/* Título da análise: QNota - Repositório do Agregado Aluno (assinaturas usadas pelos serviços) */
 package dev.com.qnota.dominio.principal.aluno;
 
 import java.time.LocalDate;
@@ -14,13 +13,16 @@ public interface AlunoRepositorio {
 
     boolean existeOutroComMesmoNomeENascimentoNaTurma(String nome, LocalDate data, TurmaId turmaId);
     int contarResponsaveis(AlunoId id);
-    boolean existeVinculo(AlunoId id); // usado para RN-04 (não excluir se tiver notas/simulados)
+    boolean existeVinculo(AlunoId id);
 
     List<Aluno> porTurma(TurmaId turmaId);
 
-    // RN-67: há notas pendentes para este aluno em simulados EM_EDICAO da turma atual?
     boolean temNotasPendentesEmSimuladosEmEdicao(AlunoId alunoId);
-
-    // RN-04: aluno tem alguma nota registrada?
     boolean temNotas(AlunoId alunoId);
+
+    // usado no serviço p/ RN-57.1 (se você já implementou no repos fake)
+    boolean possuiSimuladoFinalizado(AlunoId alunoId);
+
+    // opcional — serviço atual não precisa
+    void alterarTurma(AlunoId alunoId, TurmaId novaTurmaId);
 }
