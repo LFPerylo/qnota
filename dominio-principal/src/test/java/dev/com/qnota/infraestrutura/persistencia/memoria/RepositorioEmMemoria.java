@@ -275,29 +275,73 @@ public class RepositorioEmMemoria implements
         return t.getAnoLetivo();
     }
 
-    // =========================================================
-    // =============== DisciplinaRepositorio ===================
-    // =========================================================
-    private final Set<String> nomeAreaUsados = new HashSet<>();
+    // ====== DisciplinaRepositorio ======
+    
+    private int seqDisciplina = 1;
 
-    @Override public void salvar(Disciplina d) {
+    // índice de unicidade por (nome + área) para RN-121
+    private final java.util.Set<String> nomeAreaIndex = new java.util.HashSet<>();
+
+    private static String keyNomeArea(String nome, String areaNome) {
+        String n = (nome == null ? "" : nome.trim().toLowerCase());
+        String a = (areaNome == null ? "" : areaNome.trim().toLowerCase());
+        return n + "#" + a;
+    }
+
+    private void rebuildDisciplinaIndex() {
+        nomeAreaIndex.clear();
+        for (var d : disciplinas.values()) {
+            nomeAreaIndex.add(keyNomeArea(d.getNome(), d.getArea().nome()));
+        }
+    }
+
+    @Override
+    public dev.com.qnota.dominio.principal.disciplina.DisciplinaId proximoId() {
+        return new dev.com.qnota.dominio.principal.disciplina.DisciplinaId(seqDisciplina++);
+    }
+
+    @Override
+    public void salvar(dev.com.qnota.dominio.principal.disciplina.Disciplina d) {
         disciplinas.put(d.getId().value(), d);
-        nomeAreaUsados.add(keyNomeArea(d.getNome(), d.getArea()));
+        // Reconstroi o índice para manter consistência em edições
+        rebuildDisciplinaIndex();
     }
 
-    @Override public Optional<Disciplina> porId(DisciplinaId id) { return Optional.ofNullable(disciplinas.get(id.value())); }
-
-    @Override public boolean existeNomeNaArea(String nome, String areaNome) { return nomeAreaUsados.contains(keyNomeArea(nome, areaNome)); }
-
-    @Override public boolean foiUsadaEmAlgumSimulado(DisciplinaId id) {
-        return simulados.values().stream().anyMatch(s -> s.getDisciplinas().stream().anyMatch(dp -> dp.disciplina().equals(id)));
+    @Override
+    public java.util.Optional<dev.com.qnota.dominio.principal.disciplina.Disciplina> porId(
+            dev.com.qnota.dominio.principal.disciplina.DisciplinaId id) {
+        return java.util.Optional.ofNullable(disciplinas.get(id.value()));
     }
 
-    @Override public boolean foiUsadaEmSimuladoFinalizado(DisciplinaId id) {
+    @Override
+    public void remover(dev.com.qnota.dominio.principal.disciplina.DisciplinaId id) {
+        disciplinas.remove(id.value());
+        rebuildDisciplinaIndex();
+    }
+
+    @Override
+    public boolean existeNomeNaArea(String nome, String areaNome) {
+        // usado pelo serviço para RN-121
+        return nomeAreaIndex.contains(keyNomeArea(nome, areaNome));
+    }
+
+    @Override
+    public boolean foiUsadaEmAlgumSimulado(dev.com.qnota.dominio.principal.disciplina.DisciplinaId id) {
+        // true se qualquer simulado referenciar a disciplina (RN-44)
         return simulados.values().stream()
-                .filter(s -> s.getStatus() == Simulado.Status.FINALIZADO)
-                .anyMatch(s -> s.getDisciplinas().stream().anyMatch(dp -> dp.disciplina().equals(id)));
+                .anyMatch(s -> s.getDisciplinas().stream()
+                        .anyMatch(dp -> dp.disciplina().equals(id)));
     }
+
+    @Override
+    public boolean foiUsadaEmSimuladoFinalizado(dev.com.qnota.dominio.principal.disciplina.DisciplinaId id) {
+        // true se algum simulado FINALIZADO referenciar a disciplina (RN-62)
+        return simulados.values().stream()
+                .filter(s -> s.getStatus() == dev.com.qnota.dominio.principal.simulado.Simulado.Status.FINALIZADO)
+                .anyMatch(s -> s.getDisciplinas().stream()
+                        .anyMatch(dp -> dp.disciplina().equals(id)));
+    }
+
 
     // =========================================================
     // =============== SimuladoRepositorio =====================

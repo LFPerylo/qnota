@@ -1,8 +1,6 @@
-/* Título da análise: QNota - Repositório do Agregado Justificativa (assinaturas usadas pelos serviços) */
 package dev.com.qnota.dominio.principal.justificativa;
 
 import java.util.List;
-
 import dev.com.qnota.dominio.principal.nota.NotaId;
 
 public interface JustificativaRepositorio {

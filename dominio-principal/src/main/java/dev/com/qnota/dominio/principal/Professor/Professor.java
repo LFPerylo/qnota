@@ -2,44 +2,89 @@ package dev.com.qnota.dominio.principal.professor;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class Professor {
+
     private final ProfessorId id;
     private String nome;
-    private String cpf;
+    private final String cpf;   // IMUTÁVEL por regra (como em Responsável)
     private String email;
-    private final List<String> especialidades; // << agora é lista
+    private final List<String> especialidades; // sempre >= 1 e sem duplicatas (case-insensitive)
 
-    public Professor(ProfessorId id, String nome, String cpf, String email, List<String> especialidades) {
-        this.id = Objects.requireNonNull(id);
-        this.nome = Objects.requireNonNull(nome);
-        this.cpf = Objects.requireNonNull(cpf);
-        this.email = Objects.requireNonNull(email);
-        // cópia defensiva
-        this.especialidades = new ArrayList<>(Objects.requireNonNull(especialidades));
+    public Professor(ProfessorId id,
+                     String nome,
+                     String cpf,
+                     String email,
+                     List<String> especialidades) {
+
+        this.id    = Objects.requireNonNull(id,    "'id' não pode ser nulo");
+        this.nome  = requireNonBlank(nome,         "'nome' não pode ser vazio");
+        this.cpf   = requireNonBlank(cpf,          "'cpf' não pode ser vazio");   // (se quiser, plugar um validador)
+        this.email = requireNonBlank(email,        "'email' não pode ser vazio");
+
+        Objects.requireNonNull(especialidades, "'especialidades' não pode ser nulo");
+        if (especialidades.isEmpty())
+            throw new IllegalArgumentException("RN-84: Professor deve ter ao menos uma especialidade.");
+
+        // normaliza e garante unicidade (case-insensitive)
+        List<String> normalizada = new ArrayList<>(especialidades.size());
+        Set<String> vistos = new LinkedHashSet<>();
+        for (String e : especialidades) {
+            String v = requireNonBlank(e, "especialidade não pode ser vazia").trim();
+            String key = v.toLowerCase();
+            if (!vistos.add(key)) continue; // remove duplicatas
+            normalizada.add(v);
+        }
+        if (normalizada.isEmpty())
+            throw new IllegalArgumentException("RN-84: Professor deve ter ao menos uma especialidade.");
+
+        this.especialidades = new ArrayList<>(normalizada);
     }
 
+    // ===== getters =====
     public ProfessorId getId() { return id; }
     public String getNome() { return nome; }
-    public String getCpf() { return cpf; }
+    public String getCpf() { return cpf; }          // imutável
     public String getEmail() { return email; }
+    public List<String> getEspecialidades() { return Collections.unmodifiableList(especialidades); }
 
-    /** Lista imutável das especialidades do professor */
-    public List<String> getEspecialidades() {
-        return Collections.unmodifiableList(especialidades);
+    // ===== comportamentos locais =====
+    public void renomear(String novoNome) {
+        this.nome = requireNonBlank(novoNome, "'nome' não pode ser vazio");
     }
 
-    /** Conveniência: verifica se o professor possui a especialidade informada (case-insensitive). */
-    public boolean possuiEspecialidade(String nomeArea) {
-        return especialidades.stream().anyMatch(e -> e.equalsIgnoreCase(nomeArea));
+    public void alterarEmail(String novoEmail) {
+        this.email = requireNonBlank(novoEmail, "'email' não pode ser vazio");
+        // se quiser reforçar: if (!this.email.contains("@")) throw new IllegalArgumentException("email inválido");
     }
 
-    /** Conveniência: adiciona especialidade (usado em testes) */
+    /** Adiciona especialidade se ainda não existir (case-insensitive). */
     public void adicionarEspecialidade(String nomeArea) {
-        if (nomeArea != null && especialidades.stream().noneMatch(e -> e.equalsIgnoreCase(nomeArea))) {
-            especialidades.add(nomeArea);
-        }
+        String v = requireNonBlank(nomeArea, "especialidade não pode ser vazia");
+        boolean existe = especialidades.stream().anyMatch(e -> e.equalsIgnoreCase(v));
+        if (!existe) especialidades.add(v);
+    }
+
+    /** Remove especialidade, sem deixar a lista vazia (RN-84). */
+    public void removerEspecialidade(String nomeArea) {
+        String v = requireNonBlank(nomeArea, "especialidade não pode ser vazia");
+        especialidades.removeIf(e -> e.equalsIgnoreCase(v));
+        if (especialidades.isEmpty())
+            throw new IllegalStateException("RN-84: Professor deve ter ao menos uma especialidade.");
+    }
+
+    public boolean possuiEspecialidade(String nomeArea) {
+        String v = requireNonBlank(nomeArea, "especialidade não pode ser vazia");
+        return especialidades.stream().anyMatch(e -> e.equalsIgnoreCase(v));
+    }
+
+    // ===== helpers =====
+    private static String requireNonBlank(String s, String msg) {
+        if (s == null || s.trim().isEmpty()) throw new IllegalArgumentException(msg);
+        return s.trim();
     }
 }

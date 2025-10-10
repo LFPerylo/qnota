@@ -1,4 +1,3 @@
-/* Título da análise: QNota - Repositório do Agregado Nota (assinaturas usadas pelos serviços) */
 package dev.com.qnota.dominio.principal.nota;
 
 import java.util.List;

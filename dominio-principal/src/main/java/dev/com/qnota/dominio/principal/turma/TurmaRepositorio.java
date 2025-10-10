@@ -1,4 +1,3 @@
-/* Título da análise: QNota - Repositório do Agregado Turma (assinaturas usadas pelos serviços) */
 package dev.com.qnota.dominio.principal.turma;
 
 import java.util.Optional;
@@ -12,4 +11,7 @@ public interface TurmaRepositorio {
     boolean possuiSimulados(TurmaId id);
     boolean possuiSimuladosEmEdicao(TurmaId id);
     boolean possuiSimuladosFinalizados(TurmaId id);
+
+    // usado por cenários que comparam ano letivo entre turmas
+    int anoLetivoDe(TurmaId id);
 }

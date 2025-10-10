@@ -13,31 +13,23 @@ public class SimuladoServico {
         this.rankingServico = rankingServico;
     }
 
+    /** Criação: valida regra transversal de limite por turma (RN-52). 
+     *  As invariantes locais (RN-12/13/14B) já são garantidas pela entidade. */
     public void criar(Simulado s) {
-        if (s.getDisciplinas().size() < 2)
-            throw new IllegalArgumentException("RN-12: Pelo menos duas disciplinas.");
-        double soma = s.getDisciplinas().stream().mapToDouble(Simulado.DisciplinaPeso::peso).sum();
-        if (Math.abs(soma - 10.0) > 1e-6)
-            throw new IllegalArgumentException("RN-13: Pesos devem somar 10.");
         if (repo.contarEmEdicaoPorTurma(s.getTurma()) >= 2)
             throw new IllegalStateException("RN-52: Máximo de 2 simulados em edição por turma.");
         repo.salvar(s);
     }
 
+    /** Edição de disciplinas: entidade cuida de RN-14B/14C/12/13; serviço recalcula o ranking. */
     public void editarDisciplinas(SimuladoId id, List<Simulado.DisciplinaPeso> novas) {
         var s = repo.porId(id).orElseThrow();
-        if (s.getStatus() == Simulado.Status.FINALIZADO)
-            throw new IllegalStateException("RN-14C: Não é permitido editar simulado finalizado.");
-        if (novas.stream().map(Simulado.DisciplinaPeso::disciplina).distinct().count() != novas.size())
-            throw new IllegalArgumentException("RN-14B: Disciplina não pode se repetir.");
-        double soma = novas.stream().mapToDouble(Simulado.DisciplinaPeso::peso).sum();
-        if (Math.abs(soma - 10.0) > 1e-6)
-            throw new IllegalArgumentException("RN-13: Pesos devem somar 10.");
-
-        repo.salvar(new Simulado(s.getId(), s.getDataAplicacao(), s.getStatus(), s.getTurma(), novas));
+        s.alterarDisciplinas(novas);
+        repo.salvar(s);
         rankingServico.recalcular(id); // ranking dinâmico após mudanças de pesos
     }
 
+    /** Finalização: checa RN-16 (todas as notas lançadas) e congela ranking. */
     public void finalizar(SimuladoId id) {
         if (!repo.todasNotasLancadas(id))
             throw new IllegalStateException("RN-16: Todas as notas devem estar lançadas.");

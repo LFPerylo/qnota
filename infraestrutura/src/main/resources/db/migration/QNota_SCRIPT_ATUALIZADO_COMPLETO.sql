@@ -149,4 +149,4 @@ CREATE TABLE ranking (
     PRIMARY KEY (id_simulado, id_aluno),
     FOREIGN KEY (id_simulado) REFERENCES simulado(id),
     FOREIGN KEY (id_aluno) REFERENCES aluno(id)
-);
+);    
