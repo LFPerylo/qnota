@@ -67,13 +67,13 @@ public class Aluno {
         Objects.requireNonNull(idResp, "'responsavelId' não pode ser nulo");
 
         if (responsaveis.size() >= 3)
-            throw new IllegalStateException("RN-02: Máximo de 3 responsáveis por aluno.");
+            throw new IllegalStateException("o número máximo de responsáveis por aluno é 3");
 
         if (responsaveis.stream().anyMatch(ar -> ar.responsavel().equals(idResp)))
-            throw new IllegalStateException("RN-20: Vínculo de responsável duplicado para este aluno.");
+            throw new IllegalStateException("Vínculo de responsável duplicado");
 
         if (principal && responsaveis.stream().anyMatch(AlunoResponsavel::principal))
-            throw new IllegalStateException("RN-58: Já existe responsável principal.");
+            throw new IllegalStateException("deve haver exatamente um responsável principal");
 
         var nova = new ArrayList<>(responsaveis);
         nova.add(new AlunoResponsavel(idResp, grauParentesco, principal)); // record garante NOT NULL
@@ -88,7 +88,7 @@ public class Aluno {
         if (!removido) return;
 
         if (nova.isEmpty())
-            throw new IllegalStateException("RN-19: Aluno deve ter ao menos um responsável.");
+            throw new IllegalStateException("Aluno deve ter ao menos um responsável");
 
         boolean eraPrincipal = responsaveis.stream()
                 .filter(ar -> ar.responsavel().equals(idResp))
@@ -105,7 +105,7 @@ public class Aluno {
 
     public void definirPrincipal(ResponsavelId idResp) {
         if (responsaveis.stream().noneMatch(ar -> ar.responsavel().equals(idResp)))
-            throw new IllegalStateException("RN-20: Responsável não está vinculado ao aluno.");
+            throw new IllegalStateException("Vínculo de responsável inexistente");
 
         var nova = new ArrayList<AlunoResponsavel>(responsaveis.size());
         for (var ar : responsaveis) {
@@ -120,19 +120,21 @@ public class Aluno {
     // ===== invariantes =====
     private static void validarInvariantesResponsaveis(List<AlunoResponsavel> lista) {
         if (lista.isEmpty())
-            throw new IllegalArgumentException("RN-19: Aluno deve ter ao menos um responsável.");
+            throw new IllegalArgumentException("Aluno deve ter ao menos um responsável");
 
         if (lista.size() > 3)
-            throw new IllegalArgumentException("RN-02: Máximo de 3 responsáveis por aluno.");
+            throw new IllegalArgumentException("o número máximo de responsáveis por aluno é 3");
 
         long qtdPrincipais = lista.stream().filter(AlunoResponsavel::principal).count();
-        if (qtdPrincipais != 1)
-            throw new IllegalArgumentException("RN-58: Deve haver exatamente um responsável principal.");
+        if (qtdPrincipais == 0)
+            throw new IllegalArgumentException("é obrigatório definir um responsável principal");
+        if (qtdPrincipais > 1)
+            throw new IllegalArgumentException("deve haver exatamente um responsável principal");
 
         Set<ResponsavelId> set = new LinkedHashSet<>();
         boolean duplicado = lista.stream().anyMatch(ar -> !set.add(ar.responsavel()));
         if (duplicado)
-            throw new IllegalArgumentException("RN-20: Vínculo de responsável duplicado para este aluno.");
+            throw new IllegalArgumentException("Vínculo de responsável duplicado");
     }
 
     // ===== helpers NOT NULL / NOT BLANK =====
@@ -145,7 +147,7 @@ public class Aluno {
 
     private static List<AlunoResponsavel> copyAndValidateResponsaveis(List<AlunoResponsavel> origem) {
         if (origem == null) {
-            // Deixar cair na RN-19 (>=1) com mensagem mais clara do agregado
+            // Deixa cair na regra "Aluno deve ter ao menos um responsável"
             return new ArrayList<>();
         }
         var tmp = new ArrayList<AlunoResponsavel>(origem.size());

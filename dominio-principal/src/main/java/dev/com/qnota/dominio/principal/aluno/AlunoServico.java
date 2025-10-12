@@ -11,9 +11,7 @@ import dev.com.qnota.dominio.principal.turma.Turma;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 import dev.com.qnota.dominio.principal.turma.TurmaRepositorio;
 
-/**
- * Serviço de aplicação — orquestra regras que dependem de outros agregados ou do conjunto.
- */
+/** Serviço de aplicação — orquestra regras que dependem de outros agregados ou do conjunto. */
 public class AlunoServico {
 
     private final AlunoRepositorio repo;
@@ -30,15 +28,26 @@ public class AlunoServico {
 
     // ---------- CADASTRAR ----------
     public void cadastrar(AlunoId id, String nome, LocalDate nascimento, TurmaId turma, List<AlunoResponsavel> responsaveis) {
+        // Normaliza mensagens: evita NPE e garante texto esperado quando há item nulo
+        if (responsaveis != null) {
+            for (AlunoResponsavel ar : responsaveis) {
+                if (ar == null) {
+                    throw new IllegalArgumentException("Responsável não pode ser nulo");
+                }
+            }
+        }
+
         // RN-03: único por (nome + data) na turma
         if (repo.existeOutroComMesmoNomeENascimentoNaTurma(nome, nascimento, turma))
-            throw new IllegalArgumentException("RN-03: Já existe aluno com mesmo nome e nascimento na turma.");
+            throw new IllegalArgumentException("já existe aluno com mesmo nome e data de nascimento na turma");
 
         // RN-136: nenhum responsável inadimplente
-        for (AlunoResponsavel ar : responsaveis) {
-            var r = responsavelRepo.porId(ar.responsavel()).orElseThrow();
-            if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
-                throw new IllegalStateException("RN-136: Responsável inadimplente não pode ser vinculado.");
+        if (responsaveis != null) {
+            for (AlunoResponsavel ar : responsaveis) {
+                var r = responsavelRepo.porId(ar.responsavel()).orElseThrow();
+                if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
+                    throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
+            }
         }
 
         // Cria o agregado — ele valida RN-02, RN-19, RN-20, RN-58
@@ -52,13 +61,13 @@ public class AlunoServico {
 
         // RN-57.1: não pode se houver simulados finalizados
         if (repo.possuiSimuladoFinalizado(id))
-            throw new IllegalStateException("RN-57.1: Não pode transferir com simulados finalizados.");
+            throw new IllegalStateException("não é permitido alterar a turma do aluno com simulados finalizados");
 
         // RN-57.2: mesma série/ano letivo
         int anoAtual = turmaRepo.porId(aluno.getTurma()).map(Turma::getAnoLetivo).orElseThrow();
         int anoNovo  = turmaRepo.porId(novaTurma).map(Turma::getAnoLetivo).orElseThrow();
         if (anoAtual != anoNovo)
-            throw new IllegalStateException("RN-57.2: Nova turma deve ser do mesmo ano letivo.");
+            throw new IllegalStateException("a nova turma deve estar no mesmo ano letivo");
 
         aluno.mudarTurma(novaTurma);
         repo.salvar(aluno);
@@ -68,7 +77,7 @@ public class AlunoServico {
     public void inativar(AlunoId id) {
         // RN-67: não pode inativar com notas pendentes em simulados EM_EDICAO
         if (repo.temNotasPendentesEmSimuladosEmEdicao(id))
-            throw new IllegalStateException("RN-67: Não é possível inativar com notas pendentes em simulados em edição.");
+            throw new IllegalStateException("existem notas pendentes de lançamento");
 
         var aluno = repo.porId(id).orElseThrow();
         aluno.inativar();
@@ -79,7 +88,7 @@ public class AlunoServico {
     public void excluir(AlunoId id) {
         // RN-04: não excluir se tiver notas
         if (repo.temNotas(id))
-            throw new IllegalStateException("RN-04: Aluno não pode ser excluído pois possui notas registradas.");
+            throw new IllegalStateException("o aluno possui vínculos com simulados/nota");
         repo.remover(id);
     }
 
@@ -88,7 +97,7 @@ public class AlunoServico {
         // RN-136: impedir vínculo com inadimplente
         var r = responsavelRepo.porId(resp).orElseThrow();
         if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
-            throw new IllegalStateException("RN-136: Responsável inadimplente não pode ser vinculado.");
+            throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
 
         var aluno = repo.porId(id).orElseThrow();
         aluno.adicionarResponsavel(resp, grauParentesco, principal);
@@ -103,8 +112,6 @@ public class AlunoServico {
 
     /** Edição “full” do agregado (mantendo invariantes no próprio Aluno). */
     public void editar(Aluno alunoEditado) {
-        // regras cruzadas — se necessário, aplique aqui (ex.: rever RN-136 numa troca de responsáveis)
-        // Invariantes internas são checadas pelo próprio Aluno no construtor/substituição.
         repo.salvar(alunoEditado);
     }
 }
