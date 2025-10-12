@@ -260,6 +260,8 @@ public class RepositorioEmMemoria implements
                 ? new Turma(t.getId(), t.getNome(), t.getAnoLetivo(), t.isAtivo(), substituto)
                 : t
         );
+        // Remove o professor antigo após substituição
+        professores.remove(antigo.value());
     }
 
     // =========================================================
@@ -268,6 +270,8 @@ public class RepositorioEmMemoria implements
     @Override public void salvar(Turma t) { turmas.put(t.getId().value(), t); }
 
     @Override public Optional<Turma> porId(TurmaId id) { return Optional.ofNullable(turmas.get(id.value())); }
+
+    @Override public void remover(TurmaId id) { turmas.remove(id.value()); }
 
     @Override public boolean existeNomeNoAno(String nome, int anoLetivo) {
         return turmas.values().stream().anyMatch(t -> t.getNome().equalsIgnoreCase(nome) && t.getAnoLetivo() == anoLetivo);

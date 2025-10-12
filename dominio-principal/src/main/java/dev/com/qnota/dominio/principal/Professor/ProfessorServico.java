@@ -13,6 +13,10 @@ public class ProfessorServico {
 
     /** Cadastro: entidade garante NOT NULL/NOT BLANK e RN-84 (>= 1 especialidade). */
     public void cadastrar(ProfessorId id, String nome, String cpf, String email, List<String> especialidades) {
+        // Validar especialidades duplicadas
+        if (especialidades.size() != especialidades.stream().distinct().count()) {
+            throw new IllegalArgumentException("Professor deve ter ao menos uma especialidade");
+        }
         var p = new Professor(id, nome, cpf, email, especialidades);
         repo.salvar(p);
     }

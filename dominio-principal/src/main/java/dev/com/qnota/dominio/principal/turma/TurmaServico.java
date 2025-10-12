@@ -36,6 +36,7 @@ public class TurmaServico {
     public void excluir(TurmaId id) {
         if (repo.possuiAlunosAtivos(id) || repo.possuiSimulados(id))
             throw new IllegalStateException("RN-08: Não é possível excluir turma com vínculos.");
-        // remoção física/log é responsabilidade da implementação do repositório
+        // Remove a turma do repositório
+        repo.remover(id);
     }
 }
