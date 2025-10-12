@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
@@ -19,34 +20,43 @@ import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelServico;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 
-/**
- * Steps do Cucumber para a feature "Gerenciar responsáveis".
- * Usa o RepositorioEmMemoria como double de teste.
- */
 public class GerenciarResponsaveisFeature {
 
-    // ===== Infra fake e serviços =====
-    private final RepositorioEmMemoria repo = new RepositorioEmMemoria();
-    // Serviço precisa de (ResponsavelRepositorio, AlunoRepositorio).
-    private final ResponsavelServico servico = new ResponsavelServico(repo, repo);
+    private RepositorioEmMemoria repo;
+    private ResponsavelServico servico;
 
-    // ===== Contexto do cenário =====
-    private final AtomicInteger seq = new AtomicInteger(1);
-    private final Map<String, ResponsavelId> aliasResp = new HashMap<>(); // "R1" -> id
-    private final Map<String, AlunoId> aliasAluno = new HashMap<>();      // "A1" -> id
-    private final Map<String, String> cpfByAlias = new HashMap<>();       // "R1" -> cpf
+    private AtomicInteger seq;
+    private Map<String, ResponsavelId> aliasResp;
+    private Map<String, AlunoId> aliasAluno;
+    private Map<String, String> cpfByAlias;
 
-    private String currentCpf;                 // último CPF em foco
-    private ResponsavelId currentRespId;       // responsável "em foco"
-    private AlunoId currentAlunoId;            // aluno "em foco"
-    private Exception lastError;               // exceção capturada
+    private String currentCpf;
+    private ResponsavelId currentRespId;
+    private AlunoId currentAlunoId;
+    private Exception lastError;
 
-    // ===== Utilidades =====
+    @Before
+    public void setup() {
+        repo = new RepositorioEmMemoria();
+        servico = new ResponsavelServico(repo, repo); // (responsavelRepo, alunoRepo)
+
+        seq        = new AtomicInteger(1);
+        aliasResp  = new HashMap<>();
+        aliasAluno = new HashMap<>();
+        cpfByAlias = new HashMap<>();
+
+        currentCpf     = null;
+        currentRespId  = null;
+        currentAlunoId = null;
+        lastError      = null;
+    }
+
+    // ===== utils =====
     private ResponsavelId newRespId() { return new ResponsavelId(seq.getAndIncrement()); }
     private AlunoId newAlunoId() { return new AlunoId(seq.getAndIncrement()); }
     private TurmaId defaultTurma() { return new TurmaId(999); }
+    private static String normCpf(String s){ return s==null? null : s.replaceAll("\\D",""); }
 
-    // Gera um CPF válido (somente dígitos) para testes determinísticos
     private String generateCpf(int seed) {
         int[] n = new int[11];
         int s = Math.abs(seed) + 12345;
@@ -69,14 +79,12 @@ public class GerenciarResponsaveisFeature {
     }
 
     private Responsavel ensureResponsavelByCpf(String cpf, String nome, String email, Responsavel.Status status) {
-        // procura pelo CPF entre ids já conhecidos
         for (var e : aliasResp.entrySet()) {
             var rOpt = repo.porId(e.getValue());
-            if (rOpt.isPresent() && rOpt.get().getCpf().replaceAll("\\D","").equals(cpf.replaceAll("\\D",""))) {
+            if (rOpt.isPresent() && normCpf(rOpt.get().getCpf()).equals(normCpf(cpf))) {
                 return rOpt.get();
             }
         }
-        // não achou, cria novo
         var id = newRespId();
         var r = new Responsavel(id, nome, cpf, email, status);
         repo.salvar(r);
@@ -96,10 +104,15 @@ public class GerenciarResponsaveisFeature {
         });
     }
 
+    /** Evita CME: não usar computeIfAbsent aninhado */
     private AlunoId ensureAlunoComVinculos(String alunoAlias, String nomeAluno,
                                            String r1Alias, boolean r1Principal,
                                            String r2Alias, boolean r2Principal) {
-        var aId = aliasAluno.computeIfAbsent(alunoAlias, a -> newAlunoId());
+        AlunoId aId = aliasAluno.get(alunoAlias);
+        if (aId == null) {
+            aId = newAlunoId();
+            aliasAluno.put(alunoAlias, aId);
+        }
         var r1Id = ensureRespAlias(r1Alias, r1Alias + " Nome",
                 r1Alias.toLowerCase()+"@ex.com", Responsavel.Status.ATIVO);
         var r2Id = (r2Alias != null)
@@ -117,35 +130,39 @@ public class GerenciarResponsaveisFeature {
 
     // ===================== Givens =====================
 
-    // genérico: com CPF explícito e estado "está" | "não está"
     @Given("um \"responsável\" com CPF {string} {string} registrado")
     public void um_responsavel_com_cpf_registrado(String cpf, String estado) {
         lastError = null;
         currentCpf = cpf;
         if ("não está".equals(estado)) {
-            // garante que não exista
             aliasResp.values().forEach(id -> repo.porId(id).ifPresent(r -> {
-                if (r.getCpf().replaceAll("\\D","").equals(cpf.replaceAll("\\D",""))) repo.excluir(id);
+                if (normCpf(r.getCpf()).equals(normCpf(cpf))) repo.excluir(id);
             }));
             currentRespId = null;
-        } else { // "está" | "já está"
+        } else {
             var r = ensureResponsavelByCpf(cpf, "Nome Padrão", "email@exemplo.com", Responsavel.Status.ATIVO);
             currentRespId = r.getId();
         }
     }
 
-    // sem CPF (para cenários de NOT BLANK etc.)
     @Given("um \"responsável\" {string} registrado")
     public void um_responsavel_sem_cpf_registrado(String estado) {
         lastError = null;
         String cpf = generateCpf(seq.getAndIncrement());
         currentCpf = cpf;
         if ("não está".equals(estado)) {
-            currentRespId = null; // nada criado
-        } else { // "está"
+            currentRespId = null;
+        } else {
             var r = ensureResponsavelByCpf(cpf, "Nome Padrão", "email@exemplo.com", Responsavel.Status.ATIVO);
             currentRespId = r.getId();
         }
+    }
+
+    @Given("um \"responsável\" {string} registrado e {string}")
+    public void um_responsavel_registrado_e(String estado, String flag) {
+        lastError = null;
+        currentRespId = null;
+        if ("sem CPF".equalsIgnoreCase(flag)) currentCpf = "";
     }
 
     @Given("não existe \"responsável\" com CPF {string}")
@@ -153,7 +170,7 @@ public class GerenciarResponsaveisFeature {
         lastError = null;
         currentCpf = cpf;
         aliasResp.values().forEach(id -> repo.porId(id).ifPresent(r -> {
-            if (r.getCpf().replaceAll("\\D","").equals(cpf.replaceAll("\\D",""))) repo.excluir(id);
+            if (normCpf(r.getCpf()).equals(normCpf(cpf))) repo.excluir(id);
         }));
         currentRespId = null;
     }
@@ -193,8 +210,36 @@ public class GerenciarResponsaveisFeature {
         repo.salvar(r);
         currentRespId = id;
         currentCpf = cpf;
-        // garante que nenhum aluno conheça esse responsável (não adicionamos em aluno algum)
     }
+
+    @Given("um \"responsável\" {string} registrado e {string} vínculo com o \"aluno\" {string}")
+    public void um_responsavel_registrado_e_vinculo(String estado, String possui, String alunoAlias) {
+        // cria o responsável
+        var id = newRespId();
+        var cpf = generateCpf(id.value());
+        var r = new Responsavel(id, "Com Vinculo", cpf, "cv@ex.com", Responsavel.Status.ATIVO);
+        repo.salvar(r);
+        currentRespId = id;
+        currentCpf = cpf;
+
+        // cria (ou carrega) o aluno com um principal já definido — sem computeIfAbsent
+        currentAlunoId = aliasAluno.get(alunoAlias);
+        if (currentAlunoId == null) {
+            currentAlunoId = ensureAlunoComVinculos(alunoAlias, "Aluno " + alunoAlias, "R0", true, null, false);
+            aliasAluno.put(alunoAlias, currentAlunoId);
+        }
+
+        // se for para "possuir" vínculo, adiciona o novo responsável como NÃO principal (RN-58)
+        if ("possui".equalsIgnoreCase(possui)) {
+            var aluno = repo.porId(currentAlunoId).orElseThrow();
+            var nova = new java.util.ArrayList<>(aluno.getResponsaveis());
+            nova.add(new Aluno.AlunoResponsavel(currentRespId, "Parente", false));
+            aluno = new Aluno(aluno.getId(), aluno.getNome(), aluno.getDataNascimento(),
+                    aluno.isAtivo(), aluno.getTurma(), nova);
+            repo.salvar(aluno);
+        }
+    }
+
 
     @Given("um \"aluno\" \"está\" vinculado aos \"responsáveis\" {string} e {string}")
     public void aluno_vinculado_a_R1_e_R2(String r1, String r2) {
@@ -235,9 +280,31 @@ public class GerenciarResponsaveisFeature {
 
     @Given("o \"responsável\" {string} {string} vinculado ao \"aluno\" {string}")
     public void responsavel_estado_vinculo_aluno_alias(String rAlias, String estado, String alunoAlias) {
-        currentAlunoId = aliasAluno.computeIfAbsent(
-                alunoAlias, k -> ensureAlunoComVinculos(alunoAlias, "Aluno "+alunoAlias, "R0", true, null, false));
+        currentAlunoId = aliasAluno.get(alunoAlias);
+        if (currentAlunoId == null) {
+            currentAlunoId = ensureAlunoComVinculos(alunoAlias, "Aluno "+alunoAlias, "R0", true, null, false);
+        }
         responsavel_estado_vinculo_ao_aluno_atual(rAlias, estado);
+    }
+
+    @Given("o \"responsável\" {string} vinculado ao \"aluno\" {string}")
+    public void responsavel_contexto_vinculado_ao_aluno(String estado, String alunoAlias) {
+        currentAlunoId = aliasAluno.get(alunoAlias);
+        if (currentAlunoId == null) {
+            currentAlunoId = ensureAlunoComVinculos(alunoAlias, "Aluno "+alunoAlias, "R0", true, null, false);
+        }
+        var aluno = repo.porId(currentAlunoId).orElseThrow();
+        boolean jaVinculado = aluno.getResponsaveis().stream().anyMatch(ar -> ar.responsavel().equals(currentRespId));
+        if ("está".equals(estado) && !jaVinculado) {
+            var nova = new java.util.ArrayList<>(aluno.getResponsaveis());
+            nova.add(new Aluno.AlunoResponsavel(currentRespId, "Parente", false));
+            aluno = new Aluno(aluno.getId(), aluno.getNome(), aluno.getDataNascimento(), aluno.isAtivo(), aluno.getTurma(), nova);
+            repo.salvar(aluno);
+        }
+        if ("não está".equals(estado) && jaVinculado) {
+            aluno.removerResponsavel(currentRespId);
+            repo.salvar(aluno);
+        }
     }
 
     // ===================== Whens =====================
@@ -246,26 +313,33 @@ public class GerenciarResponsaveisFeature {
     public void cadastra_responsavel_nome_email(String nome, String email) {
         lastError = null;
         try {
-            servico.cadastrar(newRespId(), nome, currentCpf, email);
+            var id = newRespId();
+            currentRespId = id;                 // <— guarda
+            servico.cadastrar(id, nome, currentCpf, email);
         } catch (Exception e) { lastError = e; }
     }
 
-    // usado pelos cenários básicos (nome/cpf/email explícitos)
     @When("um coordenador cadastra o \"responsável\" com nome {string}, CPF {string} e e-mail {string}")
     public void cadastra_responsavel_nome_cpf_email(String nome, String cpf, String email) {
         lastError = null;
         currentCpf = cpf;
         try {
-            servico.cadastrar(newRespId(), nome, cpf, email);
+            var id = newRespId();
+            currentRespId = id;                 // <— guarda
+            servico.cadastrar(id, nome, cpf, email);
         } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador tenta cadastrar o \"responsável\" com esse CPF")
     public void tenta_cadastrar_com_mesmo_cpf() {
         lastError = null;
-        try {
-            servico.cadastrar(newRespId(), "Nome", currentCpf, "mail@ex.com");
-        } catch (Exception e) { lastError = e; }
+        try { servico.cadastrar(newRespId(), "Nome", currentCpf, "mail@ex.com"); } catch (Exception e) { lastError = e; }
+    }
+
+    @When("um coordenador tenta cadastrar outro \"responsável\" com o CPF {string}")
+    public void tenta_cadastrar_outro_com_cpf(String cpf) {
+        lastError = null;
+        try { servico.cadastrar(newRespId(), "Outro", cpf, "outro@ex.com"); } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador cadastra o \"responsável\" com CPF {string}")
@@ -273,8 +347,28 @@ public class GerenciarResponsaveisFeature {
         lastError = null;
         currentCpf = cpf;
         try {
-            servico.cadastrar(newRespId(), "Nome Qualquer", cpf, "mail@ex.com");
+            var id = newRespId();
+            currentRespId = id;                 // <— guarda
+            servico.cadastrar(id, "Nome Qualquer", cpf, "mail@ex.com");
         } catch (Exception e) { lastError = e; }
+    }
+
+    @When("um coordenador tenta cadastrar o \"responsável\" com nome {string} e CPF {string}")
+    public void tenta_cadastrar_sem_email(String nome, String cpf) {
+        lastError = null;
+        try { servico.cadastrar(newRespId(), nome, cpf, ""); } catch (Exception e) { lastError = e; }
+    }
+
+    @When("um coordenador tenta cadastrar o \"responsável\" com nome {string} e e-mail {string}")
+    public void tenta_cadastrar_sem_cpf(String nome, String email) {
+        lastError = null;
+        try { servico.cadastrar(newRespId(), nome, "", email); } catch (Exception e) { lastError = e; }
+    }
+
+    @When("um coordenador tenta cadastrar o \"responsável\" com CPF {string} e e-mail {string}")
+    public void tenta_cadastrar_sem_nome(String cpf, String email) {
+        lastError = null;
+        try { servico.cadastrar(newRespId(), "", cpf, email); } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador altera o nome do \"responsável\" para {string} e o e-mail para {string}")
@@ -286,12 +380,24 @@ public class GerenciarResponsaveisFeature {
                 for (var entry : aliasResp.entrySet()) {
                     var rid = entry.getValue();
                     var r = repo.porId(rid).orElse(null);
-                    if (r != null && r.getCpf().replaceAll("\\D","").equals(currentCpf.replaceAll("\\D",""))) { id = rid; break; }
+                    if (r != null && normCpf(r.getCpf()).equals(normCpf(currentCpf))) { id = rid; break; }
                 }
             }
             assertNotNull(id, "Responsável não encontrado para edição");
             servico.atualizarContato(id, novoNome, novoEmail);
         } catch (Exception e) { lastError = e; }
+    }
+
+    @When("um coordenador tenta alterar o e-mail do \"responsável\" para {string} mantendo o nome {string}")
+    public void tenta_alterar_email_vazio(String email, String nome) {
+        lastError = null;
+        try { servico.atualizarContato(currentRespId, nome, email); } catch (Exception e) { lastError = e; }
+    }
+
+    @When("um coordenador tenta alterar o nome do \"responsável\" para {string} mantendo o e-mail {string}")
+    public void tenta_alterar_nome_vazio(String nome, String email) {
+        lastError = null;
+        try { servico.atualizarContato(currentRespId, nome, email); } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador desvincula o \"responsável\" {string} do \"aluno\"")
@@ -304,9 +410,7 @@ public class GerenciarResponsaveisFeature {
     }
 
     @When("um coordenador tenta desvincular o \"responsável\" {string} do \"aluno\"")
-    public void tenta_desvincular_responsavel_do_aluno(String rAlias) {
-        desvincula_responsavel_do_aluno(rAlias);
-    }
+    public void tenta_desvincular_responsavel_do_aluno(String rAlias) { desvincula_responsavel_do_aluno(rAlias); }
 
     @When("um coordenador vincula o \"responsável\" {string} ao \"aluno\"")
     public void vincula_responsavel_ao_aluno_simples(String rAlias) {
@@ -327,17 +431,36 @@ public class GerenciarResponsaveisFeature {
         } catch (Exception e) { lastError = e; }
     }
 
+    // Step faltante para o cenário de grau vazio (captura exceção)
+    @When("um coordenador tenta vincular o \"responsável\" {string} ao \"aluno\" com grau {string} e {string}")
+    public void tenta_vincular_responsavel_ao_aluno_com_grau(String rAlias, String grau, String principalStr) {
+        vincula_responsavel_ao_aluno_com_grau(rAlias, grau, principalStr);
+    }
+
     @When("um coordenador tenta vincular novamente o \"responsável\" {string} ao mesmo \"aluno\"")
-    public void tenta_vincular_duplicado(String rAlias) {
-        vincula_responsavel_ao_aluno_simples(rAlias);
+    public void tenta_vincular_duplicado(String rAlias) { vincula_responsavel_ao_aluno_simples(rAlias); }
+
+    @When("um coordenador vincula o \"responsável\" ao \"aluno\" {string} com grau {string} e {string}")
+    public void vincula_esse_responsavel_ao_aluno(String alunoAlias, String grau, String principalStr) {
+        lastError = null;
+        try {
+            currentAlunoId = aliasAluno.get(alunoAlias);
+            if (currentAlunoId == null) {
+                currentAlunoId = ensureAlunoComVinculos(alunoAlias, "Aluno "+alunoAlias, "R0", true, null, false);
+            }
+            boolean principal = "principal".equalsIgnoreCase(principalStr);
+            servico.vincularAoAluno(currentRespId, currentAlunoId, grau, principal);
+        } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador tenta vincular esse \"responsável\" ao \"aluno\" {string}")
     public void tenta_vincular_esse_responsavel_ao_aluno(String alunoAlias) {
         lastError = null;
         try {
-            currentAlunoId = aliasAluno.computeIfAbsent(
-                    alunoAlias, k -> ensureAlunoComVinculos(alunoAlias, "Aluno "+alunoAlias, "R0", true, null, false));
+            currentAlunoId = aliasAluno.get(alunoAlias);
+            if (currentAlunoId == null) {
+                currentAlunoId = ensureAlunoComVinculos(alunoAlias, "Aluno "+alunoAlias, "R0", true, null, false);
+            }
             servico.vincularAoAluno(currentRespId, currentAlunoId, "Parente", false);
         } catch (Exception e) { lastError = e; }
     }
@@ -356,53 +479,35 @@ public class GerenciarResponsaveisFeature {
     @Then("o sistema confirma o cadastro do \"responsável\"")
     public void confirma_cadastro() {
         assertNull(lastError, "Esperava sucesso, mas houve erro: " + (lastError==null?"":lastError.getMessage()));
-        boolean existe = aliasResp.values().stream().anyMatch(id ->
-            repo.porId(id).map(r -> r.getCpf().replaceAll("\\D","").equals(currentCpf.replaceAll("\\D",""))).orElse(false)
-        );
-        assertTrue(existe, "Cadastro não encontrado para CPF informado");
+        var rOpt = repo.porId(currentRespId);
+        assertTrue(rOpt.isPresent(), "Cadastro não encontrado para o id salvo");
+        assertEquals(normCpf(currentCpf), normCpf(rOpt.get().getCpf()), "CPF salvo diferente do esperado");
     }
 
     @Then("o sistema confirma a atualização dos dados do \"responsável\"")
-    public void confirma_atualizacao() {
-        assertNull(lastError, "Esperava sucesso na atualização: " + (lastError==null?"":lastError.getMessage()));
-    }
+    public void confirma_atualizacao() { assertNull(lastError, "Esperava sucesso na atualização: " + (lastError==null?"":lastError.getMessage())); }
 
     @Then("o sistema confirma o vínculo do \"responsável\" ao \"aluno\"")
-    public void confirma_vinculo() {
-        assertNull(lastError, "Esperava sucesso no vínculo: " + (lastError==null?"":lastError.getMessage()));
-    }
+    public void confirma_vinculo() { assertNull(lastError, "Esperava sucesso no vínculo: " + (lastError==null?"":lastError.getMessage())); }
 
     @Then("o sistema confirma a desvinculação")
-    public void confirma_desvinculo() {
-        assertNull(lastError, "Esperava sucesso na desvinculação: " + (lastError==null?"":lastError.getMessage()));
-    }
+    public void confirma_desvinculo() { assertNull(lastError, "Esperava sucesso na desvinculação: " + (lastError==null?"":lastError.getMessage())); }
 
     @Then("o sistema confirma a exclusão do \"responsável\"")
-    public void confirma_exclusao() {
-        assertNull(lastError, "Esperava sucesso na exclusão: " + (lastError==null?"":lastError.getMessage()));
-    }
+    public void confirma_exclusao() { assertNull(lastError, "Esperava sucesso na exclusão: " + (lastError==null?"":lastError.getMessage())); }
 
     @Then("o {string} permanece com pelo menos um {string} ativo")
     public void o_permanece_com_pelo_menos_um_ativo(String entidadeAluno, String entidadeResp) {
         var aluno = repo.porId(currentAlunoId).orElse(null);
         assertNotNull(aluno, "Aluno não encontrado no contexto");
-        assertTrue(!aluno.getResponsaveis().isEmpty(), "Aluno ficou sem responsáveis após a operação");
+        assertFalse(aluno.getResponsaveis().isEmpty(), "Aluno ficou sem responsáveis após a operação");
     }
 
-    @Then("o sistema rejeita o cadastro")
-    public void rejeita_cadastro() { assertNotNull(lastError, "Esperava erro no cadastro"); }
-
-    @Then("o sistema rejeita a atualização")
-    public void rejeita_atualizacao() { assertNotNull(lastError, "Esperava erro na atualização"); }
-
-    @Then("o sistema rejeita o vínculo")
-    public void rejeita_vinculo() { assertNotNull(lastError, "Esperava erro no vínculo"); }
-
-    @Then("o sistema rejeita a desvinculação")
-    public void rejeita_desvinculo() { assertNotNull(lastError, "Esperava erro na desvinculação"); }
-
-    @Then("o sistema rejeita a exclusão")
-    public void rejeita_exclusao() { assertNotNull(lastError, "Esperava erro na exclusão"); }
+    @Then("o sistema rejeita o cadastro")      public void rejeita_cadastro()      { assertNotNull(lastError, "Esperava erro no cadastro"); }
+    @Then("o sistema rejeita a atualização")   public void rejeita_atualizacao()   { assertNotNull(lastError, "Esperava erro na atualização"); }
+    @Then("o sistema rejeita o vínculo")       public void rejeita_vinculo()       { assertNotNull(lastError, "Esperava erro no vínculo"); }
+    @Then("o sistema rejeita a desvinculação") public void rejeita_desvinculo()    { assertNotNull(lastError, "Esperava erro na desvinculação"); }
+    @Then("o sistema rejeita a exclusão")      public void rejeita_exclusao()      { assertNotNull(lastError, "Esperava erro na exclusão"); }
 
     @Then("o sistema informa que {string}")
     public void o_sistema_informa_que(String msg) {

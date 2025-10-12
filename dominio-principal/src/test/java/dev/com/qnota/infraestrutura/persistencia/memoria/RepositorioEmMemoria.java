@@ -118,28 +118,34 @@ public class RepositorioEmMemoria implements
     }
 
     // =========================================================
-    // =============== ResponsavelRepositorio ==================
-    // =========================================================
+// =============== ResponsavelRepositorio ==================
+// =========================================================
+
+    // guarda CPFs NORMALIZADOS (apenas dígitos)
     private final Set<String> cpfsResponsavel = new HashSet<>();
 
-    @Override public void salvar(Responsavel r) { responsaveis.put(r.getId().value(), r); cpfsResponsavel.add(r.getCpf()); }
-
-    @Override public Optional<Responsavel> porId(ResponsavelId id) { return Optional.ofNullable(responsaveis.get(id.value())); }
-
-    @Override public boolean cpfExiste(String cpf) { return cpfsResponsavel.contains(cpf); }
-
-    /** Checa vínculos percorrendo os agregados de Aluno. */
-    @Override public boolean estaVinculadoAAlgumAluno(ResponsavelId id) {
-        return alunos.values().stream().anyMatch(a ->
-            a.getResponsaveis().stream().anyMatch(ar -> ar.responsavel().equals(id)));
+    private static String normCpf(String s) {
+        return s == null ? null : s.replaceAll("\\D", "");
     }
 
-    // ------- Helpers (não fazem parte da interface, mas ajudam nos testes) -------
-    public int quantidadeResponsaveisDoAluno(AlunoId alunoId) {
-        var a = alunos.get(alunoId.value());
-        return (a == null) ? 0 : a.getResponsaveis().size();
+    @Override
+    public void salvar(Responsavel r) {
+        responsaveis.put(r.getId().value(), r);
+        cpfsResponsavel.add(normCpf(r.getCpf())); // normalizado
     }
 
+    @Override
+    public Optional<Responsavel> porId(ResponsavelId id) {
+        return Optional.ofNullable(responsaveis.get(id.value()));
+    }
+
+    @Override
+    public boolean cpfExiste(String cpf) {
+        return cpfsResponsavel.contains(normCpf(cpf)); // normalizado
+    }
+
+    // ----- operações administrativas (edição/remoção) -----
+    @Override
     public void atualizarContato(ResponsavelId id, String novoNome, String novoEmail) {
         var r = responsaveis.get(id.value());
         if (r == null) return;
@@ -147,9 +153,17 @@ public class RepositorioEmMemoria implements
         responsaveis.put(id.value(), atualizado);
     }
 
+    @Override
     public void excluir(ResponsavelId id) {
         var r = responsaveis.remove(id.value());
-        if (r != null) cpfsResponsavel.remove(r.getCpf());
+        if (r != null) cpfsResponsavel.remove(normCpf(r.getCpf()));
+    }
+
+    // ----- vínculos -----
+    @Override
+    public boolean estaVinculadoAAlgumAluno(ResponsavelId id) {
+        return alunos.values().stream().anyMatch(a ->
+            a.getResponsaveis().stream().anyMatch(ar -> ar.responsavel().equals(id)));
     }
 
     @Override
@@ -160,12 +174,6 @@ public class RepositorioEmMemoria implements
     }
 
     @Override
-    public boolean estaInadimplente(ResponsavelId id) {
-        var r = responsaveis.get(id.value());
-        return r != null && r.getStatus() == Responsavel.Status.INADIMPLENTE;
-    }
-
-    @Override
     public void vincular(ResponsavelId respId, AlunoId alunoId) {
         var a = alunos.get(alunoId.value());
         if (a == null) return;
@@ -173,7 +181,7 @@ public class RepositorioEmMemoria implements
         var nova = new ArrayList<>(a.getResponsaveis());
         boolean jaVinculado = nova.stream().anyMatch(ar -> ar.responsavel().equals(respId));
         if (!jaVinculado) {
-            // Para o fake usamos um vínculo “neutro”; as regras (máx 3, principal, etc.) são do domínio/serviço
+            // vínculo “neutro”; regras (principal, limites, etc.) são aplicadas pelo serviço
             nova.add(new Aluno.AlunoResponsavel(respId, "vinculo", false));
             alunos.put(a.getId().value(), new Aluno(
                     a.getId(), a.getNome(), a.getDataNascimento(), a.isAtivo(), a.getTurma(), nova));
@@ -194,6 +202,12 @@ public class RepositorioEmMemoria implements
     }
 
     @Override
+    public int quantidadeResponsaveisDoAluno(AlunoId alunoId) {
+        var a = alunos.get(alunoId.value());
+        return (a == null) ? 0 : a.getResponsaveis().size();
+    }
+
+    @Override
     public void definirPrincipal(ResponsavelId respId, AlunoId alunoId) {
         var a = alunos.get(alunoId.value());
         if (a == null) return;
@@ -205,6 +219,13 @@ public class RepositorioEmMemoria implements
         }
         alunos.put(a.getId().value(), new Aluno(
                 a.getId(), a.getNome(), a.getDataNascimento(), a.isAtivo(), a.getTurma(), nova));
+    }
+
+    // ----- inadimplência -----
+    @Override
+    public boolean estaInadimplente(ResponsavelId id) {
+        var r = responsaveis.get(id.value());
+        return r != null && r.getStatus() == Responsavel.Status.INADIMPLENTE;
     }
 
     // =========================================================
