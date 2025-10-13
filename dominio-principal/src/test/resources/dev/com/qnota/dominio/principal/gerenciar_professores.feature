@@ -22,7 +22,7 @@ Feature: Gerenciar professores
     Given um "professor" com nome "Ana Lima" e especialidades "Matemática" e "matemática" "não está" registrado
     When um coordenador tenta cadastrar o "professor" com especialidades duplicadas
     Then o sistema rejeita o cadastro em professores
-    And o sistema informa em professores que "Professor deve ter ao menos uma especialidade"
+    And o sistema informa em professores que "RN-84: Especialidades duplicadas não são permitidas: matemática"
 
   # ========= H3.2 EDITAR PROFESSOR =========
 

@@ -37,7 +37,9 @@ public class Professor {
         for (String e : especialidades) {
             String v = requireNonBlank(e, "especialidade não pode ser vazia").trim();
             String key = v.toLowerCase();
-            if (!vistos.add(key)) continue; // remove duplicatas
+            if (!vistos.add(key)) {
+                throw new IllegalArgumentException("RN-84: Especialidades duplicadas não são permitidas: " + e);
+            }
             normalizada.add(v);
         }
         if (normalizada.isEmpty())

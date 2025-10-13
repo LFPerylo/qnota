@@ -66,10 +66,12 @@ public class GerenciarProfessoresFeature {
 
     private ProfessorId ensureProfessor(String alias) {
         return aliasProfessor.computeIfAbsent(alias, a -> {
-            var id = newProfessorId();
             var especialidades = List.of("Matemática", "Física");
-            repo.salvar(new Professor(id, a + " Nome", "12345678901", a.toLowerCase()+"@ex.com", especialidades));
-            return id;
+            // Como o ID é gerado pelo repositório, vamos criar o professor e obter o ID gerado
+            var professor = new Professor(a + " Nome", "12345678901", a.toLowerCase()+"@ex.com", especialidades);
+            repo.salvar(professor);
+            // Retornar o ID gerado pelo repositório
+            return professor.getId();
         });
     }
 
@@ -79,15 +81,19 @@ public class GerenciarProfessoresFeature {
 
     private TurmaId ensureTurma(String alias) {
         return aliasTurma.computeIfAbsent(alias, a -> {
-            var id = newTurmaId();
             var professorId = ensureProfessorDefault("P1");
-            repo.salvar(new Turma(id, a, 2025, true, professorId));
-            return id;
+            var turma = new Turma(a, 2025, true, professorId);
+            repo.salvar(turma);
+            // Retornar o ID gerado pelo repositório
+            return turma.getId();
         });
     }
 
-    private void persistProfessorBasico(ProfessorId id, String nome, String cpf, String email, List<String> especialidades) {
-        repo.salvar(new Professor(id, nome, cpf, email, especialidades));
+    private ProfessorId persistProfessorBasico(ProfessorId id, String nome, String cpf, String email, List<String> especialidades) {
+        // Como o ID é gerado pelo repositório, vamos salvar sem o ID específico
+        var professor = new Professor(nome, cpf, email, especialidades);
+        repo.salvar(professor);
+        return professor.getId();
     }
 
     // helper para montar disciplinas de Simulado (RN-12 exige >= 2)
@@ -104,8 +110,7 @@ public class GerenciarProfessoresFeature {
         currentEmail = "professor@ex.com";
         currentEspecialidades = List.of(especialidade);
         if ("já está".equalsIgnoreCase(estado)) {
-            currentProfessorId = newProfessorId();
-            persistProfessorBasico(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+            currentProfessorId = persistProfessorBasico(null, currentNome, currentCpf, currentEmail, currentEspecialidades);
         } else {
             currentProfessorId = null;
         }
@@ -114,12 +119,11 @@ public class GerenciarProfessoresFeature {
     @Given("um \"professor\" {string} registrado")
     public void professor_estado_registrado(String estado) {
         if ("está".equalsIgnoreCase(estado)) {
-            currentProfessorId = newProfessorId();
-            currentNome = "Professor " + currentProfessorId.value();
+            currentNome = "Professor Teste";
             currentCpf = "12345678901";
             currentEmail = "professor@ex.com";
             currentEspecialidades = List.of("Matemática", "Física");
-            persistProfessorBasico(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+            currentProfessorId = persistProfessorBasico(null, currentNome, currentCpf, currentEmail, currentEspecialidades);
         } else {
             currentProfessorId = null;
             currentNome = "Novo Professor";
@@ -140,8 +144,7 @@ public class GerenciarProfessoresFeature {
             currentEspecialidades = List.of(esp1);
         }
         if ("já está".equalsIgnoreCase(estado)) {
-            currentProfessorId = newProfessorId();
-            persistProfessorBasico(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+            currentProfessorId = persistProfessorBasico(null, currentNome, currentCpf, currentEmail, currentEspecialidades);
         } else {
             currentProfessorId = null;
         }
@@ -154,8 +157,7 @@ public class GerenciarProfessoresFeature {
         currentEmail = "professor@ex.com";
         currentEspecialidades = List.of(esp1, esp2);
         if ("já está".equalsIgnoreCase(estado)) {
-            currentProfessorId = newProfessorId();
-            persistProfessorBasico(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+            currentProfessorId = persistProfessorBasico(null, currentNome, currentCpf, currentEmail, currentEspecialidades);
         } else {
             currentProfessorId = null;
         }
@@ -168,7 +170,7 @@ public class GerenciarProfessoresFeature {
             // Criar turmas para o professor
             for (int i = 1; i <= qtdTurmas; i++) {
                 var turmaId = newTurmaId();
-                repo.salvar(new Turma(turmaId, "Turma" + i, 2025, true, currentProfessorId));
+                repo.salvar(new Turma("Turma" + i, 2025, true, currentProfessorId));
             }
         }
     }
@@ -177,19 +179,15 @@ public class GerenciarProfessoresFeature {
     public void professor_registrado_possui_finalizados(String estado, String possui) {
         professor_estado_registrado("está");
         if ("possui".equalsIgnoreCase(possui)) {
-            // Criar turma para o professor
-            var turmaId = ensureTurma("T1");
-            // Atualizar turma para usar o professor atual
-            var turma = repo.porId(turmaId).orElseThrow();
-            turma.mudarProfessor(currentProfessorId);
+            // Criar turma para o professor atual
+            var turma = new Turma("Turma Teste", 2025, true, currentProfessorId);
             repo.salvar(turma);
+            var turmaId = turma.getId(); // Usar o ID da turma criada
             
             var s = new Simulado(
-                newSimuladoId(),
                 java.time.LocalDate.now().minusDays(10),
                 Simulado.Status.FINALIZADO,
-                turmaId,
-                // >>> duas disciplinas (RN-12)
+                turmaId, // Use the actual generated turmaId
                 List.of(dp(1, 6.0), dp(2, 4.0))
             );
             repo.salvar(s);
@@ -204,7 +202,7 @@ public class GerenciarProfessoresFeature {
             int qtdTurmas = "3".equals(possui) ? 3 : 4;
             for (int i = 1; i <= qtdTurmas; i++) {
                 var turmaId = newTurmaId();
-                repo.salvar(new Turma(turmaId, "Turma" + i, 2025, true, currentProfessorId));
+                repo.salvar(new Turma("Turma" + i, 2025, true, currentProfessorId));
             }
         }
     }
@@ -238,8 +236,7 @@ public class GerenciarProfessoresFeature {
         currentEmail = "professor@ex.com";
         currentEspecialidades = List.of(esp1, esp2);
         if ("já está".equalsIgnoreCase(estado)) {
-            currentProfessorId = newProfessorId();
-            persistProfessorBasico(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+            currentProfessorId = persistProfessorBasico(null, currentNome, currentCpf, currentEmail, currentEspecialidades);
         } else {
             currentProfessorId = null;
         }
@@ -252,8 +249,7 @@ public class GerenciarProfessoresFeature {
         currentEmail = "professor@ex.com";
         currentEspecialidades = List.of(especialidade);
         if ("já está".equalsIgnoreCase(estado) || "está".equalsIgnoreCase(estado)) {
-            currentProfessorId = newProfessorId();
-            persistProfessorBasico(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+            currentProfessorId = persistProfessorBasico(null, currentNome, currentCpf, currentEmail, currentEspecialidades);
         } else {
             currentProfessorId = null;
         }
@@ -267,7 +263,7 @@ public class GerenciarProfessoresFeature {
         try {
             // Não fazer fallback para valores padrão - usar exatamente o que foi definido nos Given
             currentProfessorId = newProfessorId();
-            professorSrv.cadastrar(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+            professorSrv.cadastrar(currentNome, currentCpf, currentEmail, currentEspecialidades);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -280,7 +276,7 @@ public class GerenciarProfessoresFeature {
             currentEmail = "professor@ex.com";
             currentEspecialidades = List.of(); // lista vazia
             currentProfessorId = newProfessorId();
-            professorSrv.cadastrar(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+            professorSrv.cadastrar(currentNome, currentCpf, currentEmail, currentEspecialidades);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -291,9 +287,10 @@ public class GerenciarProfessoresFeature {
             currentNome = "Professor Duplicado";
             currentCpf = "12345678901";
             currentEmail = "professor@ex.com";
-            currentEspecialidades = List.of("Matemática", "Matemática"); // duplicatas reais
+            // Especialidades que se tornam duplicatas após normalização (case-insensitive)
+            currentEspecialidades = List.of("Matemática", "matemática"); // duplicatas case-insensitive
             currentProfessorId = newProfessorId();
-            professorSrv.cadastrar(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+            professorSrv.cadastrar(currentNome, currentCpf, currentEmail, currentEspecialidades);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -318,8 +315,7 @@ public class GerenciarProfessoresFeature {
         lastError = null;
         try {
             if (currentProfessorId == null) {
-                currentProfessorId = newProfessorId();
-                persistProfessorBasico(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+                currentProfessorId = persistProfessorBasico(null, currentNome, currentCpf, currentEmail, currentEspecialidades);
             }
             professorSrv.removerEspecialidade(currentProfessorId, especialidade);
         } catch (Exception e) { lastError = e; }
@@ -330,8 +326,7 @@ public class GerenciarProfessoresFeature {
         lastError = null;
         try {
             if (currentProfessorId == null) {
-                currentProfessorId = newProfessorId();
-                persistProfessorBasico(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+                currentProfessorId = persistProfessorBasico(null, currentNome, currentCpf, currentEmail, currentEspecialidades);
             }
             professorSrv.removerEspecialidade(currentProfessorId, "Matemática");
         } catch (Exception e) { lastError = e; }
@@ -378,7 +373,7 @@ public class GerenciarProfessoresFeature {
             currentEmail = "professor@ex.com";
             currentEspecialidades = List.of(""); // especialidade vazia
             currentProfessorId = newProfessorId();
-            professorSrv.cadastrar(currentProfessorId, currentNome, currentCpf, currentEmail, currentEspecialidades);
+            professorSrv.cadastrar(currentNome, currentCpf, currentEmail, currentEspecialidades);
         } catch (Exception e) { lastError = e; }
     }
 
