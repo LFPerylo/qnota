@@ -367,6 +367,23 @@ public class RepositorioEmMemoria implements
                         .anyMatch(dp -> dp.disciplina().equals(id)));
     }
 
+    // ==== Helpers públicos para testes ====
+
+    /** Retorna o maior ID de Disciplina persistido (útil para pegar o recém-criado). */
+    public int maxIdDisciplina() {
+        return disciplinas.keySet().stream().mapToInt(Integer::intValue).max().orElse(0);
+    }
+
+    /** Busca disciplina por (nome, área) com trim/case-insensitive. */
+    public Optional<dev.com.qnota.dominio.principal.disciplina.Disciplina>
+        findDisciplinaByNomeArea(String nome, String areaNome) {
+            String n = (nome == null ? "" : nome.trim());
+            String a = (areaNome == null ? "" : areaNome.trim());
+            return disciplinas.values().stream()
+                    .filter(d -> d.getNome().equalsIgnoreCase(n)
+                            && d.getArea().nome().equalsIgnoreCase(a))
+                    .findFirst();
+    }
 
     // =========================================================
     // =============== SimuladoRepositorio =====================
