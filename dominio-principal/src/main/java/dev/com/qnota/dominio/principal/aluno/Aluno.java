@@ -13,21 +13,23 @@ import dev.com.qnota.dominio.principal.turma.TurmaId;
 
 public class Aluno {
 
-    private final AlunoId id;
+    // Agora o id NÃO é final para permitir atribuição pós-persistência (auto-increment/identity)
+    private AlunoId id;
+
     private String nome;
     private LocalDate dataNascimento;
     private boolean ativo;
     private TurmaId turma;
     private final List<AlunoResponsavel> responsaveis;
 
-    public Aluno(AlunoId id,
-                 String nome,
+    /** Construtor recomendado quando o ID será gerado pelo repositório/banco. */
+    public Aluno(String nome,
                  LocalDate dataNascimento,
                  boolean ativo,
                  TurmaId turma,
                  List<AlunoResponsavel> responsaveis) {
 
-        this.id = Objects.requireNonNull(id, "'id' não pode ser nulo");
+        this.id = null; // será atribuído pelo repositório
         this.nome = requireNonBlank(nome, "'nome' não pode ser vazio");
         this.dataNascimento = Objects.requireNonNull(dataNascimento, "'dataNascimento' não pode ser nula");
         this.ativo = ativo;
@@ -40,8 +42,31 @@ public class Aluno {
         validarInvariantesResponsaveis(this.responsaveis);
     }
 
+    /** Construtor de compatibilidade (legado) quando o ID já é conhecido. */
+    public Aluno(AlunoId id,
+                 String nome,
+                 LocalDate dataNascimento,
+                 boolean ativo,
+                 TurmaId turma,
+                 List<AlunoResponsavel> responsaveis) {
+        this(nome, dataNascimento, ativo, turma, responsaveis);
+        this.id = Objects.requireNonNull(id, "'id' não pode ser nulo");
+    }
+
+    /**
+     * Permite que o repositório atribua o ID após persistir (identity/auto-increment).
+     * Se já houver ID e for diferente, lança exceção.
+     */
+    public void atribuirIdSeAusente(AlunoId novoId) {
+        Objects.requireNonNull(novoId, "'id' não pode ser nulo");
+        if (this.id != null && !this.id.equals(novoId)) {
+            throw new IllegalStateException("ID já atribuído e diferente");
+        }
+        this.id = novoId;
+    }
+
     // ===== getters =====
-    public AlunoId getId() { return id; }
+    public AlunoId getId() { return id; } // pode ser nulo antes da persistência
     public String getNome() { return nome; }
     public LocalDate getDataNascimento() { return dataNascimento; }
     public boolean isAtivo() { return ativo; }

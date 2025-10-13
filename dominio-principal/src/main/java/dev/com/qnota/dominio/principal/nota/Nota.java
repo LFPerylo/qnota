@@ -9,22 +9,22 @@ import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 
 public class Nota {
 
-    private final NotaId id;                 // pode ser nulo no lançamento (gerado no repo)
-    private final AlunoId aluno;             // NOT NULL
-    private final SimuladoId simulado;       // NOT NULL
-    private final DisciplinaId disciplina;   // NOT NULL
-    private double valor;                    // 0..10
-    private final LocalDateTime dataLancamento; // NOT NULL (carimbo de quem lançou)
+    // ID atribuído pelo repositório após persistir
+    private NotaId id;
 
-    public Nota(NotaId id,
-                AlunoId aluno,
+    private final AlunoId aluno;               // NOT NULL
+    private final SimuladoId simulado;         // NOT NULL
+    private final DisciplinaId disciplina;     // NOT NULL
+    private double valor;                      // 0..10
+    private final LocalDateTime dataLancamento; // NOT NULL
+
+    /** Constrói uma nota sem ID; o repositório atribui após salvar. */
+    public Nota(AlunoId aluno,
                 SimuladoId simulado,
                 DisciplinaId disciplina,
                 double valor,
                 LocalDateTime dataLancamento) {
 
-        // id pode ser nulo; demais não.
-        this.id         = id;
         this.aluno      = Objects.requireNonNull(aluno,     "'aluno' não pode ser nulo");
         this.simulado   = Objects.requireNonNull(simulado,  "'simulado' não pode ser nulo");
         this.disciplina = Objects.requireNonNull(disciplina,"'disciplina' não pode ser nula");
@@ -32,6 +32,15 @@ public class Nota {
 
         validarFaixa(valor);
         this.valor = valor;
+    }
+
+    /** Infra chama após persistir para atribuir o ID gerado. */
+    public void atribuirIdSeAusente(NotaId novoId) {
+        Objects.requireNonNull(novoId, "'id' não pode ser nulo");
+        if (this.id != null && !this.id.equals(novoId)) {
+            throw new IllegalStateException("ID já atribuído para esta nota");
+        }
+        this.id = novoId;
     }
 
     // getters

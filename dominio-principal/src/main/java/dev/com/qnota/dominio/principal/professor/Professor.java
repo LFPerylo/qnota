@@ -9,22 +9,23 @@ import java.util.Set;
 
 public class Professor {
 
-    private final ProfessorId id;
+    // ID gerado na infraestrutura; atribuído depois de salvar
+    private ProfessorId id;
+
     private String nome;
     private final String cpf;   // IMUTÁVEL por regra (como em Responsável)
     private String email;
-    private final List<String> especialidades; // sempre >= 1 e sem duplicatas (case-insensitive)
+    private final List<String> especialidades; // >= 1, sem duplicatas (case-insensitive)
 
-    public Professor(ProfessorId id,
-                     String nome,
+    /** Constrói sem ID; o repositório atribui após persistir. */
+    public Professor(String nome,
                      String cpf,
                      String email,
                      List<String> especialidades) {
 
-        this.id    = Objects.requireNonNull(id,    "'id' não pode ser nulo");
-        this.nome  = requireNonBlank(nome,         "'nome' não pode ser vazio");
-        this.cpf   = requireNonBlank(cpf,          "'cpf' não pode ser vazio");   // (se quiser, plugar um validador)
-        this.email = requireNonBlank(email,        "'email' não pode ser vazio");
+        this.nome  = requireNonBlank(nome,  "'nome' não pode ser vazio");
+        this.cpf   = requireNonBlank(cpf,   "'cpf' não pode ser vazio");   // plugue um validador se quiser
+        this.email = requireNonBlank(email, "'email' não pode ser vazio");
 
         Objects.requireNonNull(especialidades, "'especialidades' não pode ser nulo");
         if (especialidades.isEmpty())
@@ -43,6 +44,15 @@ public class Professor {
             throw new IllegalArgumentException("RN-84: Professor deve ter ao menos uma especialidade.");
 
         this.especialidades = new ArrayList<>(normalizada);
+    }
+
+    /** Chamado pela infraestrutura para fixar o ID gerado. */
+    public void atribuirIdSeAusente(ProfessorId novoId) {
+        Objects.requireNonNull(novoId, "'id' não pode ser nulo");
+        if (this.id != null && !this.id.equals(novoId)) {
+            throw new IllegalStateException("ID já atribuído para este professor");
+        }
+        this.id = novoId;
     }
 
     // ===== getters =====

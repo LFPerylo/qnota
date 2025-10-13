@@ -7,7 +7,9 @@ import java.util.Optional;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 
 public interface AlunoRepositorio {
-    void salvar(Aluno aluno);
+    /** Persiste o agregado. Se getId()==null, gera/atribui um novo ID e retorna. */
+    AlunoId salvar(Aluno aluno);
+
     Optional<Aluno> porId(AlunoId id);
     void remover(AlunoId id);
 
@@ -20,7 +22,7 @@ public interface AlunoRepositorio {
     boolean temNotasPendentesEmSimuladosEmEdicao(AlunoId alunoId);
     boolean temNotas(AlunoId alunoId);
 
-    // usado no serviço p/ RN-57.1 (se você já implementou no repos fake)
+    // usado no serviço p/ RN-57.1
     boolean possuiSimuladoFinalizado(AlunoId alunoId);
 
     // opcional — serviço atual não precisa

@@ -7,7 +7,15 @@ public class TurmaServico {
 
     public TurmaServico(TurmaRepositorio repo) { this.repo = repo; }
 
-    /** RN-06: nome único no ano letivo. */
+    /** Factory de conveniência para criar sem expor ID. */
+    public void criar(String nome, int anoLetivo, ProfessorId professor) {
+        if (repo.existeNomeNoAno(nome, anoLetivo))
+            throw new IllegalArgumentException("RN-06: Nome único no ano letivo.");
+        var t = new Turma(nome, anoLetivo, true, professor);
+        repo.salvar(t); // repo atribui o ID se estiver nulo
+    }
+
+    /** Mantido por compatibilidade: aceita a entidade (id deve estar nulo). */
     public void criar(Turma t) {
         if (repo.existeNomeNoAno(t.getNome(), t.getAnoLetivo()))
             throw new IllegalArgumentException("RN-06: Nome único no ano letivo.");
@@ -19,7 +27,7 @@ public class TurmaServico {
         if (repo.possuiSimuladosFinalizados(id))
             throw new IllegalStateException("RN-10: Não é permitido alterar professor com simulados finalizados.");
         var turma = repo.porId(id).orElseThrow();
-        turma.mudarProfessor(novoProfessor);   // operação local da entidade
+        turma.mudarProfessor(novoProfessor);
         repo.salvar(turma);
     }
 
@@ -28,7 +36,7 @@ public class TurmaServico {
         if (repo.possuiSimuladosEmEdicao(id))
             throw new IllegalStateException("RN-95: Finalize simulados em edição antes de inativar.");
         var turma = repo.porId(id).orElseThrow();
-        turma.inativar();                       // operação local da entidade
+        turma.inativar();
         repo.salvar(turma);
     }
 
@@ -36,7 +44,6 @@ public class TurmaServico {
     public void excluir(TurmaId id) {
         if (repo.possuiAlunosAtivos(id) || repo.possuiSimulados(id))
             throw new IllegalStateException("RN-08: Não é possível excluir turma com vínculos.");
-        // Remove a turma do repositório
         repo.remover(id);
     }
 }

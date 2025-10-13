@@ -4,26 +4,38 @@ import java.util.Objects;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 
 public class Turma {
-    private final TurmaId id;
+
+    // ID gerado pelo repositório/infra
+    private TurmaId id;
+
     private String nome;
     private int anoLetivo;
     private boolean ativo;
     private ProfessorId professor;
 
-    public Turma(TurmaId id, String nome, int anoLetivo, boolean ativo, ProfessorId professor) {
-        this.id        = Objects.requireNonNull(id, "id não pode ser nulo");
+    /** Constrói uma turma sem ID (infra atribui depois). */
+    public Turma(String nome, int anoLetivo, boolean ativo, ProfessorId professor) {
         this.nome      = requireNonBlank(nome, "'nome' não pode ser vazio");
         this.anoLetivo = requireAnoLetivo(anoLetivo);
         this.ativo     = ativo;
         this.professor = Objects.requireNonNull(professor, "professor não pode ser nulo");
     }
 
+    /** Infra chama para fixar o ID gerado. Não permite reatribuição divergente. */
+    public void atribuirIdSeAusente(TurmaId novoId) {
+        Objects.requireNonNull(novoId, "'id' não pode ser nulo");
+        if (this.id != null && !this.id.equals(novoId)) {
+            throw new IllegalStateException("ID já atribuído para esta turma");
+        }
+        this.id = novoId;
+    }
+
     // getters
-    public TurmaId getId()              { return id; }
-    public String getNome()             { return nome; }
-    public int getAnoLetivo()           { return anoLetivo; }
-    public boolean isAtivo()            { return ativo; }
-    public ProfessorId getProfessor()   { return professor; }
+    public TurmaId getId()            { return id; }
+    public String getNome()           { return nome; }
+    public int getAnoLetivo()         { return anoLetivo; }
+    public boolean isAtivo()          { return ativo; }
+    public ProfessorId getProfessor() { return professor; }
 
     // operações locais
     public void renomear(String novoNome) {
@@ -41,18 +53,14 @@ public class Turma {
         this.anoLetivo = requireAnoLetivo(novoAno);
     }
 
-    // ===== helpers (apenas estes dois) =====
+    // ===== helpers =====
     private static String requireNonBlank(String s, String msg) {
-        if (s == null || s.trim().isEmpty()) {
-            throw new IllegalArgumentException(msg);
-        }
+        if (s == null || s.trim().isEmpty()) throw new IllegalArgumentException(msg);
         return s.trim();
     }
 
     private static int requireAnoLetivo(int ano) {
-        if (ano <= 0) {
-            throw new IllegalArgumentException("anoLetivo deve ser positivo");
-        }
+        if (ano <= 0) throw new IllegalArgumentException("anoLetivo deve ser positivo");
         return ano;
     }
 }

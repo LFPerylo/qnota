@@ -14,8 +14,7 @@ public class DisciplinaServico {
     public void cadastrar(String nome, Disciplina.AreaConhecimento area) {
         if (repo.existeNomeNaArea(nome, area.nome()))
             throw new IllegalArgumentException("RN-121: Nome único por área.");
-        var id = repo.proximoId();
-        var nova = new Disciplina(id, nome, 1, null, true, area);
+        var nova = new Disciplina(nome, area);   // sem ID; repo atribui
         repo.salvar(nova);
     }
 
@@ -36,12 +35,12 @@ public class DisciplinaServico {
         }
 
         if (repo.foiUsadaEmSimuladoFinalizado(id)) {
-            var nova = atual.novaVersao(repo.proximoId(), novoNome, novaArea); // RN-62
-            repo.salvar(nova);
+            var nova = atual.novaVersao(novoNome, novaArea); // RN-62
+            repo.salvar(nova); // repo gera novo ID para a nova versão
         } else {
             atual.renomear(novoNome);
             atual.mudarArea(novaArea);
-            repo.salvar(atual);
+            repo.salvar(atual); // update normal
         }
     }
 

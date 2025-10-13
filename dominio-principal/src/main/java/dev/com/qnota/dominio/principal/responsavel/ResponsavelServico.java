@@ -1,8 +1,7 @@
 package dev.com.qnota.dominio.principal.responsavel;
 
 import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
-import dev.com.qnota.dominio.principal.aluno.AlunoId; // mantenha só se usar em algum método
-
+import dev.com.qnota.dominio.principal.aluno.AlunoId;
 
 public class ResponsavelServico {
 
@@ -14,12 +13,12 @@ public class ResponsavelServico {
         this.alunoRepo = alunoRepo;
     }
 
-    /** Cadastro com checagem de unicidade de CPF. Entidade garante NOT NULL/CPF válido. */
-    public void cadastrar(ResponsavelId id, String nome, String cpf, String email) {
+    /** Cadastro com checagem de unicidade de CPF. ID é gerado pela infraestrutura. */
+    public void cadastrar(String nome, String cpf, String email) {
         if (responsavelRepo.cpfExiste(cpf))
             throw new IllegalArgumentException("já existe responsável com esse CPF");
-        var novo = new Responsavel(id, nome, cpf, email, Responsavel.Status.ATIVO);
-        responsavelRepo.salvar(novo);
+        var novo = new Responsavel(nome, cpf, email, Responsavel.Status.ATIVO);
+        responsavelRepo.salvar(novo); // repo atribui o ID
     }
 
     /** Edita nome/e-mail sem trocar CPF. */
@@ -28,6 +27,7 @@ public class ResponsavelServico {
         r.renomear(novoNome);
         r.alterarEmail(novoEmail);
         responsavelRepo.salvar(r);
+        // alternativamente: responsavelRepo.atualizarContato(id, novoNome, novoEmail);
     }
 
     public void marcarInadimplente(ResponsavelId id) {
@@ -55,20 +55,19 @@ public class ResponsavelServico {
         responsavelRepo.excluir(id);
     }
 
-    // ============ VÍNCULO COM ALUNO (cobre cenários do .feature) ============
+    // ============ VÍNCULO COM ALUNO ============
 
     /**
      * Vincular responsável ao aluno.
-     * Regras cobertas:
-     *  - RN-136: inadimplente não pode vincular (mensagem do .feature)
-     *  - RN-20: não pode duplicar vínculo (mensagem do .feature)
-     *  - RN-02: no máximo 3 responsáveis (mensagem do .feature)
-     *  - RN-58: exatamente um principal (validado pelo agregado Aluno)
+     * Regras:
+     *  - RN-136: inadimplente não pode vincular
+     *  - RN-20: não pode duplicar vínculo
+     *  - RN-02/RN-58: invariantes delegadas ao agregado Aluno
      */
     public void vincularAoAluno(ResponsavelId respId, AlunoId alunoId, String grauParentesco, boolean principal) {
         var r = responsavelRepo.porId(respId).orElseThrow(() -> new IllegalStateException("responsável não encontrado"));
         if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
-            throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização"); // RN-136
+            throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
 
         var aluno = alunoRepo.porId(alunoId).orElseThrow(() -> new IllegalStateException("aluno não encontrado"));
 
@@ -80,35 +79,24 @@ public class ResponsavelServico {
         if (aluno.getResponsaveis().size() >= 3)
             throw new IllegalStateException("o número máximo de responsáveis por aluno é 3");
 
-        // Delega invariantes ao agregado Aluno (RN-02, RN-20, RN-58)
         aluno.adicionarResponsavel(respId, grauParentesco, principal);
-
         alunoRepo.salvar(aluno);
     }
 
-    /**
-     * Desvincular responsável do aluno.
-     * Regras cobertas:
-     *  - RN-19: aluno deve permanecer com pelo menos um responsável (mensagem do .feature)
-     *  - RN-58: se remover o principal e sobrar >0, agregado promove alguém (já coberto em Aluno.removerResponsavel)
-     */
+    /** Desvincular mantendo ao menos um responsável (RN-19). */
     public void desvincularDoAluno(ResponsavelId respId, AlunoId alunoId) {
         var aluno = alunoRepo.porId(alunoId).orElseThrow(() -> new IllegalStateException("aluno não encontrado"));
 
-        // RN-19 – mensagem alinhada ao .feature
         if (aluno.getResponsaveis().size() == 1
                 && aluno.getResponsaveis().get(0).responsavel().equals(respId)) {
             throw new IllegalStateException("o aluno deve ter pelo menos um responsável");
         }
 
-        aluno.removerResponsavel(respId); // garante invariantes (promove principal se necessário)
+        aluno.removerResponsavel(respId); // promove principal se necessário
         alunoRepo.salvar(aluno);
     }
 
-    /**
-     * Define explicitamente um responsável como principal (útil p/ telas).
-     * Agregado garante que ficará exatamente um principal (RN-58).
-     */
+    /** Define explicitamente um responsável como principal (RN-58). */
     public void definirComoPrincipal(ResponsavelId respId, AlunoId alunoId) {
         var aluno = alunoRepo.porId(alunoId).orElseThrow(() -> new IllegalStateException("aluno não encontrado"));
         aluno.definirPrincipal(respId);

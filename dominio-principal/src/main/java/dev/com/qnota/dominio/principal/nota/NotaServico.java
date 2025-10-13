@@ -2,12 +2,10 @@ package dev.com.qnota.dominio.principal.nota;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.justificativa.Justificativa;
-import dev.com.qnota.dominio.principal.justificativa.JustificativaId;
 import dev.com.qnota.dominio.principal.justificativa.JustificativaRepositorio;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
@@ -18,9 +16,8 @@ public class NotaServico {
     private final NotaRepositorio repo;
     private final RankingServico rankingServico;
 
-    // Para registrar a justificativa da retificação (histórico)
-    private final JustificativaRepositorio justificativaRepo; // pode ser null se não quiser registrar
-    private final AtomicInteger seqJust = new AtomicInteger(1);
+    // Registro de justificativas (histórico) é opcional
+    private final JustificativaRepositorio justificativaRepo;
 
     public NotaServico(NotaRepositorio repo, RankingServico rankingServico) {
         this(repo, rankingServico, null);
@@ -35,14 +32,14 @@ public class NotaServico {
     /** Conveniência: cria e lança uma nova nota já com timestamp. */
     public void lancar(AlunoId aluno, SimuladoId simulado, DisciplinaId disciplina, double valor) {
         var agora = LocalDateTime.now();
-        var n = new Nota(null, aluno, simulado, disciplina, valor, agora);
+        var n = new Nota(aluno, simulado, disciplina, valor, agora);
         lancar(n);
     }
 
     /**
      * Lançamento:
      * - RN-32: apenas quando simulado está EM_EDICAO
-     * - RN-31: faixa [0..10] validada na entidade
+     * - RN-31: faixa [0..10] validada no agregado
      * - RN-33: evita duplicidade (aluno+simulado+disciplina)
      * - RN-98/RN-99: recalcula ranking
      */
@@ -52,7 +49,7 @@ public class NotaServico {
         if (repo.porChave(n.getAluno(), n.getSimulado(), n.getDisciplina()).isPresent())
             throw new IllegalStateException("RN-33: Nota duplicada para mesma disciplina/simulado/aluno.");
 
-        repo.salvar(n);
+        repo.salvar(n); // repositório atribui ID se necessário
         rankingServico.recalcular(n.getSimulado());
     }
 
@@ -90,7 +87,6 @@ public class NotaServico {
 
         // RN-38: criar nova versão (novo ID). A original fica intacta.
         var nova = new Nota(
-                null,
                 original.getAluno(),
                 original.getSimulado(),
                 original.getDisciplina(),
@@ -102,7 +98,6 @@ public class NotaServico {
         if (justificativaRepo != null) {
             Objects.requireNonNull(professor, "professor é obrigatório na retificação");
             var j = new Justificativa(
-                    new JustificativaId(seqJust.getAndIncrement()),
                     idOriginal,
                     original.getValor(),
                     novoValor,

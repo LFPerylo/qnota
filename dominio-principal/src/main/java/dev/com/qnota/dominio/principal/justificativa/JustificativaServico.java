@@ -15,18 +15,16 @@ public class JustificativaServico {
     }
 
     /**
-     * RN-37..39 (conjunto): para retificação de nota, exige justificativa
-     * >= 20 caracteres e registra data/hora e professor responsável.
-     * Demais invariantes (0..10, alteração real) são validadas na entidade.
+     * RN-37..39: para retificação de nota, exige justificativa >= 20 caracteres,
+     * registra data/hora e professor responsável. Demais invariantes na entidade.
      */
-    public void registrar(JustificativaId id,
-                          NotaId nota,
+    public void registrar(NotaId nota,
                           double anterior,
                           double corrigida,
                           String texto,
                           ProfessorId professor) {
 
-        var j = new Justificativa(id, nota, anterior, corrigida, texto, LocalDateTime.now(), professor);
-        repo.salvar(j);
+        var j = new Justificativa(nota, anterior, corrigida, texto, LocalDateTime.now(), professor);
+        repo.salvar(j); // repositório gera e atribui o ID
     }
 }

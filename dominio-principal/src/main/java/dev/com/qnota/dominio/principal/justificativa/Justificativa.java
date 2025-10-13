@@ -8,7 +8,9 @@ import dev.com.qnota.dominio.principal.professor.ProfessorId;
 
 public class Justificativa {
 
-    private final JustificativaId id;
+    // ID agora é atribuído pelo repositório após persistir
+    private JustificativaId id;
+
     private final NotaId nota;
     private final double notaAnterior;
     private final double notaCorrigida;
@@ -16,15 +18,14 @@ public class Justificativa {
     private final LocalDateTime dataHora;
     private final ProfessorId professor;
 
-    public Justificativa(JustificativaId id,
-                         NotaId nota,
+    /** Constrói a justificativa sem ID; o repositório atribui após salvar. */
+    public Justificativa(NotaId nota,
                          double notaAnterior,
                          double notaCorrigida,
                          String justificativa,
                          LocalDateTime dataHora,
                          ProfessorId professor) {
 
-        this.id        = Objects.requireNonNull(id,        "'id' não pode ser nulo");
         this.nota      = Objects.requireNonNull(nota,      "'nota' não pode ser nula");
         this.professor = Objects.requireNonNull(professor, "'professor' não pode ser nulo");
         this.dataHora  = Objects.requireNonNull(dataHora,  "'dataHora' não pode ser nula");
@@ -43,6 +44,15 @@ public class Justificativa {
         this.notaAnterior  = notaAnterior;
         this.notaCorrigida = notaCorrigida;
         this.justificativa = txt;
+    }
+
+    /** Infra chama após persistir para atribuir o ID gerado. */
+    public void atribuirIdSeAusente(JustificativaId novoId) {
+        Objects.requireNonNull(novoId, "'id' não pode ser nulo");
+        if (this.id != null && !this.id.equals(novoId)) {
+            throw new IllegalStateException("ID já atribuído para esta justificativa");
+        }
+        this.id = novoId;
     }
 
     // getters

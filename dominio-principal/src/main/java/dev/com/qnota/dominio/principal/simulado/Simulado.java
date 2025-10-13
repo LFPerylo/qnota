@@ -10,40 +10,52 @@ import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 
 public class Simulado {
+
     public enum Status { EM_EDICAO, FINALIZADO }
 
-    private final SimuladoId id;
+    // ID gerado na infraestrutura (repositório)
+    private SimuladoId id;
+
     private LocalDate dataAplicacao;
     private Status status;
     private TurmaId turma;
     private final List<DisciplinaPeso> disciplinas;
 
-    public Simulado(SimuladoId id,
-                    LocalDate dataAplicacao,
-                    Status status,
-                    TurmaId turma,
-                    List<DisciplinaPeso> disciplinas) {
+    /** Constrói um simulado EM_EDICAO (mais comum). */
+    public Simulado(LocalDate dataAplicacao, TurmaId turma, List<DisciplinaPeso> disciplinas) {
+        this(dataAplicacao, Status.EM_EDICAO, turma, disciplinas);
+    }
 
-        this.id            = Objects.requireNonNull(id, "id não pode ser nulo");
+    /** Constrói permitindo informar o status inicial (sem ID). */
+    public Simulado(LocalDate dataAplicacao, Status status, TurmaId turma, List<DisciplinaPeso> disciplinas) {
         this.dataAplicacao = Objects.requireNonNull(dataAplicacao, "dataAplicacao não pode ser nula");
-        this.status        = Objects.requireNonNull(status, "status não pode ser nulo");
-        this.turma         = Objects.requireNonNull(turma, "turma não pode ser nula");
+        this.status        = Objects.requireNonNull(status,        "status não pode ser nulo");
+        this.turma         = Objects.requireNonNull(turma,         "turma não pode ser nula");
 
         var lista = new ArrayList<>(Objects.requireNonNull(disciplinas, "lista de disciplinas não pode ser nula"));
-        validarDisciplinas(lista); // RN-12 (>=2), RN-13 (soma==10), RN-14B (sem repetição), null-safety
-        this.disciplinas = lista;
+        validarDisciplinas(lista); // RN-12, RN-13, RN-14B + null-safety
+        this.disciplinas = new ArrayList<>(lista); // cópia defensiva
+    }
+
+    /** Infra chama para fixar o ID gerado. Não permite reatribuição divergente. */
+    public void atribuirIdSeAusente(SimuladoId novoId) {
+        Objects.requireNonNull(novoId, "'id' não pode ser nulo");
+        if (this.id != null && !this.id.equals(novoId)) {
+            throw new IllegalStateException("ID já atribuído para este simulado");
+        }
+        this.id = novoId;
     }
 
     // ===== getters =====
-    public SimuladoId getId()                { return id; }
-    public LocalDate getDataAplicacao()      { return dataAplicacao; }
-    public Status getStatus()                { return status; }
-    public TurmaId getTurma()                { return turma; }
-    public List<DisciplinaPeso> getDisciplinas() { return Collections.unmodifiableList(disciplinas); }
+    public SimuladoId getId()                     { return id; }
+    public LocalDate getDataAplicacao()           { return dataAplicacao; }
+    public Status getStatus()                     { return status; }
+    public TurmaId getTurma()                     { return turma; }
+    public List<DisciplinaPeso> getDisciplinas()  { return Collections.unmodifiableList(disciplinas); }
 
     // ===== operações do agregado (regras locais) =====
 
-    /** RN-14C é garantida aqui: não edita disciplinas se FINALIZADO. */
+    /** RN-14C: não edita disciplinas se FINALIZADO. */
     public void alterarDisciplinas(List<DisciplinaPeso> novas) {
         if (this.status == Status.FINALIZADO)
             throw new IllegalStateException("RN-14C: Não é permitido editar simulado finalizado.");
@@ -53,40 +65,39 @@ public class Simulado {
         this.disciplinas.addAll(lista);
     }
 
-    /** Troca de data é uma mudança local plausível. Regra transversal (se existisse) ficaria no serviço. */
+    /** Troca de data — regra transversal (se houver) fica no serviço. */
     public void alterarData(LocalDate novaData) {
         this.dataAplicacao = Objects.requireNonNull(novaData, "dataAplicacao não pode ser nula");
     }
 
-    /** Finalização do estado (RN-16 é tratada no serviço antes de chamar este método). */
+    /** Finaliza o simulado. (RN-16 é checada no serviço antes de chamar) */
     public void finalizar() {
         this.status = Status.FINALIZADO;
     }
 
     // ===== validações internas =====
-
     private static void validarDisciplinas(List<DisciplinaPeso> lista) {
-        // null-safety de cada item e id
+        // null-safety
         for (DisciplinaPeso dp : lista) {
             if (dp == null) throw new IllegalArgumentException("DisciplinaPeso não pode ser nulo");
             if (dp.disciplina() == null) throw new IllegalArgumentException("DisciplinaId não pode ser nulo");
         }
 
-        // RN-12: pelo menos duas disciplinas
+        // RN-12: >= 2 disciplinas
         if (lista.size() < 2)
             throw new IllegalArgumentException("RN-12: Pelo menos duas disciplinas.");
 
-        // RN-14B: disciplina não pode se repetir
+        // RN-14B: disciplinas distintas
         long distintos = lista.stream().map(DisciplinaPeso::disciplina).distinct().count();
         if (distintos != lista.size())
             throw new IllegalArgumentException("RN-14B: Disciplina não pode se repetir.");
 
-        // RN-13: soma dos pesos == 10
+        // RN-13: pesos somam 10
         double soma = lista.stream().mapToDouble(DisciplinaPeso::peso).sum();
         if (Math.abs(soma - 10.0) > 1e-6)
             throw new IllegalArgumentException("RN-13: Pesos devem somar 10.");
     }
 
-    // value object local
+    // Value Object local
     public record DisciplinaPeso(DisciplinaId disciplina, double peso) {}
 }

@@ -4,10 +4,13 @@ import java.util.Optional;
 
 public interface DisciplinaRepositorio {
 
-    // geração do id fica na infraestrutura
-    DisciplinaId proximoId();
+    /**
+     * Persiste a disciplina. Se {@code getId()==null}, gera e atribui um novo ID
+     * (via {@code atribuirIdSeAusente}) e retorna esse ID. Caso contrário, atualiza
+     * o registro existente e retorna o mesmo ID.
+     */
+    DisciplinaId salvar(Disciplina d);
 
-    void salvar(Disciplina d);
     Optional<Disciplina> porId(DisciplinaId id);
     void remover(DisciplinaId id);
 
