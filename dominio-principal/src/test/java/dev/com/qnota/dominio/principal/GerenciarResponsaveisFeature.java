@@ -17,8 +17,8 @@ import dev.com.qnota.dominio.principal.aluno.Aluno;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.responsavel.Responsavel;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
-import dev.com.qnota.dominio.principal.responsavel.ResponsavelServico;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
+import dev.com.qnota.dominio.principal.responsavel.ResponsavelServico;
 
 public class GerenciarResponsaveisFeature {
 
@@ -54,7 +54,10 @@ public class GerenciarResponsaveisFeature {
     // ===== utils =====
     private ResponsavelId newRespId() { return new ResponsavelId(seq.getAndIncrement()); }
     private AlunoId newAlunoId() { return new AlunoId(seq.getAndIncrement()); }
-    private TurmaId defaultTurma() { return new TurmaId(999); }
+    private TurmaId defaultTurma() { 
+        // Usar um ID fixo para testes simples
+        return new TurmaId(1);
+    }
     private static String normCpf(String s){ return s==null? null : s.replaceAll("\\D",""); }
 
     private String generateCpf(int seed) {
@@ -85,11 +88,11 @@ public class GerenciarResponsaveisFeature {
                 return rOpt.get();
             }
         }
-        var id = newRespId();
-        var r = new Responsavel(id, nome, cpf, email, status);
+        // Como o ID é gerado pelo repositório, vamos criar o responsável e obter o ID gerado
+        var r = new Responsavel(nome, cpf, email, status);
         repo.salvar(r);
-        String alias = "R" + id.value();
-        aliasResp.put(alias, id);
+        String alias = "R" + r.getId().value();
+        aliasResp.put(alias, r.getId());
         cpfByAlias.put(alias, cpf);
         return r;
     }
@@ -97,10 +100,11 @@ public class GerenciarResponsaveisFeature {
     private ResponsavelId ensureRespAlias(String alias, String nome, String email, Responsavel.Status status) {
         return aliasResp.computeIfAbsent(alias, a -> {
             String cpf = cpfForAlias(a);
-            var id = newRespId();
-            var r = new Responsavel(id, nome, cpf, email, status);
+            // Como o ID é gerado pelo repositório, vamos criar o responsável e obter o ID gerado
+            var r = new Responsavel(nome, cpf, email, status);
             repo.salvar(r);
-            return id;
+            // Retornar o ID gerado pelo repositório
+            return r.getId();
         });
     }
 
@@ -109,10 +113,10 @@ public class GerenciarResponsaveisFeature {
                                            String r1Alias, boolean r1Principal,
                                            String r2Alias, boolean r2Principal) {
         AlunoId aId = aliasAluno.get(alunoAlias);
-        if (aId == null) {
-            aId = newAlunoId();
-            aliasAluno.put(alunoAlias, aId);
+        if (aId != null) {
+            return aId;
         }
+        
         var r1Id = ensureRespAlias(r1Alias, r1Alias + " Nome",
                 r1Alias.toLowerCase()+"@ex.com", Responsavel.Status.ATIVO);
         var r2Id = (r2Alias != null)
@@ -123,8 +127,11 @@ public class GerenciarResponsaveisFeature {
         lista.add(new Aluno.AlunoResponsavel(r1Id, "Parente", r1Principal));
         if (r2Id != null) lista.add(new Aluno.AlunoResponsavel(r2Id, "Parente", r2Principal));
 
-        var aluno = new Aluno(aId, nomeAluno, LocalDate.of(2012,1,1), true, defaultTurma(), lista);
+        // Como o ID é gerado pelo repositório, vamos criar o aluno e obter o ID gerado
+        var aluno = new Aluno(nomeAluno, LocalDate.of(2012,1,1), true, defaultTurma(), lista);
         repo.salvar(aluno);
+        aId = aluno.getId();
+        aliasAluno.put(alunoAlias, aId);
         return aId;
     }
 
@@ -180,7 +187,7 @@ public class GerenciarResponsaveisFeature {
         lastError = null;
         var id = newRespId();
         var cpf = generateCpf(id.value());
-        var r = new Responsavel(id, "Resp", cpf, "resp@ex.com", Responsavel.Status.ATIVO);
+        var r = new Responsavel("Resp", cpf, "resp@ex.com", Responsavel.Status.ATIVO);
         if ("inadimplente".equalsIgnoreCase(status)) r.marcarInadimplente();
         if ("inativo".equalsIgnoreCase(status))       r.inativar();
         repo.salvar(r);
@@ -192,7 +199,7 @@ public class GerenciarResponsaveisFeature {
     public void um_responsavel_inad_e_foi_regularizado(String estava, String status, String foi) {
         var id = newRespId();
         var cpf = generateCpf(id.value());
-        var r = new Responsavel(id, "Resp Reg", cpf, "reg@ex.com", Responsavel.Status.ATIVO);
+        var r = new Responsavel("Resp Reg", cpf, "reg@ex.com", Responsavel.Status.ATIVO);
         if ("inadimplente".equalsIgnoreCase(status)) r.marcarInadimplente();
         repo.salvar(r);
         r.regularizar();
@@ -206,7 +213,7 @@ public class GerenciarResponsaveisFeature {
         lastError = null;
         var id = newRespId();
         var cpf = generateCpf(id.value());
-        var r = new Responsavel(id, "Sem Vinculo", cpf, "sv@ex.com", Responsavel.Status.ATIVO);
+        var r = new Responsavel("Sem Vinculo", cpf, "sv@ex.com", Responsavel.Status.ATIVO);
         repo.salvar(r);
         currentRespId = id;
         currentCpf = cpf;
@@ -217,7 +224,7 @@ public class GerenciarResponsaveisFeature {
         // cria o responsável
         var id = newRespId();
         var cpf = generateCpf(id.value());
-        var r = new Responsavel(id, "Com Vinculo", cpf, "cv@ex.com", Responsavel.Status.ATIVO);
+        var r = new Responsavel("Com Vinculo", cpf, "cv@ex.com", Responsavel.Status.ATIVO);
         repo.salvar(r);
         currentRespId = id;
         currentCpf = cpf;
@@ -226,7 +233,6 @@ public class GerenciarResponsaveisFeature {
         currentAlunoId = aliasAluno.get(alunoAlias);
         if (currentAlunoId == null) {
             currentAlunoId = ensureAlunoComVinculos(alunoAlias, "Aluno " + alunoAlias, "R0", true, null, false);
-            aliasAluno.put(alunoAlias, currentAlunoId);
         }
 
         // se for para "possuir" vínculo, adiciona o novo responsável como NÃO principal (RN-58)
@@ -315,7 +321,7 @@ public class GerenciarResponsaveisFeature {
         try {
             var id = newRespId();
             currentRespId = id;                 // <— guarda
-            servico.cadastrar(id, nome, currentCpf, email);
+            servico.cadastrar(nome, currentCpf, email);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -326,20 +332,20 @@ public class GerenciarResponsaveisFeature {
         try {
             var id = newRespId();
             currentRespId = id;                 // <— guarda
-            servico.cadastrar(id, nome, cpf, email);
+            servico.cadastrar(nome, cpf, email);
         } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador tenta cadastrar o \"responsável\" com esse CPF")
     public void tenta_cadastrar_com_mesmo_cpf() {
         lastError = null;
-        try { servico.cadastrar(newRespId(), "Nome", currentCpf, "mail@ex.com"); } catch (Exception e) { lastError = e; }
+        try { servico.cadastrar("Nome", currentCpf, "mail@ex.com"); } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador tenta cadastrar outro \"responsável\" com o CPF {string}")
     public void tenta_cadastrar_outro_com_cpf(String cpf) {
         lastError = null;
-        try { servico.cadastrar(newRespId(), "Outro", cpf, "outro@ex.com"); } catch (Exception e) { lastError = e; }
+        try { servico.cadastrar("Outro", cpf, "outro@ex.com"); } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador cadastra o \"responsável\" com CPF {string}")
@@ -349,26 +355,26 @@ public class GerenciarResponsaveisFeature {
         try {
             var id = newRespId();
             currentRespId = id;                 // <— guarda
-            servico.cadastrar(id, "Nome Qualquer", cpf, "mail@ex.com");
+            servico.cadastrar("Nome Qualquer", cpf, "mail@ex.com");
         } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador tenta cadastrar o \"responsável\" com nome {string} e CPF {string}")
     public void tenta_cadastrar_sem_email(String nome, String cpf) {
         lastError = null;
-        try { servico.cadastrar(newRespId(), nome, cpf, ""); } catch (Exception e) { lastError = e; }
+        try { servico.cadastrar(nome, cpf, ""); } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador tenta cadastrar o \"responsável\" com nome {string} e e-mail {string}")
     public void tenta_cadastrar_sem_cpf(String nome, String email) {
         lastError = null;
-        try { servico.cadastrar(newRespId(), nome, "", email); } catch (Exception e) { lastError = e; }
+        try { servico.cadastrar(nome, "", email); } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador tenta cadastrar o \"responsável\" com CPF {string} e e-mail {string}")
     public void tenta_cadastrar_sem_nome(String cpf, String email) {
         lastError = null;
-        try { servico.cadastrar(newRespId(), "", cpf, email); } catch (Exception e) { lastError = e; }
+        try { servico.cadastrar("", cpf, email); } catch (Exception e) { lastError = e; }
     }
 
     @When("um coordenador altera o nome do \"responsável\" para {string} e o e-mail para {string}")
@@ -417,6 +423,7 @@ public class GerenciarResponsaveisFeature {
         lastError = null;
         try {
             var rId = ensureRespAlias(rAlias, rAlias + " Nome", rAlias.toLowerCase()+"@ex.com", Responsavel.Status.ATIVO);
+            // Use currentAlunoId que deve estar definido pelos steps anteriores
             servico.vincularAoAluno(rId, currentAlunoId, "Parente", false);
         } catch (Exception e) { lastError = e; }
     }
@@ -427,6 +434,7 @@ public class GerenciarResponsaveisFeature {
         try {
             var rId = ensureRespAlias(rAlias, rAlias + " Nome", rAlias.toLowerCase()+"@ex.com", Responsavel.Status.ATIVO);
             boolean principal = "principal".equalsIgnoreCase(principalStr);
+            // Use currentAlunoId que deve estar definido pelos steps anteriores
             servico.vincularAoAluno(rId, currentAlunoId, grau, principal);
         } catch (Exception e) { lastError = e; }
     }
@@ -479,16 +487,18 @@ public class GerenciarResponsaveisFeature {
     @Then("o sistema confirma o cadastro do \"responsável\"")
     public void confirma_cadastro() {
         assertNull(lastError, "Esperava sucesso, mas houve erro: " + (lastError==null?"":lastError.getMessage()));
-        var rOpt = repo.porId(currentRespId);
-        assertTrue(rOpt.isPresent(), "Cadastro não encontrado para o id salvo");
-        assertEquals(normCpf(currentCpf), normCpf(rOpt.get().getCpf()), "CPF salvo diferente do esperado");
+        // Como o ID é gerado pelo repositório, vamos verificar se o CPF existe
+        assertTrue(repo.cpfExiste(currentCpf), "CPF não foi cadastrado: " + currentCpf);
     }
 
     @Then("o sistema confirma a atualização dos dados do \"responsável\"")
     public void confirma_atualizacao() { assertNull(lastError, "Esperava sucesso na atualização: " + (lastError==null?"":lastError.getMessage())); }
 
     @Then("o sistema confirma o vínculo do \"responsável\" ao \"aluno\"")
-    public void confirma_vinculo() { assertNull(lastError, "Esperava sucesso no vínculo: " + (lastError==null?"":lastError.getMessage())); }
+    public void confirma_vinculo() { 
+        // Como o ID é gerado pelo repositório, vamos apenas verificar se não há erro
+        assertTrue(lastError == null, "Esperava sucesso no vínculo: " + (lastError == null ? "" : lastError.getMessage()));
+    }
 
     @Then("o sistema confirma a desvinculação")
     public void confirma_desvinculo() { assertNull(lastError, "Esperava sucesso na desvinculação: " + (lastError==null?"":lastError.getMessage())); }

@@ -50,11 +50,9 @@ public class RetificarNotaFeature {
     }
 
     private Simulado novoSimulado(Simulado.Status status) {
-        var id = new SimuladoId(seq.getAndIncrement());
         var turma = new TurmaId(seq.getAndIncrement());
         // dois pesos somando 10 para cumprir RN-12/RN-13
         var s = new Simulado(
-            id,
             LocalDate.now(),
             status,
             turma,
