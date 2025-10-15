@@ -202,7 +202,7 @@ public class RepositorioEmMemoria implements
         // vínculo “neutro”; regras (principal, limites, etc.) devem ser tratadas fora
         boolean jaVinculado = a.getResponsaveis().stream().anyMatch(ar -> ar.responsavel().equals(respId));
         if (!jaVinculado) {
-            a.adicionarResponsavel(respId, "vinculo", false);
+            a.adicionarResponsavel(respId, false);
             alunos.put(a.getId().value(), a);
         }
     }
@@ -433,6 +433,19 @@ public class RepositorioEmMemoria implements
 
     @Override
     public boolean todasNotasLancadas(SimuladoId id) { return simuladoComTodasNotasLancadas.contains(id.value()); }
+
+    @Override
+    public boolean existeNotaParaSimulado(SimuladoId id) {
+        return notas.values().stream()
+                .anyMatch(n -> n.getSimulado().equals(id));
+    }
+
+    @Override
+    public void remover(SimuladoId id) {
+        simulados.remove(id.value());
+        pesosPorSimulado.remove(id.value());
+        simuladoComTodasNotasLancadas.remove(id.value());
+    }
 
     // util p/ testes
     public void setTodasNotasLancadas(SimuladoId id, boolean ok) {
