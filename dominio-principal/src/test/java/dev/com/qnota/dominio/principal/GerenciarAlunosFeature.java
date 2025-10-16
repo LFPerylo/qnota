@@ -124,12 +124,12 @@ public class GerenciarAlunosFeature {
             String alias = "R" + (aliasResp.size() + i);
             var rid = ensureResp(alias, false, "Parente");
             boolean principal = marcarUmPrincipal && !principalSet;
-            lista.add(new Aluno.AlunoResponsavel(rid, "Parente", principal));
+            lista.add(new Aluno.AlunoResponsavel(rid, principal));
             principalSet |= principal;
         }
         if (marcarUmPrincipal && !lista.isEmpty() && !lista.stream().anyMatch(Aluno.AlunoResponsavel::principal)) {
             var first = lista.get(0);
-            lista.set(0, new Aluno.AlunoResponsavel(first.responsavel(), first.grauParentesco(), true));
+            lista.set(0, new Aluno.AlunoResponsavel(first.responsavel(), true));
         }
         return lista;
     }
@@ -137,8 +137,8 @@ public class GerenciarAlunosFeature {
     private List<Aluno.AlunoResponsavel> buildResponsaveisDuplicados(String alias) {
         var rid = ensureResp(alias, false, "Parente");
         return List.of(
-            new Aluno.AlunoResponsavel(rid, "Parente", true),
-            new Aluno.AlunoResponsavel(rid, "Parente", false)
+            new Aluno.AlunoResponsavel(rid, true),
+            new Aluno.AlunoResponsavel(rid, false)
         );
     }
 
@@ -393,8 +393,8 @@ public class GerenciarAlunosFeature {
         try {
             List<Aluno.AlunoResponsavel> lista = r1.equals(r2) ? buildResponsaveisDuplicados(r1)
                 : List.of(
-                    new Aluno.AlunoResponsavel(ensureResp(r1, true, "Parente"), "Parente", true),
-                    new Aluno.AlunoResponsavel(ensureResp(r2, false, "Parente"), "Parente", false)
+                    new Aluno.AlunoResponsavel(ensureResp(r1, true, "Parente"), true),
+                    new Aluno.AlunoResponsavel(ensureResp(r2, false, "Parente"), false)
                   );
             alunoSrv.cadastrar("Aluno Dup", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista);
         } catch (Exception e) { lastError = e; }
@@ -407,8 +407,8 @@ public class GerenciarAlunosFeature {
             var rA = ensureResp("R1", true, "Parente");
             var rB = ensureResp("R2", false, "Parente");
             var lista = List.of(
-                new Aluno.AlunoResponsavel(rA, "Parente", true),
-                new Aluno.AlunoResponsavel(rB, "Parente", true)
+                new Aluno.AlunoResponsavel(rA, true),
+                new Aluno.AlunoResponsavel(rB, true)
             );
             alunoSrv.cadastrar("Aluno Dois Principais", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista);
         } catch (Exception e) { lastError = e; }
@@ -429,7 +429,7 @@ public class GerenciarAlunosFeature {
         lastError = null;
         try {
             List<Aluno.AlunoResponsavel> lista = new ArrayList<>();
-            lista.add(new Aluno.AlunoResponsavel(ensureResp("R1", true, "Parente"), "Parente", true));
+            lista.add(new Aluno.AlunoResponsavel(ensureResp("R1", true, "Parente"), true));
             lista.add(null); // item nulo proposital
             alunoSrv.cadastrar("Aluno Item Nulo", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista);
         } catch (Exception e) { lastError = e; }
@@ -440,7 +440,7 @@ public class GerenciarAlunosFeature {
         lastError = null;
         try {
             var rid = ensureResp(r1, false, "Parente");
-            var lista = List.of(new Aluno.AlunoResponsavel(rid, "", false)); // grau vazio
+            var lista = List.of(new Aluno.AlunoResponsavel(rid, false)); // sem grau parentesco
             alunoSrv.cadastrar("Aluno Grau Vazio", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista);
         } catch (Exception e) { lastError = e; }
     }

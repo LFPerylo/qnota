@@ -2,6 +2,7 @@ package dev.com.qnota.dominio.principal.aluno;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import dev.com.qnota.dominio.principal.aluno.Aluno.AlunoResponsavel;
 import dev.com.qnota.dominio.principal.responsavel.Responsavel;
@@ -78,14 +79,14 @@ public class AlunoServico {
     }
 
     // ---------- VÍNCULOS COM RESPONSÁVEL ----------
-    public void vincularResponsavel(AlunoId id, ResponsavelId resp, String grauParentesco, boolean principal) {
+    public void vincularResponsavel(AlunoId id, ResponsavelId resp, boolean principal) {
         // RN-136: impedir vínculo com inadimplente
         var r = responsavelRepo.porId(resp).orElseThrow();
         if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
             throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
 
         var aluno = repo.porId(id).orElseThrow();
-        aluno.adicionarResponsavel(resp, grauParentesco, principal);
+        aluno.adicionarResponsavel(resp, principal);
         repo.salvar(aluno);
     }
 
@@ -102,6 +103,14 @@ public class AlunoServico {
 
     // ---------- validações compartilhadas ----------
     private void validarCadastro(String nome, LocalDate nascimento, TurmaId turma, List<AlunoResponsavel> responsaveis) {
+        // Validar que turma não é nula
+        Objects.requireNonNull(turma, "'turma' não pode ser nula");
+        
+        // RN-94: não pode cadastrar aluno em turma inativa
+        var turmaEntity = turmaRepo.porId(turma).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
+        if (!turmaEntity.isAtivo())
+            throw new IllegalStateException("RN-94: Não é possível cadastrar aluno em turma inativa.");
+        
         // Evita NPE e garante mensagem esperada quando há item nulo na lista
         if (responsaveis != null) {
             for (AlunoResponsavel ar : responsaveis) {

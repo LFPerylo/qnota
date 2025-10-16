@@ -4,28 +4,41 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
+import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.justificativa.Justificativa;
 import dev.com.qnota.dominio.principal.justificativa.JustificativaRepositorio;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
+import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
+import dev.com.qnota.dominio.principal.turma.TurmaRepositorio;
 
 public class NotaServico {
 
     private final NotaRepositorio repo;
     private final RankingServico rankingServico;
+    private final AlunoRepositorio alunoRepo;
+    private final SimuladoRepositorio simuladoRepo;
+    private final TurmaRepositorio turmaRepo;
 
     // Registro de justificativas (histórico) é opcional
     private final JustificativaRepositorio justificativaRepo;
 
-    public NotaServico(NotaRepositorio repo, RankingServico rankingServico) {
-        this(repo, rankingServico, null);
+    public NotaServico(NotaRepositorio repo, RankingServico rankingServico, 
+                      AlunoRepositorio alunoRepo, SimuladoRepositorio simuladoRepo, 
+                      TurmaRepositorio turmaRepo) {
+        this(repo, rankingServico, alunoRepo, simuladoRepo, turmaRepo, null);
     }
 
-    public NotaServico(NotaRepositorio repo, RankingServico rankingServico, JustificativaRepositorio justificativaRepo) {
+    public NotaServico(NotaRepositorio repo, RankingServico rankingServico, 
+                      AlunoRepositorio alunoRepo, SimuladoRepositorio simuladoRepo, 
+                      TurmaRepositorio turmaRepo, JustificativaRepositorio justificativaRepo) {
         this.repo = Objects.requireNonNull(repo);
         this.rankingServico = Objects.requireNonNull(rankingServico);
+        this.alunoRepo = Objects.requireNonNull(alunoRepo);
+        this.simuladoRepo = Objects.requireNonNull(simuladoRepo);
+        this.turmaRepo = Objects.requireNonNull(turmaRepo);
         this.justificativaRepo = justificativaRepo; // opcional
     }
 
@@ -41,29 +54,31 @@ public class NotaServico {
      * - RN-32: apenas quando simulado está EM_EDICAO
      * - RN-31: faixa [0..10] validada no agregado
      * - RN-33: evita duplicidade (aluno+simulado+disciplina)
+     * - RN-31/32/33: aluno inativado não pode receber nota
+     * - RN-94: turma inativada não permite novas notas
+     * - RN-34: validar existência de IDs
      * - RN-98/RN-99: recalcula ranking
      */
     public void lancar(Nota n) {
+        // RN-34: validar existência de IDs antes de salvar
+        var aluno = alunoRepo.porId(n.getAluno()).orElseThrow(() -> new IllegalStateException("aluno não encontrado"));
+        var simulado = simuladoRepo.porId(n.getSimulado()).orElseThrow(() -> new IllegalStateException("simulado não encontrado"));
+        var turma = turmaRepo.porId(simulado.getTurma()).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
+        
+        // RN-31/32/33: aluno inativado não pode receber nota
+        if (!aluno.isAtivo())
+            throw new IllegalStateException("RN-31/RN-32/RN-33: aluno inativado não pode receber nota.");
+        
+        // RN-94: turma inativada não permite novas notas
+        if (!turma.isAtivo())
+            throw new IllegalStateException("RN-94: turma inativada não permite novas notas/simulados.");
+        
         if (!repo.simuladoEstaEmEdicao(n.getSimulado()))
             throw new IllegalStateException("RN-32: Lançamento só com simulado EM_EDICAO.");
         if (repo.porChave(n.getAluno(), n.getSimulado(), n.getDisciplina()).isPresent())
             throw new IllegalStateException("RN-33: Nota duplicada para mesma disciplina/simulado/aluno.");
 
         repo.salvar(n); // repositório atribui ID se necessário
-        rankingServico.recalcular(n.getSimulado());
-    }
-
-    /**
-     * Retificação IN-PLACE (sem histórico). Mantida por compatibilidade,
-     * mas para cumprir RN-38 use retificarComJustificativa(...).
-     */
-    public void retificar(NotaId id, double novoValor) {
-        var n = repo.porId(id).orElseThrow();
-        if (!repo.simuladoEstaEmEdicao(n.getSimulado()))
-            throw new IllegalStateException("RN-39: Retificação só permitida em simulado EM_EDICAO.");
-
-        n.alterar(novoValor); // RN-31
-        repo.salvar(n);
         rankingServico.recalcular(n.getSimulado());
     }
 

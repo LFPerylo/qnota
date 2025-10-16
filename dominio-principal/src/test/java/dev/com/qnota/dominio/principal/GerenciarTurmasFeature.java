@@ -42,7 +42,7 @@ public class GerenciarTurmasFeature {
     @Before
     public void reset() {
         repo = new RepositorioEmMemoria();
-        turmaSrv = new TurmaServico(repo);
+        turmaSrv = new TurmaServico(repo, repo);
 
         seq = new AtomicInteger(1);
         aliasTurma = new HashMap<>();
@@ -156,7 +156,7 @@ public class GerenciarTurmasFeature {
             // Criar aluno ativo na turma
             var alunoId = new dev.com.qnota.dominio.principal.aluno.AlunoId(seq.getAndIncrement());
             var responsavelId = new dev.com.qnota.dominio.principal.responsavel.ResponsavelId(seq.getAndIncrement());
-            var responsaveis = List.of(new dev.com.qnota.dominio.principal.aluno.Aluno.AlunoResponsavel(responsavelId, "Pai", true));
+            var responsaveis = List.of(new dev.com.qnota.dominio.principal.aluno.Aluno.AlunoResponsavel(responsavelId, true));
             
             repo.salvar(new dev.com.qnota.dominio.principal.responsavel.Responsavel("Responsável", "12345678909", "resp@ex.com", dev.com.qnota.dominio.principal.responsavel.Responsavel.Status.ATIVO));
             repo.salvar(new dev.com.qnota.dominio.principal.aluno.Aluno(alunoId, "Aluno Teste", java.time.LocalDate.of(2012, 1, 1), true, currentTurmaId, responsaveis));

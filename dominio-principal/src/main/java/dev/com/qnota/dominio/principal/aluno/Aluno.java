@@ -88,7 +88,7 @@ public class Aluno {
         responsaveis.addAll(tmp);
     }
 
-    public void adicionarResponsavel(ResponsavelId idResp, String grauParentesco, boolean principal) {
+    public void adicionarResponsavel(ResponsavelId idResp, boolean principal) {
         Objects.requireNonNull(idResp, "'responsavelId' não pode ser nulo");
 
         if (responsaveis.size() >= 3)
@@ -101,7 +101,7 @@ public class Aluno {
             throw new IllegalStateException("deve haver exatamente um responsável principal");
 
         var nova = new ArrayList<>(responsaveis);
-        nova.add(new AlunoResponsavel(idResp, grauParentesco, principal)); // record garante NOT NULL
+        nova.add(new AlunoResponsavel(idResp, principal)); // record garante NOT NULL
         validarInvariantesResponsaveis(nova);
         responsaveis.clear();
         responsaveis.addAll(nova);
@@ -121,7 +121,7 @@ public class Aluno {
 
         if (eraPrincipal && nova.stream().noneMatch(AlunoResponsavel::principal)) {
             var primeiro = nova.get(0);
-            nova.set(0, new AlunoResponsavel(primeiro.responsavel(), primeiro.grauParentesco(), true));
+            nova.set(0, new AlunoResponsavel(primeiro.responsavel(), true));
         }
         validarInvariantesResponsaveis(nova);
         responsaveis.clear();
@@ -135,7 +135,7 @@ public class Aluno {
         var nova = new ArrayList<AlunoResponsavel>(responsaveis.size());
         for (var ar : responsaveis) {
             boolean principal = ar.responsavel().equals(idResp);
-            nova.add(new AlunoResponsavel(ar.responsavel(), ar.grauParentesco(), principal));
+            nova.add(new AlunoResponsavel(ar.responsavel(), principal));
         }
         validarInvariantesResponsaveis(nova);
         responsaveis.clear();
@@ -185,10 +185,9 @@ public class Aluno {
     }
 
     // ===== value object =====
-    public record AlunoResponsavel(ResponsavelId responsavel, String grauParentesco, boolean principal) {
+    public record AlunoResponsavel(ResponsavelId responsavel, boolean principal) {
         public AlunoResponsavel {
             Objects.requireNonNull(responsavel, "'responsavel' não pode ser nulo");
-            grauParentesco = requireNonBlank(grauParentesco, "'grauParentesco' não pode ser vazio");
         }
     }
 }

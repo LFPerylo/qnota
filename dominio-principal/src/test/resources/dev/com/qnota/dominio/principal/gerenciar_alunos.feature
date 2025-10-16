@@ -131,9 +131,10 @@ Feature: Gerenciar alunos
     Then o sistema rejeita o cadastro em alunos
     And o sistema informa em alunos que "Responsável não pode ser nulo"
 
-  Scenario: Bloquear cadastro com grau de parentesco vazio (falha - NOT BLANK)
-    Given um "aluno" "não está" registrado
-    And existe um responsável "R1" válido com "grau de parentesco vazio"
-    When um coordenador tenta cadastrar o "aluno" na turma "7A" informando o responsável "R1"
-    Then o sistema rejeita o cadastro em alunos
-    And o sistema informa em alunos que "'grauParentesco' não pode ser vazio"
+  # Cenário removido: grau de parentesco foi removido do domínio
+  # Scenario: Bloquear cadastro com grau de parentesco vazio (falha - NOT BLANK)
+  #   Given um "aluno" "não está" registrado
+  #   And existe um responsável "R1" válido com "grau de parentesco vazio"
+  #   When um coordenador tenta cadastrar o "aluno" na turma "7A" informando o responsável "R1"
+  #   Then o sistema rejeita o cadastro em alunos
+  #   And o sistema informa em alunos que "'grauParentesco' não pode ser vazio"

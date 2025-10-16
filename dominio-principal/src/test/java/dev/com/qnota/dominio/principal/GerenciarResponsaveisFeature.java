@@ -124,8 +124,8 @@ public class GerenciarResponsaveisFeature {
                 : null;
 
         var lista = new java.util.ArrayList<Aluno.AlunoResponsavel>();
-        lista.add(new Aluno.AlunoResponsavel(r1Id, "Parente", r1Principal));
-        if (r2Id != null) lista.add(new Aluno.AlunoResponsavel(r2Id, "Parente", r2Principal));
+        lista.add(new Aluno.AlunoResponsavel(r1Id, r1Principal));
+        if (r2Id != null) lista.add(new Aluno.AlunoResponsavel(r2Id, r2Principal));
 
         // Como o ID é gerado pelo repositório, vamos criar o aluno e obter o ID gerado
         var aluno = new Aluno(nomeAluno, LocalDate.of(2012,1,1), true, defaultTurma(), lista);
@@ -239,7 +239,7 @@ public class GerenciarResponsaveisFeature {
         if ("possui".equalsIgnoreCase(possui)) {
             var aluno = repo.porId(currentAlunoId).orElseThrow();
             var nova = new java.util.ArrayList<>(aluno.getResponsaveis());
-            nova.add(new Aluno.AlunoResponsavel(currentRespId, "Parente", false));
+            nova.add(new Aluno.AlunoResponsavel(currentRespId, false));
             aluno = new Aluno(aluno.getId(), aluno.getNome(), aluno.getDataNascimento(),
                     aluno.isAtivo(), aluno.getTurma(), nova);
             repo.salvar(aluno);
@@ -273,7 +273,7 @@ public class GerenciarResponsaveisFeature {
 
         if ("está".equals(estado) && !jaVinculado) {
             var nova = new java.util.ArrayList<>(aluno.getResponsaveis());
-            nova.add(new Aluno.AlunoResponsavel(rId, "Parente", false));
+            nova.add(new Aluno.AlunoResponsavel(rId, false));
             aluno = new Aluno(aluno.getId(), aluno.getNome(), aluno.getDataNascimento(),
                     aluno.isAtivo(), aluno.getTurma(), nova);
             repo.salvar(aluno);
@@ -303,7 +303,7 @@ public class GerenciarResponsaveisFeature {
         boolean jaVinculado = aluno.getResponsaveis().stream().anyMatch(ar -> ar.responsavel().equals(currentRespId));
         if ("está".equals(estado) && !jaVinculado) {
             var nova = new java.util.ArrayList<>(aluno.getResponsaveis());
-            nova.add(new Aluno.AlunoResponsavel(currentRespId, "Parente", false));
+            nova.add(new Aluno.AlunoResponsavel(currentRespId, false));
             aluno = new Aluno(aluno.getId(), aluno.getNome(), aluno.getDataNascimento(), aluno.isAtivo(), aluno.getTurma(), nova);
             repo.salvar(aluno);
         }
@@ -424,7 +424,7 @@ public class GerenciarResponsaveisFeature {
         try {
             var rId = ensureRespAlias(rAlias, rAlias + " Nome", rAlias.toLowerCase()+"@ex.com", Responsavel.Status.ATIVO);
             // Use currentAlunoId que deve estar definido pelos steps anteriores
-            servico.vincularAoAluno(rId, currentAlunoId, "Parente", false);
+            servico.vincularAoAluno(rId, currentAlunoId, false);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -435,7 +435,7 @@ public class GerenciarResponsaveisFeature {
             var rId = ensureRespAlias(rAlias, rAlias + " Nome", rAlias.toLowerCase()+"@ex.com", Responsavel.Status.ATIVO);
             boolean principal = "principal".equalsIgnoreCase(principalStr);
             // Use currentAlunoId que deve estar definido pelos steps anteriores
-            servico.vincularAoAluno(rId, currentAlunoId, grau, principal);
+            servico.vincularAoAluno(rId, currentAlunoId, principal);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -457,7 +457,7 @@ public class GerenciarResponsaveisFeature {
                 currentAlunoId = ensureAlunoComVinculos(alunoAlias, "Aluno "+alunoAlias, "R0", true, null, false);
             }
             boolean principal = "principal".equalsIgnoreCase(principalStr);
-            servico.vincularAoAluno(currentRespId, currentAlunoId, grau, principal);
+            servico.vincularAoAluno(currentRespId, currentAlunoId, principal);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -469,7 +469,7 @@ public class GerenciarResponsaveisFeature {
             if (currentAlunoId == null) {
                 currentAlunoId = ensureAlunoComVinculos(alunoAlias, "Aluno "+alunoAlias, "R0", true, null, false);
             }
-            servico.vincularAoAluno(currentRespId, currentAlunoId, "Parente", false);
+            servico.vincularAoAluno(currentRespId, currentAlunoId, false);
         } catch (Exception e) { lastError = e; }
     }
 

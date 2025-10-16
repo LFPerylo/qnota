@@ -64,7 +64,7 @@ public class ResponsavelServico {
      *  - RN-20: não pode duplicar vínculo
      *  - RN-02/RN-58: invariantes delegadas ao agregado Aluno
      */
-    public void vincularAoAluno(ResponsavelId respId, AlunoId alunoId, String grauParentesco, boolean principal) {
+    public void vincularAoAluno(ResponsavelId respId, AlunoId alunoId, boolean principal) {
         var r = responsavelRepo.porId(respId).orElseThrow(() -> new IllegalStateException("responsável não encontrado"));
         if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
             throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
@@ -79,7 +79,7 @@ public class ResponsavelServico {
         if (aluno.getResponsaveis().size() >= 3)
             throw new IllegalStateException("o número máximo de responsáveis por aluno é 3");
 
-        aluno.adicionarResponsavel(respId, grauParentesco, principal);
+        aluno.adicionarResponsavel(respId, principal);
         alunoRepo.salvar(aluno);
     }
 
