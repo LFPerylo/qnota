@@ -17,18 +17,69 @@ BoundedContext Principal implements Principal {
             LocalDate dataNascimento
             boolean ativo
             -TurmaId turma
-            List<VinculoResponsavel> responsaveis notEmpty
+            List<VinculoResponsavel> responsaveis
+
+            void atribuirIdSeAusente(@AlunoId novoId);
+
+            void inativar();
+            void ativar();
+
+            void mudarTurma(@TurmaId novaTurma);
+
+            void substituirResponsaveis(List<@AlunoResponsavel> novaLista);
+            void adicionarResponsavel(@ResponsavelId idResp, boolean principal);
+            void removerResponsavel(@ResponsavelId idResp);
+            void definirPrincipal(@ResponsavelId idResp);
+            void validarInvariantesResponsaveis(List<@AlunoResponsavel> lista);
+
+            repository AlunoRepositorio {
+                @AlunoId salvar(@Aluno aluno);
+
+                Optional<@Aluno> porId(@AlunoId id);
+                void remover(@AlunoId id);
+
+                boolean existeOutroComMesmoNomeENascimentoNaTurma(String nome, LocalDate data, @TurmaId turmaId);
+                int contarResponsaveis(@AlunoId id);
+                boolean existeVinculo(@AlunoId id);
+
+                List<@Aluno> porTurma(@TurmaId turmaId);
+
+                boolean temNotasPendentesEmSimuladosEmEdicao(@AlunoId alunoId);
+                boolean temNotas(@AlunoId alunoId);
+
+                boolean possuiSimuladoFinalizado(@AlunoId alunoId);
+
+                void alterarTurma(@AlunoId alunoId, @TurmaId novaTurmaId);
+            }
         }
 
         ValueObject AlunoId {
             int id
         }
 
-        ValueObject VinculoResponsavel {
-            ResponsavelId responsavel
-            String grauParentesco
+        ValueObject AlunoResponsavel {
+            -ResponsavelId responsavel
             boolean principal
         }
+
+        service AlunoServico {
+            void cadastrar(@AlunoId id, String nome, LocalDate nascimento, @TurmaId turma, List<@AlunoResponsavel> responsaveis);
+
+            @AlunoId cadastrar(String nome, LocalDate nascimento, @TurmaId turma, List<@AlunoResponsavel> responsaveis);
+
+            void transferir(@AlunoId id, @TurmaId novaTurma);
+
+            void inativar(@AlunoId id);
+
+            void excluir(@AlunoId id);
+
+            void vincularResponsavel(@AlunoId id, @ResponsavelId resp, boolean principal);
+
+            void editar(@Aluno alunoEditado);
+
+            void validarCadastro(String nome, LocalDate nascimento, @TurmaId turma, List<AlunoResponsavel> responsaveis);
+        }
+
     }
 
     Aggregate Responsavel {
@@ -39,12 +90,57 @@ BoundedContext Principal implements Principal {
             String nome
             String cpf
             String email
-            boolean inadimplente
+            -Status status
+
+            void atribuirIdSeAusente(@ResponsavelId novoId);
+            void renomear(String novoNome);
+            void alterarEmail(String novoEmail);
+            void marcarInadimplente();
+            void regularizar();
+            void inativar();
+
+            repository ResponsavelRepositorio {
+                void salvar(@Responsavel r);
+
+                Optional<@Responsavel> porId(@ResponsavelId id);
+
+                boolean cpfExiste(String cpf);
+
+                void atualizarContato(@ResponsavelId id, String novoNome, String novoEmail); 
+                void excluir(@ResponsavelId id);
+
+                boolean estaVinculadoAAlgumAluno(@ResponsavelId id);
+                boolean vinculadoAoAluno(@ResponsavelId id, @AlunoId alunoId);
+                void vincular(@ResponsavelId id, @AlunoId alunoId);
+                void desvincular(@ResponsavelId id, @AlunoId alunoId);
+                int quantidadeResponsaveisDoAluno(@AlunoId alunoId);
+                void definirPrincipal(@ResponsavelId id, @AlunoId alunoId);
+
+                boolean estaInadimplente(@ResponsavelId id);
+            }
         }
 
         ValueObject ResponsavelId {
             int id
         }
+
+        service ResponsavelServico {
+            void cadastrar(String nome, String cpf, String email);
+            void atualizarContato(@ResponsavelId id, String novoNome, String novoEmail);
+            void marcarInadimplente(@ResponsavelId id);
+            void regularizar(@ResponsavelId id);
+            void inativar(@ResponsavelId id);
+            void excluir(@ResponsavelId id);
+            void vincularAoAluno(@ResponsavelId respId, @AlunoId alunoId, boolean principal);
+            void desvincularDoAluno(@ResponsavelId respId, @AlunoId alunoId);
+            void definirComoPrincipal(@ResponsavelId respId, @AlunoId alunoId);
+        }
+
+        enum Status {
+			ATIVO, 
+            INADIMPLENTE, 
+            INATIVO			
+		}
     }
 
     Aggregate Professor {
@@ -55,11 +151,41 @@ BoundedContext Principal implements Principal {
             String nome
             String cpf
             String email
-            List<String> especialidades notEmpty
+            List<String> especialidades
+
+            void atribuirIdSeAusente(@ProfessorId novoId);
+            void renomear(String novoNome);
+            void alterarEmail(String novoEmail);
+            void adicionarEspecialidade(String nomeArea);
+            void removerEspecialidade(String nomeArea);
+            boolean possuiEspecialidade(String nomeArea);
+
+            repository ProfessorRepositorio {
+                void salvar(@Professor p);
+
+                Optional<@Professor> porId(@ProfessorId id);
+
+                int contarTurmasAtivas(@ProfessorId id);              
+                List<String> nomesDeAreasDoProfessor(@ProfessorId id); 
+                boolean possuiSimuladoFinalizado(@ProfessorId id);     
+
+                void substituirProfessor(@ProfessorId antigo, @ProfessorId substituto);
+            }
         }
 
         ValueObject ProfessorId {
             int id
+        }
+
+        service ProfessorServico {
+            void cadastrar(String nome, String cpf, String email, List<String> especialidades);
+            void atualizarContato(@ProfessorId id, String novoNome, String novoEmail);
+            void validarLimiteDeTurmas(@ProfessorId id);
+            void removerComSubstituto(@ProfessorId aRemover, @ProfessorId substituto);
+            void adicionarEspecialidade(@ProfessorId id, String area);
+            void removerEspecialidade(@ProfessorId id, String area);
+
+            List<String> areasDoProfessor(@ProfessorId id);
         }
     }
 
@@ -72,10 +198,42 @@ BoundedContext Principal implements Principal {
             int anoLetivo
             boolean ativo
             ProfessorId professor
+
+            void atribuirIdSeAusente(@TurmaId novoId);
+            void renomear(String novoNome);
+            void mudarProfessor(@ProfessorId novoProfessor);
+
+            void inativar();
+            void ativar();
+
+            void alterarAnoLetivo(int novoAno);
+
+            repository TurmaRepositorio {
+                void salvar(@Turma t);
+
+                Optional<@Turma> porId(@TurmaId id);
+                void remover(@TurmaId id);
+
+                boolean existeNomeNoAno(String nome, int anoLetivo);
+                boolean possuiAlunosAtivos(@TurmaId id);
+                boolean possuiSimulados(@TurmaId id);
+                boolean possuiSimuladosEmEdicao(@TurmaId id);
+                boolean possuiSimuladosFinalizados(@TurmaId id);
+
+                int anoLetivoDe(@TurmaId id);
+            }
         }
 
         ValueObject TurmaId {
             int id
+        }
+
+        service TurmaServico {
+            void criar(String nome, int anoLetivo, @ProfessorId professor);
+            void criar(@Turma t);
+            void trocarProfessor(@TurmaId id, @ProfessorId novoProfessor);
+            void inativar(@TurmaId id);
+            void excluir(@TurmaId id);
         }
     }
 
@@ -85,11 +243,46 @@ BoundedContext Principal implements Principal {
 
             -DisciplinaId id
             String nome
-            String area
+            int versao             
+            Integer idVersaoOrigem  
+            boolean ativo
+            -AreaConhecimento area
+
+            void atribuirIdSeAusente(@DisciplinaId novoId);
+            void renomear(String novoNome);
+            void mudarArea(@AreaConhecimento novaArea);
+            void ativar();
+            void inativar();
+
+            @Disciplina novaVersao(String novoNome, @AreaConhecimento novaArea);
+
+            repository DisciplinaRepositorio {
+                @DisciplinaId salvar(@Disciplina d);
+
+                Optional<@Disciplina> porId(@DisciplinaId id);
+                void remover(@DisciplinaId id);
+
+                boolean existeNomeNaArea(String nome, String areaNome);      
+                boolean foiUsadaEmAlgumSimulado(@DisciplinaId id);            
+                boolean foiUsadaEmSimuladoFinalizado(@DisciplinaId id);
+            }
         }
 
         ValueObject DisciplinaId {
             int id
+        }
+
+        ValueObject AreaConhecimento {
+            int id
+            String nome
+        }
+
+        service DisciplinaServico {
+            void cadastrar(String nome, @AreaConhecimento area);
+            void editar(@DisciplinaId id, String novoNome, @AreaConhecimento novaArea);
+            void ativar(@DisciplinaId id);
+            void inativar(@DisciplinaId id);
+            void excluir(@DisciplinaId id);
         }
     }
 
@@ -99,9 +292,32 @@ BoundedContext Principal implements Principal {
 
             -SimuladoId id
             LocalDate dataAplicacao
-            String status        // valores de uso: "EM_EDICAO" | "FINALIZADO"
-            TurmaId turma
-            List<DisciplinaPeso> disciplinas
+            String status      
+            -TurmaId turma
+            -List<DisciplinaPeso> disciplinas
+
+            void atribuirIdSeAusente(@SimuladoId novoId);
+            void alterarDisciplinas(List<@DisciplinaPeso> novas);
+            void alterarData(LocalDate novaData);
+            void finalizar();
+            void validarDisciplinas(List<@DisciplinaPeso> lista);
+
+            repository SimuladoRepositorio {
+                void salvar(@Simulado s);
+
+                Optional<@Simulado> porId(@SimuladoId id);
+
+                int contarEmEdicaoPorTurma(@TurmaId turmaId);
+                List<@Simulado> listarPorTurma(@TurmaId turmaId);
+
+                Map<Integer, Double> pesosDoSimulado(@SimuladoId id);
+
+                boolean todasNotasLancadas(@SimuladoId id);
+                
+                boolean existeNotaParaSimulado(@SimuladoId id);
+                
+                void remover(@SimuladoId id);
+            }
         }
 
         ValueObject SimuladoId {
@@ -109,8 +325,21 @@ BoundedContext Principal implements Principal {
         }
 
         ValueObject DisciplinaPeso {
-            DisciplinaId disciplina
+            -DisciplinaId disciplina
             double peso
+        }
+
+        service SimuladoServico {
+            void criar(LocalDate dataAplicacao, @TurmaId turma, List<@DisciplinaPeso> disciplinas);
+            void criar(@Simulado s);
+            void editarDisciplinas(@SimuladoId id, List<@DisciplinaPeso> novas);
+            void finalizar(@SimuladoId id);
+            void excluir(@SimuladoId id);
+        }
+
+        enum Status { 
+            EM_EDICAO, 
+            FINALIZADO 
         }
     }
 
@@ -119,15 +348,37 @@ BoundedContext Principal implements Principal {
             aggregateRoot
 
             -NotaId id
-            AlunoId aluno
-            SimuladoId simulado
-            DisciplinaId disciplina
+            -AlunoId aluno
+            -SimuladoId simulado
+            -DisciplinaId disciplina
             double valor
             LocalDateTime dataLancamento
+
+            void atribuirIdSeAusente(@NotaId novoId);
+            void alterar(double novoValor);
+            void validarFaixa(double v);
+
+            repository NotaRepositorio {
+                NotaId salvar(@Nota n);
+
+                Optional<@Nota> porId(@NotaId id);
+
+                Optional<@Nota> porChave(@AlunoId aluno, @SimuladoId simulado, @DisciplinaId disciplina);
+
+                List<@Nota> porSimulado(@SimuladoId simulado);
+
+                boolean simuladoEstaEmEdicao(@SimuladoId simulado);
+            }
         }
 
         ValueObject NotaId {
             int id
+        }
+
+        service NotaServico {
+            void lancar(@AlunoId aluno, @SimuladoId simulado, @DisciplinaId disciplina, double valor);
+            void lancar(@Nota n);
+            void retificarComJustificativa(@NotaId idOriginal, double novoValor, String justificativa, @ProfessorId professor);
         }
     }
 
@@ -136,16 +387,79 @@ BoundedContext Principal implements Principal {
             aggregateRoot
 
             -JustificativaId id
-            NotaId nota
+            -NotaId nota
             double notaAnterior
             double notaCorrigida
             String justificativa
             LocalDateTime dataHora
-            ProfessorId professor
+            -ProfessorId professor
+
+            void atribuirIdSeAusente(@JustificativaId novoId);
+
+            repository JustificativaRepositorio {
+                @JustificativaId salvar(@Justificativa j);
+
+                List<@Justificativa> porNota(@NotaId idNota);
+            }
         }
 
         ValueObject JustificativaId {
             int id
+        }
+
+        service JustificativaServico {
+            void registrar(@NotaId nota,double anterior,double corrigida,String texto,@ProfessorId professor);
+        }
+    }
+
+    Aggregate Ranking {
+        Entity Ranking {
+            aggregateRoot
+
+            -RankingId id
+            -SimuladoId simulado
+            boolean congelado
+            -List<@Linha> linhas;
+
+            void atribuirIdSeAusente(@RankingId id);
+            void substituirLinhas(List<@Linha> novas);
+            void congelar();
+
+            repository RankingRepositorio {
+                void limpar(@SimuladoId simulado);
+
+                void salvarPosicoes(@SimuladoId simulado, List<@ItemRanking> itens);
+
+                void congelar(@SimuladoId simulado);
+
+                boolean estaCongelado(@SimuladoId simulado);
+
+                List<@ItemRanking> carregar(@SimuladoId simulado);
+
+                record ItemRanking(@AlunoId aluno, double media, int posicao);
+
+                @Ranking salvar(@Ranking ranking);
+
+                Optional<@Ranking> carregarAgregado(@SimuladoId simulado);
+            }
+        }
+
+        ValueObject RankingId {
+            int id
+        }
+
+        ValueObject Linha {
+            -AlunoId aluno
+            double media
+            int posicao
+        }
+
+        service RankingServico {
+            List<@ItemRanking> recalcular(@SimuladoId simuladoId);
+            @Ranking recalcularComoAgregado(@SimuladoId simuladoId);
+            void congelar(@SimuladoId simuladoId);
+            List<@ItemRanking> calcularPosicoes(List<@Aluno> alunos, List<@Nota> notas, Map<Integer, Double> pesos);
+            double mediaPonderada(@Aluno aluno, List<@Nota> notas, Map<Integer, Double> pesos);
         }
     }
 }

@@ -184,7 +184,6 @@ public class Aluno {
         return tmp;
     }
 
-    // ===== value object =====
     public record AlunoResponsavel(ResponsavelId responsavel, boolean principal) {
         public AlunoResponsavel {
             Objects.requireNonNull(responsavel, "'responsavel' não pode ser nulo");
