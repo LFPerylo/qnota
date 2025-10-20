@@ -6,10 +6,12 @@ import java.util.Objects;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
+import dev.com.qnota.dominio.principal.disciplina.DisciplinaRepositorio;
 import dev.com.qnota.dominio.principal.justificativa.Justificativa;
 import dev.com.qnota.dominio.principal.justificativa.JustificativaRepositorio;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
+import dev.com.qnota.dominio.principal.simulado.Simulado;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
 import dev.com.qnota.dominio.principal.turma.TurmaRepositorio;
@@ -21,95 +23,103 @@ public class NotaServico {
     private final AlunoRepositorio alunoRepo;
     private final SimuladoRepositorio simuladoRepo;
     private final TurmaRepositorio turmaRepo;
+    private final DisciplinaRepositorio disciplinaRepo;
+    private final JustificativaRepositorio justificativaRepo; // opcional
 
-    // Registro de justificativas (histórico) é opcional
-    private final JustificativaRepositorio justificativaRepo;
-
-    public NotaServico(NotaRepositorio repo, RankingServico rankingServico, 
-                      AlunoRepositorio alunoRepo, SimuladoRepositorio simuladoRepo, 
-                      TurmaRepositorio turmaRepo) {
-        this(repo, rankingServico, alunoRepo, simuladoRepo, turmaRepo, null);
+    public NotaServico(NotaRepositorio repo,
+                       RankingServico rankingServico,
+                       AlunoRepositorio alunoRepo,
+                       SimuladoRepositorio simuladoRepo,
+                       TurmaRepositorio turmaRepo,
+                       DisciplinaRepositorio disciplinaRepo) {
+        this(repo, rankingServico, alunoRepo, simuladoRepo, turmaRepo, disciplinaRepo, null);
     }
 
-    public NotaServico(NotaRepositorio repo, RankingServico rankingServico, 
-                      AlunoRepositorio alunoRepo, SimuladoRepositorio simuladoRepo, 
-                      TurmaRepositorio turmaRepo, JustificativaRepositorio justificativaRepo) {
+    public NotaServico(NotaRepositorio repo,
+                       RankingServico rankingServico,
+                       AlunoRepositorio alunoRepo,
+                       SimuladoRepositorio simuladoRepo,
+                       TurmaRepositorio turmaRepo,
+                       DisciplinaRepositorio disciplinaRepo,
+                       JustificativaRepositorio justificativaRepo) {
         this.repo = Objects.requireNonNull(repo);
         this.rankingServico = Objects.requireNonNull(rankingServico);
         this.alunoRepo = Objects.requireNonNull(alunoRepo);
         this.simuladoRepo = Objects.requireNonNull(simuladoRepo);
         this.turmaRepo = Objects.requireNonNull(turmaRepo);
-        this.justificativaRepo = justificativaRepo; // opcional
+        this.disciplinaRepo = Objects.requireNonNull(disciplinaRepo);
+        this.justificativaRepo = justificativaRepo; // pode ser null
     }
 
-    /** Conveniência: cria e lança uma nova nota já com timestamp. */
-    public void lancar(AlunoId aluno, SimuladoId simulado, DisciplinaId disciplina, double valor) {
-        var agora = LocalDateTime.now();
-        var n = new Nota(aluno, simulado, disciplina, valor, agora);
-        lancar(n);
+    /** Conveniência: cria a entidade e delega para o lançamento “principal”. */
+    public NotaId lancar(AlunoId aluno, SimuladoId simulado, DisciplinaId disciplina, double valor) {
+        var n = new Nota(aluno, simulado, disciplina, valor, LocalDateTime.now());
+        return lancar(n);
     }
 
     /**
      * Lançamento:
-     * - RN-32: apenas quando simulado está EM_EDICAO
-     * - RN-31: faixa [0..10] validada no agregado
-     * - RN-33: evita duplicidade (aluno+simulado+disciplina)
-     * - RN-31/32/33: aluno inativado não pode receber nota
-     * - RN-94: turma inativada não permite novas notas
-     * - RN-34: validar existência de IDs
-     * - RN-98/RN-99: recalcula ranking
+     * - RN-34: valida existência de aluno/simulado/disciplina/turma
+     * - RN-31/32/33: aluno inativo não recebe nota; simulado deve estar EM_EDICAO; evita duplicidade
+     * - RN-94: turma inativa não permite novas notas
+     * - RN-98/RN-99: recalcula ranking após salvar
      */
-    public void lancar(Nota n) {
-        // RN-34: validar existência de IDs antes de salvar
-        var aluno = alunoRepo.porId(n.getAluno()).orElseThrow(() -> new IllegalStateException("aluno não encontrado"));
+    public NotaId lancar(Nota n) {
+        // RN-34: garantir que IDs existem
+        var aluno    = alunoRepo.porId(n.getAluno()).orElseThrow(() -> new IllegalStateException("aluno não encontrado"));
         var simulado = simuladoRepo.porId(n.getSimulado()).orElseThrow(() -> new IllegalStateException("simulado não encontrado"));
-        var turma = turmaRepo.porId(simulado.getTurma()).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
-        
-        // RN-31/32/33: aluno inativado não pode receber nota
+        disciplinaRepo.porId(n.getDisciplina()).orElseThrow(() -> new IllegalStateException("disciplina não encontrada"));
+        var turma    = turmaRepo.porId(simulado.getTurma()).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
+
+        // RN-31/32/33: aluno inativo não recebe nota
         if (!aluno.isAtivo())
             throw new IllegalStateException("RN-31/RN-32/RN-33: aluno inativado não pode receber nota.");
-        
-        // RN-94: turma inativada não permite novas notas
+
+        // RN-94: turma inativa não recebe novas notas
         if (!turma.isAtivo())
             throw new IllegalStateException("RN-94: turma inativada não permite novas notas/simulados.");
-        
-        if (!repo.simuladoEstaEmEdicao(n.getSimulado()))
+
+        // RN-32: simulado deve estar EM_EDICAO
+        if (simulado.getStatus() != Simulado.Status.EM_EDICAO)
             throw new IllegalStateException("RN-32: Lançamento só com simulado EM_EDICAO.");
+
+        // RN-33: evitar duplicidade (aluno+simulado+disciplina)
         if (repo.porChave(n.getAluno(), n.getSimulado(), n.getDisciplina()).isPresent())
             throw new IllegalStateException("RN-33: Nota duplicada para mesma disciplina/simulado/aluno.");
 
-        repo.salvar(n); // repositório atribui ID se necessário
+        var id = repo.salvar(n); // ORM atribui ID
         rankingServico.recalcular(n.getSimulado());
+        return id;
     }
 
     /**
      * RN-37/38/39: retificar criando NOVA versão e registrando justificativa.
-     * - RN-39: só em simulado EM_EDICAO
-     * - RN-37: justificativa obrigatória com >= 20 caracteres
-     * - RN-38: nova versão (novo ID) e original preservada
+     * Retorna o ID da nova nota.
      */
-    public void retificarComJustificativa(NotaId idOriginal, double novoValor, String justificativa, ProfessorId professor) {
+    public NotaId retificarComJustificativa(NotaId idOriginal, double novoValor, String justificativa, ProfessorId professor) {
         var original = repo.porId(idOriginal).orElseThrow();
 
-        // RN-39
-        if (!repo.simuladoEstaEmEdicao(original.getSimulado()))
+        // RN-39: simulado precisa estar EM_EDICAO
+        var simulado = simuladoRepo.porId(original.getSimulado()).orElseThrow();
+        if (simulado.getStatus() != Simulado.Status.EM_EDICAO)
             throw new IllegalStateException("RN-39: Retificação só permitida em simulado EM_EDICAO.");
 
-        // RN-37
+        // RN-37: justificativa mínima
         String txt = justificativa == null ? "" : justificativa.trim();
         if (txt.length() < 20)
             throw new IllegalArgumentException("RN-37: Justificativa deve conter ao menos 20 caracteres.");
 
-        // RN-38: criar nova versão (novo ID). A original fica intacta.
+        // RN-38: cria nova versão (novo ID). Original preservada.
         var nova = new Nota(
                 original.getAluno(),
                 original.getSimulado(),
                 original.getDisciplina(),
                 novoValor,
-                LocalDateTime.now());
-        repo.salvar(nova);
+                LocalDateTime.now()
+        );
+        var novaId = repo.salvar(nova);
 
-        // Registrar justificativa (se o repositório estiver disponível)
+        // histórico de justificativa (opcional)
         if (justificativaRepo != null) {
             Objects.requireNonNull(professor, "professor é obrigatório na retificação");
             var j = new Justificativa(
@@ -118,10 +128,12 @@ public class NotaServico {
                     novoValor,
                     txt,
                     LocalDateTime.now(),
-                    professor);
+                    professor
+            );
             justificativaRepo.salvar(j);
         }
 
         rankingServico.recalcular(original.getSimulado());
+        return novaId;
     }
 }

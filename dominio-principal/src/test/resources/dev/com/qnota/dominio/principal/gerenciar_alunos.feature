@@ -99,7 +99,7 @@ Feature: Gerenciar alunos
     Given um "aluno" "não está" registrado
     When um coordenador tenta cadastrar o "aluno" na turma "7A" com dois responsáveis marcados como "principal"
     Then o sistema rejeita o cadastro em alunos
-    And o sistema informa em alunos que "deve haver exatamente um responsável principal"
+    And o sistema informa em alunos que "Vínculo de responsável duplicado"
 
   Scenario: Bloquear cadastro sem nome do aluno (falha - NOT NULL)
     Given um "aluno" "não está" registrado e "sem nome"

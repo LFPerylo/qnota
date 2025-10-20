@@ -10,12 +10,13 @@ public class DisciplinaServico {
         this.repo = Objects.requireNonNull(repo);
     }
 
-    /** Cadastra v1 ativa, garantindo unicidade por área (RN-121). */
-    public void cadastrar(String nome, Disciplina.AreaConhecimento area) {
+    /** Cadastra v1 ativa, garantindo unicidade por área (RN-121).
+     *  ORM atribui o ID e o repositório o retorna. */
+    public DisciplinaId cadastrar(String nome, Disciplina.AreaConhecimento area) {
         if (repo.existeNomeNaArea(nome, area.nome()))
             throw new IllegalArgumentException("RN-121: Nome único por área.");
-        var nova = new Disciplina(nome, area);   // sem ID; repo atribui
-        repo.salvar(nova);
+        var nova = new Disciplina(nome, area);   // sem ID; ORM atribui
+        return repo.salvar(nova);                // retorna o DisciplinaId
     }
 
     /**

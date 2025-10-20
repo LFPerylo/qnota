@@ -30,9 +30,12 @@ public class Ranking {
     public List<Linha> getLinhas() { return Collections.unmodifiableList(linhas); }
 
     /** Exclusivo do repositório: atribui o id quando persistir pela primeira vez. */
-    public void atribuirIdSeAusente(RankingId id) {
-        if (this.id != null) return;
-        this.id = Objects.requireNonNull(id, "'id' não pode ser nulo");
+    public void atribuirIdSeAusente(RankingId novoId) {
+        Objects.requireNonNull(novoId, "'id' não pode ser nulo");
+        if (this.id != null && !this.id.equals(novoId)) {
+            throw new IllegalStateException("ID já atribuído para este ranking");
+        }
+        this.id = novoId;
     }
 
     public void substituirLinhas(List<Linha> novas) {

@@ -82,7 +82,7 @@ public class RetificarNotaFeature {
         repo = new RepositorioEmMemoria();
         ranking = new RankingServico(repo, repo, repo, repo);
         // registra justificativas no próprio 'repo'
-        notaSrv = new NotaServico(repo, ranking, repo, repo, repo, repo);
+        notaSrv = new NotaServico(repo, ranking, repo, repo, repo, repo, repo);
 
         // IDs padrão para este cenário
         alunoId = new AlunoId(seq.getAndIncrement());
@@ -98,9 +98,19 @@ public class RetificarNotaFeature {
         var responsavel = new dev.com.qnota.dominio.principal.responsavel.Responsavel("Responsável", "529.982.247-25", "resp@test.com", dev.com.qnota.dominio.principal.responsavel.Responsavel.Status.ATIVO);
         repo.salvar(responsavel);
         
-        var aluno = new dev.com.qnota.dominio.principal.aluno.Aluno(alunoId, "Aluno Teste", java.time.LocalDate.of(2012, 1, 1), true, turmaId, 
-            java.util.List.of(new dev.com.qnota.dominio.principal.aluno.Aluno.AlunoResponsavel(responsavelId, true)));
+        var responsaveis = java.util.List.of(responsavelId);
+        var principal = responsavelId;
+        var aluno = new dev.com.qnota.dominio.principal.aluno.Aluno(alunoId, "Aluno Teste", java.time.LocalDate.of(2012, 1, 1), true, turmaId, responsaveis, principal);
         repo.salvar(aluno);
+
+        // Criar as disciplinas necessárias para o simulado
+        var disciplina1 = new dev.com.qnota.dominio.principal.disciplina.Disciplina("Matemática", new dev.com.qnota.dominio.principal.disciplina.Disciplina.AreaConhecimento(1, "Exatas"));
+        disciplina1.atribuirIdSeAusente(new DisciplinaId(100));
+        repo.salvar(disciplina1);
+        
+        var disciplina2 = new dev.com.qnota.dominio.principal.disciplina.Disciplina("Física", new dev.com.qnota.dominio.principal.disciplina.Disciplina.AreaConhecimento(1, "Exatas"));
+        disciplina2.atribuirIdSeAusente(new DisciplinaId(101));
+        repo.salvar(disciplina2);
 
         // Cria o simulado inicialmente EM_EDICAO para poder lançar a nota via serviço - usando o turmaId criado
         var sim = new Simulado(LocalDate.now(), Simulado.Status.EM_EDICAO, turmaId, List.of(dp(100, 6.0), dp(101, 4.0)));

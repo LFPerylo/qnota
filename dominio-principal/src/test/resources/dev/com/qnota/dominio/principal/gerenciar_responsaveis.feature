@@ -92,7 +92,7 @@ Feature: Gerenciar responsáveis
     Given um "aluno" "está" vinculado apenas ao "responsável" "R1"
     When um coordenador tenta desvincular o "responsável" "R1" do "aluno"
     Then o sistema rejeita a desvinculação
-    And o sistema informa que "o aluno deve ter pelo menos um responsável"
+    And o sistema informa que "Aluno deve ter ao menos um responsável"
 
   Scenario: Vincular responsável ainda não associado ao aluno (sucesso - RN-20)
     Given um "aluno" "está" vinculado ao "responsável" "R1"
@@ -104,7 +104,7 @@ Feature: Gerenciar responsáveis
     Given um "aluno" "está" vinculado ao "responsável" "R1"
     When um coordenador tenta vincular novamente o "responsável" "R1" ao mesmo "aluno"
     Then o sistema rejeita o vínculo
-    And o sistema informa que "já existe vínculo entre o responsável e o aluno"
+    And o sistema informa que "Vínculo de responsável duplicado"
 
   # --------- Validação básica no VÍNCULO (grau de parentesco removido do domínio) ---------
 
