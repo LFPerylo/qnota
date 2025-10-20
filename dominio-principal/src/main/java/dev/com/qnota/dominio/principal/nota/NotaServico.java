@@ -6,6 +6,7 @@ import java.util.Objects;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
+import dev.com.qnota.dominio.principal.disciplina.DisciplinaRepositorio;
 import dev.com.qnota.dominio.principal.justificativa.Justificativa;
 import dev.com.qnota.dominio.principal.justificativa.JustificativaRepositorio;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
@@ -21,24 +22,26 @@ public class NotaServico {
     private final AlunoRepositorio alunoRepo;
     private final SimuladoRepositorio simuladoRepo;
     private final TurmaRepositorio turmaRepo;
+    private final DisciplinaRepositorio disciplinaRepo;
 
     // Registro de justificativas (histórico) é opcional
     private final JustificativaRepositorio justificativaRepo;
 
     public NotaServico(NotaRepositorio repo, RankingServico rankingServico, 
                       AlunoRepositorio alunoRepo, SimuladoRepositorio simuladoRepo, 
-                      TurmaRepositorio turmaRepo) {
-        this(repo, rankingServico, alunoRepo, simuladoRepo, turmaRepo, null);
+                      TurmaRepositorio turmaRepo, DisciplinaRepositorio disciplinaRepo) {
+        this(repo, rankingServico, alunoRepo, simuladoRepo, turmaRepo, disciplinaRepo, null);
     }
 
     public NotaServico(NotaRepositorio repo, RankingServico rankingServico, 
                       AlunoRepositorio alunoRepo, SimuladoRepositorio simuladoRepo, 
-                      TurmaRepositorio turmaRepo, JustificativaRepositorio justificativaRepo) {
+                      TurmaRepositorio turmaRepo, DisciplinaRepositorio disciplinaRepo, JustificativaRepositorio justificativaRepo) {
         this.repo = Objects.requireNonNull(repo);
         this.rankingServico = Objects.requireNonNull(rankingServico);
         this.alunoRepo = Objects.requireNonNull(alunoRepo);
         this.simuladoRepo = Objects.requireNonNull(simuladoRepo);
         this.turmaRepo = Objects.requireNonNull(turmaRepo);
+        this.disciplinaRepo = Objects.requireNonNull(disciplinaRepo);
         this.justificativaRepo = justificativaRepo; // opcional
     }
 
@@ -63,6 +66,7 @@ public class NotaServico {
         // RN-34: validar existência de IDs antes de salvar
         var aluno = alunoRepo.porId(n.getAluno()).orElseThrow(() -> new IllegalStateException("aluno não encontrado"));
         var simulado = simuladoRepo.porId(n.getSimulado()).orElseThrow(() -> new IllegalStateException("simulado não encontrado"));
+        var disciplina = disciplinaRepo.porId(n.getDisciplina()).orElseThrow(() -> new IllegalStateException("disciplina não encontrada"));
         var turma = turmaRepo.porId(simulado.getTurma()).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
         
         // RN-31/32/33: aluno inativado não pode receber nota
