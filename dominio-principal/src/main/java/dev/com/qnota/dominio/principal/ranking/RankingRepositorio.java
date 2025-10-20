@@ -29,7 +29,6 @@ public interface RankingRepositorio {
     record ItemRanking(AlunoId aluno, double media, int posicao) {}
 
     // ===== novo contrato (agregado) =====
-
     /**
      * Persiste o agregado. Implementações com auto-increment devem:
      * - gerar um novo RankingId ao inserir (se getId()==null) e invocar ranking.atribuirIdSeAusente(...)
@@ -46,7 +45,7 @@ public interface RankingRepositorio {
         if (ranking.isCongelado()) {
             congelar(simId);
         }
-        return ranking; // em memória pode continuar sem id
+        return ranking; // para implementações em memória pode continuar sem id
     }
 
     /**

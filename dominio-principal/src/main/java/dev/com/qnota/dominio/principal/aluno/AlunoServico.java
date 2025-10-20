@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
-import dev.com.qnota.dominio.principal.aluno.Aluno.AlunoResponsavel;
 import dev.com.qnota.dominio.principal.responsavel.Responsavel;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelRepositorio;
@@ -27,18 +26,15 @@ public class AlunoServico {
         this.turmaRepo = turmaRepo;
     }
 
-    // ---------- CADASTRAR (legado, com ID explícito — mantém compatibilidade) ----------
-    public void cadastrar(AlunoId id, String nome, LocalDate nascimento, TurmaId turma, List<AlunoResponsavel> responsaveis) {
+    // ---------- CADASTRAR (único — ORM gera o ID) ----------
+    public AlunoId cadastrar(String nome,
+                             LocalDate nascimento,
+                             TurmaId turma,
+                             List<ResponsavelId> responsaveis,
+                             ResponsavelId principal) {
         validarCadastro(nome, nascimento, turma, responsaveis);
-        var aluno = new Aluno(id, nome, nascimento, true, turma, responsaveis);
-        repo.salvar(aluno); // retorna o mesmo ID; aqui não precisamos usar o retorno
-    }
-
-    // ---------- CADASTRAR (recomendado, sem ID; repositório/banco gera o ID) ----------
-    public AlunoId cadastrar(String nome, LocalDate nascimento, TurmaId turma, List<AlunoResponsavel> responsaveis) {
-        validarCadastro(nome, nascimento, turma, responsaveis);
-        var aluno = new Aluno(nome, nascimento, true, turma, responsaveis); // sem id
-        return repo.salvar(aluno); // repositório atribui (se necessário) e devolve o AlunoId
+        var aluno = new Aluno(nome, nascimento, true, turma, responsaveis, principal); // sem id
+        return repo.salvar(aluno); // repositório/ORM atribui e devolve o AlunoId
     }
 
     // ---------- TRANSFERIR ----------
@@ -92,7 +88,13 @@ public class AlunoServico {
 
     public void desvincularResponsavel(AlunoId id, ResponsavelId resp) {
         var aluno = repo.porId(id).orElseThrow();
-        aluno.removerResponsavel(resp); // garante RN-19 e RN-58 (auto-promove outro principal)
+        aluno.removerResponsavel(resp); // garante RN-19/RN-58 (auto-promove outro principal)
+        repo.salvar(aluno);
+    }
+
+    public void definirPrincipal(AlunoId id, ResponsavelId resp) {
+        var aluno = repo.porId(id).orElseThrow();
+        aluno.definirPrincipal(resp); // RN-58
         repo.salvar(aluno);
     }
 
@@ -102,32 +104,18 @@ public class AlunoServico {
     }
 
     // ---------- validações compartilhadas ----------
-    private void validarCadastro(String nome, LocalDate nascimento, TurmaId turma, List<AlunoResponsavel> responsaveis) {
-        // Validar que turma não é nula
+    private void validarCadastro(String nome, LocalDate nascimento, TurmaId turma, List<ResponsavelId> responsaveis) {
         Objects.requireNonNull(turma, "'turma' não pode ser nula");
-        
-        // RN-94: não pode cadastrar aluno em turma inativa
-        var turmaEntity = turmaRepo.porId(turma).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
-        if (!turmaEntity.isAtivo())
-            throw new IllegalStateException("RN-94: Não é possível cadastrar aluno em turma inativa.");
-        
-        // Evita NPE e garante mensagem esperada quando há item nulo na lista
-        if (responsaveis != null) {
-            for (AlunoResponsavel ar : responsaveis) {
-                if (ar == null) {
-                    throw new IllegalArgumentException("Responsável não pode ser nulo");
-                }
-            }
-        }
 
         // RN-03: único por (nome + data) na turma
         if (repo.existeOutroComMesmoNomeENascimentoNaTurma(nome, nascimento, turma))
             throw new IllegalArgumentException("já existe aluno com mesmo nome e data de nascimento na turma");
 
-        // RN-136: nenhum responsável inadimplente
+        // itens não nulos + RN-136: nenhum responsável inadimplente
         if (responsaveis != null) {
-            for (AlunoResponsavel ar : responsaveis) {
-                var r = responsavelRepo.porId(ar.responsavel()).orElseThrow();
+            for (ResponsavelId rid : responsaveis) {
+                if (rid == null) throw new IllegalArgumentException("Responsável não pode ser nulo");
+                var r = responsavelRepo.porId(rid).orElseThrow();
                 if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
                     throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
             }

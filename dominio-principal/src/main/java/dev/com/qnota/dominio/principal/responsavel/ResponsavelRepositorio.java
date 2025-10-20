@@ -2,32 +2,30 @@ package dev.com.qnota.dominio.principal.responsavel;
 
 import java.util.Optional;
 
-import dev.com.qnota.dominio.principal.aluno.AlunoId;
-
 public interface ResponsavelRepositorio {
 
     /**
      * Persiste o responsável. Se {@code getId()==null}, a infraestrutura deve
-     * gerar um novo ID e chamar {@code atribuirIdSeAusente(novoId)} antes de concluir.
+     * gerar um novo ID, chamar {@code atribuirIdSeAusente(novoId)} e retornar esse ID.
+     * Se já houver ID, apenas atualiza e retorna o mesmo ID.
      */
-    void salvar(Responsavel r);
+    ResponsavelId salvar(Responsavel r);
 
     Optional<Responsavel> porId(ResponsavelId id);
 
     boolean cpfExiste(String cpf);
 
     // Edição/exclusão
-    void atualizarContato(ResponsavelId id, String novoNome, String novoEmail); // opcional; salvar(r) também pode persistir
+    void atualizarContato(ResponsavelId id, String novoNome, String novoEmail);
     void excluir(ResponsavelId id);
 
-    // Vínculos com aluno
+    // Consulta para RN-21 (se houver implementação)
     boolean estaVinculadoAAlgumAluno(ResponsavelId id);
-    boolean vinculadoAoAluno(ResponsavelId id, AlunoId alunoId);
-    void vincular(ResponsavelId id, AlunoId alunoId);
-    void desvincular(ResponsavelId id, AlunoId alunoId);
-    int quantidadeResponsaveisDoAluno(AlunoId alunoId);
-    void definirPrincipal(ResponsavelId id, AlunoId alunoId);
 
-    // RN-136
-    boolean estaInadimplente(ResponsavelId id);
+    // RN-136 (helper)
+    default boolean estaInadimplente(ResponsavelId id) {
+        return porId(id)
+            .map(r -> r.getStatus() == Responsavel.Status.INADIMPLENTE)
+            .orElse(false);
+    }
 }

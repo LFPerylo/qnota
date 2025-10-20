@@ -6,18 +6,18 @@ import java.util.Optional;
 public interface ProfessorRepositorio {
 
     /**
-     * Persiste o professor. Se {@code getId()==null}, a infraestrutura deve
-     * gerar um novo ID e chamará {@code atribuirIdSeAusente(novoId)} antes
-     * de concluir a persistência.
+     * Persiste o professor. Se {@code getId()==null}, a infraestrutura/ORM deve
+     * gerar um novo ID, chamar {@code atribuirIdSeAusente(novoId)} e retornar o ID.
+     * Caso contrário, atualiza o registro e retorna o mesmo ID.
      */
-    void salvar(Professor p);
+    ProfessorId salvar(Professor p);
 
     Optional<Professor> porId(ProfessorId id);
 
-    // Regras que dependem de Turma/Simulado são consultadas por aqui:
-    int contarTurmasAtivas(ProfessorId id);                // RN-07: limite de turmas
-    List<String> nomesDeAreasDoProfessor(ProfessorId id);  // apoio p/ compatibilidade de áreas
-    boolean possuiSimuladoFinalizado(ProfessorId id);      // RN-26A: bloqueio de exclusão
+    // Regras que dependem de Turma/Simulado:
+    int contarTurmasAtivas(ProfessorId id);                // RN-07
+    List<String> nomesDeAreasDoProfessor(ProfessorId id);  // apoio/compat
+    boolean possuiSimuladoFinalizado(ProfessorId id);      // RN-26A
 
     void substituirProfessor(ProfessorId antigo, ProfessorId substituto); // RN-125
 }

@@ -12,9 +12,9 @@ public class ProfessorServico {
     }
 
     /** Cadastro: entidade garante NOT NULL/NOT BLANK e RN-84 (>= 1 especialidade). */
-    public void cadastrar(String nome, String cpf, String email, List<String> especialidades) {
-        var p = new Professor(nome, cpf, email, especialidades);
-        repo.salvar(p); // repositório atribui o ID
+    public ProfessorId cadastrar(String nome, String cpf, String email, List<String> especialidades) {
+        var p = new Professor(nome, cpf, email, especialidades); // sem ID; ORM atribui
+        return repo.salvar(p); // retorna o ProfessorId gerado
     }
 
     /** Edição de dados de contato (CPF é imutável na entidade). */
@@ -22,7 +22,7 @@ public class ProfessorServico {
         var p = repo.porId(id).orElseThrow(() -> new IllegalStateException("professor não encontrado"));
         p.renomear(novoNome);
         p.alterarEmail(novoEmail);
-        repo.salvar(p);
+        repo.salvar(p); // ignoramos o retorno aqui
     }
 
     /** RN-07: no máximo 3 turmas ativas (checagem centralizada no serviço). */

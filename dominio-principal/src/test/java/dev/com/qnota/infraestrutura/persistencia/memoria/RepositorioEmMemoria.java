@@ -34,9 +34,7 @@ public class RepositorioEmMemoria implements
     private final Map<Integer, Turma> turmas = new ConcurrentHashMap<>();
     private final Map<Integer, Disciplina> disciplinas = new ConcurrentHashMap<>();
     private final Map<Integer, Simulado> simulados = new ConcurrentHashMap<>();
-
     private final Map<Integer, Nota> notas = new ConcurrentHashMap<>();
-
     private final Map<Integer, List<Justificativa>> justificativasPorNota = new ConcurrentHashMap<>();
 
     // auxiliares
@@ -69,13 +67,8 @@ public class RepositorioEmMemoria implements
         return a.getId();
     }
 
-    @Override
-    public Optional<Aluno> porId(AlunoId id) {
-        return Optional.ofNullable(alunos.get(id.value()));
-    }
-
-    @Override
-    public void remover(AlunoId id) { alunos.remove(id.value()); }
+    @Override public Optional<Aluno> porId(AlunoId id) { return Optional.ofNullable(alunos.get(id.value())); }
+    @Override public void remover(AlunoId id) { alunos.remove(id.value()); }
 
     @Override
     public boolean existeOutroComMesmoNomeENascimentoNaTurma(String nome, LocalDate data, TurmaId turmaId) {
@@ -85,13 +78,8 @@ public class RepositorioEmMemoria implements
                         && a.getTurma().equals(turmaId));
     }
 
-    @Override
-    public int contarResponsaveis(AlunoId id) {
-        return porId(id).map(a -> a.getResponsaveis().size()).orElse(0);
-    }
-
-    @Override
-    public boolean existeVinculo(AlunoId id) { return alunos.containsKey(id.value()); }
+    @Override public int contarResponsaveis(AlunoId id) { return porId(id).map(a -> a.getResponsaveis().size()).orElse(0); }
+    @Override public boolean existeVinculo(AlunoId id) { return alunos.containsKey(id.value()); }
 
     @Override
     public List<Aluno> porTurma(TurmaId turmaId) {
@@ -108,12 +96,10 @@ public class RepositorioEmMemoria implements
                         && !simuladoComTodasNotasLancadas.contains(s.getId().value()));
     }
 
-    @Override
-    public boolean temNotas(AlunoId alunoId) {
+    @Override public boolean temNotas(AlunoId alunoId) {
         return notas.values().stream().anyMatch(n -> n.getAluno().equals(alunoId));
     }
 
-    /** RN-57.1: alguma turma do ALUNO possui simulado FINALIZADO? */
     @Override
     public boolean possuiSimuladoFinalizado(AlunoId alunoId) {
         var a = alunos.get(alunoId.value());
@@ -124,7 +110,6 @@ public class RepositorioEmMemoria implements
                         && s.getStatus() == Simulado.Status.FINALIZADO);
     }
 
-    /** Opcional (interface pede). O serviço normalmente salva o agregado atualizado. */
     @Override
     public void alterarTurma(AlunoId alunoId, TurmaId novaTurmaId) {
         var a = alunos.get(alunoId.value());
@@ -140,31 +125,21 @@ public class RepositorioEmMemoria implements
 
     // guarda CPFs NORMALIZADOS (apenas dígitos)
     private final Set<String> cpfsResponsavel = new HashSet<>();
-
-    private static String normCpf(String s) {
-        return s == null ? null : s.replaceAll("\\D", "");
-    }
+    private static String normCpf(String s) { return s == null ? null : s.replaceAll("\\D", ""); }
 
     @Override
-    public void salvar(Responsavel r) {
+    public ResponsavelId salvar(Responsavel r) {
         if (r.getId() == null) {
             r.atribuirIdSeAusente(new ResponsavelId(seqResponsavel++));
         }
         responsaveis.put(r.getId().value(), r);
         cpfsResponsavel.add(normCpf(r.getCpf())); // normalizado
+        return r.getId();
     }
 
-    @Override
-    public Optional<Responsavel> porId(ResponsavelId id) {
-        return Optional.ofNullable(responsaveis.get(id.value()));
-    }
+    @Override public Optional<Responsavel> porId(ResponsavelId id) { return Optional.ofNullable(responsaveis.get(id.value())); }
+    @Override public boolean cpfExiste(String cpf) { return cpfsResponsavel.contains(normCpf(cpf)); }
 
-    @Override
-    public boolean cpfExiste(String cpf) {
-        return cpfsResponsavel.contains(normCpf(cpf)); // normalizado
-    }
-
-    // ----- operações administrativas (edição/remoção) -----
     @Override
     public void atualizarContato(ResponsavelId id, String novoNome, String novoEmail) {
         var r = responsaveis.get(id.value());
@@ -180,84 +155,32 @@ public class RepositorioEmMemoria implements
         if (r != null) cpfsResponsavel.remove(normCpf(r.getCpf()));
     }
 
-    // ----- vínculos -----
     @Override
     public boolean estaVinculadoAAlgumAluno(ResponsavelId id) {
         return alunos.values().stream().anyMatch(a ->
-                a.getResponsaveis().stream().anyMatch(ar -> ar.responsavel().equals(id)));
-    }
-
-    @Override
-    public boolean vinculadoAoAluno(ResponsavelId id, AlunoId alunoId) {
-        var a = alunos.get(alunoId.value());
-        if (a == null) return false;
-        return a.getResponsaveis().stream().anyMatch(ar -> ar.responsavel().equals(id));
-    }
-
-    @Override
-    public void vincular(ResponsavelId respId, AlunoId alunoId) {
-        var a = alunos.get(alunoId.value());
-        if (a == null) return;
-
-        // vínculo “neutro”; regras (principal, limites, etc.) devem ser tratadas fora
-        boolean jaVinculado = a.getResponsaveis().stream().anyMatch(ar -> ar.responsavel().equals(respId));
-        if (!jaVinculado) {
-            a.adicionarResponsavel(respId, false);
-            alunos.put(a.getId().value(), a);
-        }
-    }
-
-    @Override
-    public void desvincular(ResponsavelId respId, AlunoId alunoId) {
-        var a = alunos.get(alunoId.value());
-        if (a == null) return;
-
-        // delega ao agregado (ele valida RN-19/RN-58)
-        a.removerResponsavel(respId);
-        alunos.put(a.getId().value(), a);
-    }
-
-    @Override
-    public int quantidadeResponsaveisDoAluno(AlunoId alunoId) {
-        var a = alunos.get(alunoId.value());
-        return (a == null) ? 0 : a.getResponsaveis().size();
-    }
-
-    @Override
-    public void definirPrincipal(ResponsavelId respId, AlunoId alunoId) {
-        var a = alunos.get(alunoId.value());
-        if (a == null) return;
-
-        a.definirPrincipal(respId);
-        alunos.put(a.getId().value(), a);
-    }
-
-    // ----- inadimplência -----
-    @Override
-    public boolean estaInadimplente(ResponsavelId id) {
-        var r = responsaveis.get(id.value());
-        return r != null && r.getStatus() == Responsavel.Status.INADIMPLENTE;
+                a.getResponsaveis().stream().anyMatch(rid -> rid.equals(id))
+        );
     }
 
     // =========================================================
     // =============== ProfessorRepositorio ====================
     // =========================================================
     @Override
-    public void salvar(Professor p) {
+    public ProfessorId salvar(Professor p) {
         if (p.getId() == null) {
             p.atribuirIdSeAusente(new ProfessorId(seqProfessor++));
         }
         professores.put(p.getId().value(), p);
+        return p.getId();
     }
 
-    @Override
-    public Optional<Professor> porId(ProfessorId id) {
-        return Optional.ofNullable(professores.get(id.value()));
-    }
+    @Override public Optional<Professor> porId(ProfessorId id) { return Optional.ofNullable(professores.get(id.value())); }
 
     @Override
     public int contarTurmasAtivas(ProfessorId id) {
-        return (int) turmas.values().stream().filter(t -> t.isAtivo() && t.getProfessor().equals(id)).count();
+        return (int) turmas.values().stream()
+                .filter(t -> t.isAtivo() && t.getProfessor().equals(id))
+                .count();
     }
 
     @Override
@@ -285,7 +208,6 @@ public class RepositorioEmMemoria implements
             }
             return t;
         });
-        // política do repositório de memória: remove o professor antigo
         professores.remove(antigo.value());
     }
 
@@ -300,39 +222,28 @@ public class RepositorioEmMemoria implements
         turmas.put(t.getId().value(), t);
     }
 
-    @Override
-    public Optional<Turma> porId(TurmaId id) { return Optional.ofNullable(turmas.get(id.value())); }
-
-    @Override
-    public void remover(TurmaId id) { turmas.remove(id.value()); }
+    @Override public Optional<Turma> porId(TurmaId id) { return Optional.ofNullable(turmas.get(id.value())); }
+    @Override public void remover(TurmaId id) { turmas.remove(id.value()); }
 
     @Override
     public boolean existeNomeNoAno(String nome, int anoLetivo) {
-        return turmas.values().stream().anyMatch(t -> t.getNome().equalsIgnoreCase(nome) && t.getAnoLetivo() == anoLetivo);
+        return turmas.values().stream().anyMatch(t ->
+                t.getNome().equalsIgnoreCase(nome) && t.getAnoLetivo() == anoLetivo);
     }
 
-    @Override
-    public boolean possuiAlunosAtivos(TurmaId id) {
+    @Override public boolean possuiAlunosAtivos(TurmaId id) {
         return alunos.values().stream().anyMatch(a -> a.getTurma().equals(id) && a.isAtivo());
     }
-
-    @Override
-    public boolean possuiSimulados(TurmaId id) {
+    @Override public boolean possuiSimulados(TurmaId id) {
         return simulados.values().stream().anyMatch(s -> s.getTurma().equals(id));
     }
-
-    @Override
-    public boolean possuiSimuladosEmEdicao(TurmaId id) {
+    @Override public boolean possuiSimuladosEmEdicao(TurmaId id) {
         return simulados.values().stream().anyMatch(s -> s.getTurma().equals(id) && s.getStatus() == Simulado.Status.EM_EDICAO);
     }
-
-    @Override
-    public boolean possuiSimuladosFinalizados(TurmaId id) {
+    @Override public boolean possuiSimuladosFinalizados(TurmaId id) {
         return simulados.values().stream().anyMatch(s -> s.getTurma().equals(id) && s.getStatus() == Simulado.Status.FINALIZADO);
     }
-
-    @Override
-    public int anoLetivoDe(TurmaId id) {
+    @Override public int anoLetivoDe(TurmaId id) {
         var t = turmas.get(id.value());
         if (t == null) throw new NoSuchElementException("Turma não encontrada: " + id.value());
         return t.getAnoLetivo();
@@ -344,13 +255,11 @@ public class RepositorioEmMemoria implements
 
     // índice de unicidade por (nome + área) para RN-121
     private final Set<String> nomeAreaIndex = new HashSet<>();
-
     private static String keyNomeArea(String nome, String areaNome) {
         String n = (nome == null ? "" : nome.trim().toLowerCase());
         String a = (areaNome == null ? "" : areaNome.trim().toLowerCase());
         return n + "#" + a;
     }
-
     private void rebuildDisciplinaIndex() {
         nomeAreaIndex.clear();
         for (var d : disciplinas.values()) {
@@ -368,19 +277,10 @@ public class RepositorioEmMemoria implements
         return d.getId();
     }
 
-    @Override
-    public Optional<Disciplina> porId(DisciplinaId id) {
-        return Optional.ofNullable(disciplinas.get(id.value()));
-    }
+    @Override public Optional<Disciplina> porId(DisciplinaId id) { return Optional.ofNullable(disciplinas.get(id.value())); }
+    @Override public void remover(DisciplinaId id) { disciplinas.remove(id.value()); rebuildDisciplinaIndex(); }
 
-    @Override
-    public void remover(DisciplinaId id) {
-        disciplinas.remove(id.value());
-        rebuildDisciplinaIndex();
-    }
-
-    @Override
-    public boolean existeNomeNaArea(String nome, String areaNome) {
+    @Override public boolean existeNomeNaArea(String nome, String areaNome) {
         return nomeAreaIndex.contains(keyNomeArea(nome, areaNome));
     }
 
@@ -411,8 +311,7 @@ public class RepositorioEmMemoria implements
         pesosPorSimulado.put(s.getId().value(), map);
     }
 
-    @Override
-    public Optional<Simulado> porId(SimuladoId id) { return Optional.ofNullable(simulados.get(id.value())); }
+    @Override public Optional<Simulado> porId(SimuladoId id) { return Optional.ofNullable(simulados.get(id.value())); }
 
     @Override
     public int contarEmEdicaoPorTurma(TurmaId turmaId) {
@@ -421,23 +320,16 @@ public class RepositorioEmMemoria implements
                 .filter(s -> s.getStatus() == Simulado.Status.EM_EDICAO).count();
     }
 
-    @Override
-    public List<Simulado> listarPorTurma(TurmaId turmaId) {
+    @Override public List<Simulado> listarPorTurma(TurmaId turmaId) {
         return simulados.values().stream().filter(s -> s.getTurma().equals(turmaId)).toList();
     }
 
-    @Override
-    public Map<Integer, Double> pesosDoSimulado(SimuladoId id) {
-        return pesosPorSimulado.getOrDefault(id.value(), Map.of());
-    }
-
-    @Override
-    public boolean todasNotasLancadas(SimuladoId id) { return simuladoComTodasNotasLancadas.contains(id.value()); }
+    @Override public Map<Integer, Double> pesosDoSimulado(SimuladoId id) { return pesosPorSimulado.getOrDefault(id.value(), Map.of()); }
+    @Override public boolean todasNotasLancadas(SimuladoId id) { return simuladoComTodasNotasLancadas.contains(id.value()); }
 
     @Override
     public boolean existeNotaParaSimulado(SimuladoId id) {
-        return notas.values().stream()
-                .anyMatch(n -> n.getSimulado().equals(id));
+        return notas.values().stream().anyMatch(n -> n.getSimulado().equals(id));
     }
 
     @Override
@@ -455,11 +347,6 @@ public class RepositorioEmMemoria implements
     // =========================================================
     // =============== NotaRepositorio =========================
     // =========================================================
-
-    // já existia, mantenha
-    // private final Map<Integer, Nota> notas = new ConcurrentHashMap<>();
-    // private int seqNota = 1;
-
     @Override
     public NotaId salvar(Nota n) {
         if (n.getId() == null) {
@@ -469,10 +356,7 @@ public class RepositorioEmMemoria implements
         return n.getId();
     }
 
-    @Override
-    public Optional<Nota> porId(NotaId id) {
-        return Optional.ofNullable(notas.get(id.value()));
-    }
+    @Override public Optional<Nota> porId(NotaId id) { return Optional.ofNullable(notas.get(id.value())); }
 
     @Override
     public Optional<Nota> porChave(AlunoId aluno, SimuladoId simulado, DisciplinaId disciplina) {
@@ -485,9 +369,7 @@ public class RepositorioEmMemoria implements
 
     @Override
     public List<Nota> porSimulado(SimuladoId simulado) {
-        return notas.values().stream()
-                .filter(n -> n.getSimulado().equals(simulado))
-                .toList();
+        return notas.values().stream().filter(n -> n.getSimulado().equals(simulado)).toList();
     }
 
     @Override
@@ -496,11 +378,9 @@ public class RepositorioEmMemoria implements
         return s != null && s.getStatus() == Simulado.Status.EM_EDICAO;
     }
 
-
     // =========================================================
     // =============== JustificativaRepositorio ================
     // =========================================================
-
     @Override
     public JustificativaId salvar(Justificativa j) {
         if (j.getId() == null) {
@@ -512,24 +392,20 @@ public class RepositorioEmMemoria implements
         return j.getId();
     }
 
-    @Override
-    public List<Justificativa> porNota(NotaId idNota) {
+    @Override public List<Justificativa> porNota(NotaId idNota) {
         return justificativasPorNota.getOrDefault(idNota.value(), List.of());
     }
-
 
     // =========================================================
     // =============== RankingRepositorio ======================
     // =========================================================
     @Override public void limpar(SimuladoId simulado) { rankingPorSimulado.remove(simulado.value()); }
-
     @Override public void salvarPosicoes(SimuladoId simulado, List<ItemRanking> itens) {
         rankingPorSimulado.put(simulado.value(), List.copyOf(itens));
     }
-
     @Override public void congelar(SimuladoId simulado) { rankingCongelado.add(simulado.value()); }
-
     @Override public boolean estaCongelado(SimuladoId simulado) { return rankingCongelado.contains(simulado.value()); }
-
-    @Override public List<ItemRanking> carregar(SimuladoId simulado) { return rankingPorSimulado.getOrDefault(simulado.value(), List.of()); }
+    @Override public List<ItemRanking> carregar(SimuladoId simulado) {
+        return rankingPorSimulado.getOrDefault(simulado.value(), List.of());
+    }
 }

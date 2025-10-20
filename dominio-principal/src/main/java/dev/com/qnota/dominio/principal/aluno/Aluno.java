@@ -1,79 +1,72 @@
 package dev.com.qnota.dominio.principal.aluno;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-
+import java.util.*;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 
 public class Aluno {
 
-    // Agora o id NÃO é final para permitir atribuição pós-persistência (auto-increment/identity)
-    private AlunoId id;
-
+    private AlunoId id; // atribuído pelo repositório/ORM
     private String nome;
     private LocalDate dataNascimento;
     private boolean ativo;
     private TurmaId turma;
-    private final List<AlunoResponsavel> responsaveis;
 
-    /** Construtor recomendado quando o ID será gerado pelo repositório/banco. */
+    // Agora: lista simples de responsáveis + um principal
+    private final List<ResponsavelId> responsaveis;
+    private ResponsavelId responsavelPrincipal;
+
+    /** Construtor recomendado (ID gerado na persistência). */
     public Aluno(String nome,
                  LocalDate dataNascimento,
                  boolean ativo,
                  TurmaId turma,
-                 List<AlunoResponsavel> responsaveis) {
+                 List<ResponsavelId> responsaveis,
+                 ResponsavelId principal) {
 
-        this.id = null; // será atribuído pelo repositório
+        this.id = null;
         this.nome = requireNonBlank(nome, "'nome' não pode ser vazio");
         this.dataNascimento = Objects.requireNonNull(dataNascimento, "'dataNascimento' não pode ser nula");
         this.ativo = ativo;
         this.turma = Objects.requireNonNull(turma, "'turma' não pode ser nula");
 
-        // cópia defensiva + bloqueio de elementos nulos
-        this.responsaveis = copyAndValidateResponsaveis(responsaveis);
-
-        // invariantes do agregado (RN-02, RN-19, RN-58, RN-20)
-        validarInvariantesResponsaveis(this.responsaveis);
+        var lista = copyIds(responsaveis);
+        validarInvariantes(lista, principal);
+        this.responsaveis = lista;
+        this.responsavelPrincipal = principal;
     }
 
-    /** Construtor de compatibilidade (legado) quando o ID já é conhecido. */
+    /** Construtor compatível quando o ID já é conhecido. */
     public Aluno(AlunoId id,
                  String nome,
                  LocalDate dataNascimento,
                  boolean ativo,
                  TurmaId turma,
-                 List<AlunoResponsavel> responsaveis) {
-        this(nome, dataNascimento, ativo, turma, responsaveis);
+                 List<ResponsavelId> responsaveis,
+                 ResponsavelId principal) {
+        this(nome, dataNascimento, ativo, turma, responsaveis, principal);
         this.id = Objects.requireNonNull(id, "'id' não pode ser nulo");
     }
 
-    /**
-     * Permite que o repositório atribua o ID após persistir (identity/auto-increment).
-     * Se já houver ID e for diferente, lança exceção.
-     */
+    /** ORM/Repo fixa o ID se ainda não houver. */
     public void atribuirIdSeAusente(AlunoId novoId) {
         Objects.requireNonNull(novoId, "'id' não pode ser nulo");
-        if (this.id != null && !this.id.equals(novoId)) {
+        if (this.id != null && !this.id.equals(novoId))
             throw new IllegalStateException("ID já atribuído e diferente");
-        }
         this.id = novoId;
     }
 
-    // ===== getters =====
-    public AlunoId getId() { return id; } // pode ser nulo antes da persistência
+    // ========= getters =========
+    public AlunoId getId() { return id; }
     public String getNome() { return nome; }
     public LocalDate getDataNascimento() { return dataNascimento; }
     public boolean isAtivo() { return ativo; }
     public TurmaId getTurma() { return turma; }
-    public List<AlunoResponsavel> getResponsaveis() { return Collections.unmodifiableList(responsaveis); }
+    public List<ResponsavelId> getResponsaveis() { return Collections.unmodifiableList(responsaveis); }
+    public ResponsavelId getResponsavelPrincipal() { return responsavelPrincipal; }
 
-    // ===== operações do agregado =====
+    // ========= operações =========
     public void inativar() { this.ativo = false; }
     public void ativar()   { this.ativo = true;  }
 
@@ -81,112 +74,98 @@ public class Aluno {
         this.turma = Objects.requireNonNull(novaTurma, "'novaTurma' não pode ser nula");
     }
 
-    public void substituirResponsaveis(List<AlunoResponsavel> novaLista) {
-        var tmp = copyAndValidateResponsaveis(novaLista);
-        validarInvariantesResponsaveis(tmp);
+    /** Substituição completa da lista e do principal. */
+    public void substituirResponsaveis(List<ResponsavelId> novaLista, ResponsavelId novoPrincipal) {
+        var tmp = copyIds(novaLista);
+        validarInvariantes(tmp, novoPrincipal);
         responsaveis.clear();
         responsaveis.addAll(tmp);
+        responsavelPrincipal = novoPrincipal;
     }
 
+    /** Vincular responsável (até 3). Se principal=true, define como principal. */
     public void adicionarResponsavel(ResponsavelId idResp, boolean principal) {
         Objects.requireNonNull(idResp, "'responsavelId' não pode ser nulo");
 
         if (responsaveis.size() >= 3)
             throw new IllegalStateException("o número máximo de responsáveis por aluno é 3");
 
-        if (responsaveis.stream().anyMatch(ar -> ar.responsavel().equals(idResp)))
+        if (responsaveis.contains(idResp))
             throw new IllegalStateException("Vínculo de responsável duplicado");
 
-        if (principal && responsaveis.stream().anyMatch(AlunoResponsavel::principal))
-            throw new IllegalStateException("deve haver exatamente um responsável principal");
-
         var nova = new ArrayList<>(responsaveis);
-        nova.add(new AlunoResponsavel(idResp, principal)); // record garante NOT NULL
-        validarInvariantesResponsaveis(nova);
+        nova.add(idResp);
+
+        var novoPrincipal = this.responsavelPrincipal;
+        if (principal) {
+            if (novoPrincipal != null)
+                throw new IllegalStateException("deve haver exatamente um responsável principal");
+            novoPrincipal = idResp;
+        }
+        if (novoPrincipal == null) novoPrincipal = idResp; // garante 1 principal
+
+        validarInvariantes(nova, novoPrincipal);
         responsaveis.clear();
         responsaveis.addAll(nova);
+        responsavelPrincipal = novoPrincipal;
     }
 
+    /** Desvincula; se remover o principal, promove o primeiro da lista. */
     public void removerResponsavel(ResponsavelId idResp) {
         var nova = new ArrayList<>(responsaveis);
-        var removido = nova.removeIf(ar -> ar.responsavel().equals(idResp));
+        boolean removido = nova.remove(idResp);
         if (!removido) return;
 
         if (nova.isEmpty())
             throw new IllegalStateException("Aluno deve ter ao menos um responsável");
 
-        boolean eraPrincipal = responsaveis.stream()
-                .filter(ar -> ar.responsavel().equals(idResp))
-                .findFirst().map(AlunoResponsavel::principal).orElse(false);
-
-        if (eraPrincipal && nova.stream().noneMatch(AlunoResponsavel::principal)) {
-            var primeiro = nova.get(0);
-            nova.set(0, new AlunoResponsavel(primeiro.responsavel(), true));
+        var novoPrincipal = this.responsavelPrincipal;
+        if (idResp.equals(this.responsavelPrincipal)) {
+            novoPrincipal = nova.get(0); // autopromoção
         }
-        validarInvariantesResponsaveis(nova);
+
+        validarInvariantes(nova, novoPrincipal);
         responsaveis.clear();
         responsaveis.addAll(nova);
+        responsavelPrincipal = novoPrincipal;
     }
 
     public void definirPrincipal(ResponsavelId idResp) {
-        if (responsaveis.stream().noneMatch(ar -> ar.responsavel().equals(idResp)))
+        if (!responsaveis.contains(idResp))
             throw new IllegalStateException("Vínculo de responsável inexistente");
-
-        var nova = new ArrayList<AlunoResponsavel>(responsaveis.size());
-        for (var ar : responsaveis) {
-            boolean principal = ar.responsavel().equals(idResp);
-            nova.add(new AlunoResponsavel(ar.responsavel(), principal));
-        }
-        validarInvariantesResponsaveis(nova);
-        responsaveis.clear();
-        responsaveis.addAll(nova);
+        validarInvariantes(responsaveis, idResp);
+        this.responsavelPrincipal = idResp;
     }
 
-    // ===== invariantes =====
-    private static void validarInvariantesResponsaveis(List<AlunoResponsavel> lista) {
-        if (lista.isEmpty())
+    // ========= invariantes =========
+    private static void validarInvariantes(List<ResponsavelId> lista, ResponsavelId principal) {
+        if (lista == null || lista.isEmpty())
             throw new IllegalArgumentException("Aluno deve ter ao menos um responsável");
-
         if (lista.size() > 3)
             throw new IllegalArgumentException("o número máximo de responsáveis por aluno é 3");
-
-        long qtdPrincipais = lista.stream().filter(AlunoResponsavel::principal).count();
-        if (qtdPrincipais == 0)
-            throw new IllegalArgumentException("é obrigatório definir um responsável principal");
-        if (qtdPrincipais > 1)
-            throw new IllegalArgumentException("deve haver exatamente um responsável principal");
-
-        Set<ResponsavelId> set = new LinkedHashSet<>();
-        boolean duplicado = lista.stream().anyMatch(ar -> !set.add(ar.responsavel()));
-        if (duplicado)
+        // sem duplicados
+        var set = new LinkedHashSet<>(lista);
+        if (set.size() != lista.size())
             throw new IllegalArgumentException("Vínculo de responsável duplicado");
+        // principal válido
+        if (principal == null)
+            throw new IllegalArgumentException("é obrigatório definir um responsável principal");
+        if (!set.contains(principal))
+            throw new IllegalArgumentException("o responsável principal deve estar entre os responsáveis");
     }
 
-    // ===== helpers NOT NULL / NOT BLANK =====
-    private static String requireNonBlank(String s, String messageIfInvalid) {
-        if (s == null || s.trim().isEmpty()) {
-            throw new IllegalArgumentException(messageIfInvalid);
-        }
+    // ========= helpers =========
+    private static String requireNonBlank(String s, String msg) {
+        if (s == null || s.trim().isEmpty()) throw new IllegalArgumentException(msg);
         return s.trim();
     }
-
-    private static List<AlunoResponsavel> copyAndValidateResponsaveis(List<AlunoResponsavel> origem) {
-        if (origem == null) {
-            // Deixa cair na regra "Aluno deve ter ao menos um responsável"
-            return new ArrayList<>();
-        }
-        var tmp = new ArrayList<AlunoResponsavel>(origem.size());
-        for (var ar : origem) {
-            if (ar == null) throw new IllegalArgumentException("Responsável não pode ser nulo");
-            // o record já valida campos internos; só copiamos
-            tmp.add(ar);
+    private static List<ResponsavelId> copyIds(List<ResponsavelId> origem) {
+        if (origem == null) return new ArrayList<>();
+        var tmp = new ArrayList<ResponsavelId>(origem.size());
+        for (var id : origem) {
+            if (id == null) throw new IllegalArgumentException("Responsável não pode ser nulo");
+            tmp.add(id);
         }
         return tmp;
-    }
-
-    public record AlunoResponsavel(ResponsavelId responsavel, boolean principal) {
-        public AlunoResponsavel {
-            Objects.requireNonNull(responsavel, "'responsavel' não pode ser nulo");
-        }
     }
 }

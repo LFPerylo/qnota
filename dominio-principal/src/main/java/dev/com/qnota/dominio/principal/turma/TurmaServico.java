@@ -1,5 +1,7 @@
 package dev.com.qnota.dominio.principal.turma;
 
+import java.util.Objects;
+
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.professor.ProfessorRepositorio;
 
@@ -7,41 +9,48 @@ public class TurmaServico {
     private final TurmaRepositorio repo;
     private final ProfessorRepositorio professorRepo;
 
-    public TurmaServico(TurmaRepositorio repo, ProfessorRepositorio professorRepo) { 
-        this.repo = repo; 
-        this.professorRepo = professorRepo;
+    public TurmaServico(TurmaRepositorio repo, ProfessorRepositorio professorRepo) {
+        this.repo = Objects.requireNonNull(repo);
+        this.professorRepo = Objects.requireNonNull(professorRepo);
     }
 
     /** Factory de conveniência para criar sem expor ID. */
     public void criar(String nome, int anoLetivo, ProfessorId professor) {
         if (repo.existeNomeNoAno(nome, anoLetivo))
             throw new IllegalArgumentException("RN-06: Nome único no ano letivo.");
-        
+
         // RN-07: professor pode ter no máximo 3 turmas ativas
         if (professorRepo.contarTurmasAtivas(professor) >= 3)
             throw new IllegalStateException("RN-07: Professor já possui 3 turmas ativas.");
-            
+
         var t = new Turma(nome, anoLetivo, true, professor);
-        repo.salvar(t); // repo atribui o ID se estiver nulo
+        repo.salvar(t); // ORM atribui o ID se estiver nulo
     }
 
     /** Mantido por compatibilidade: aceita a entidade (id deve estar nulo). */
     public void criar(Turma t) {
         if (repo.existeNomeNoAno(t.getNome(), t.getAnoLetivo()))
             throw new IllegalArgumentException("RN-06: Nome único no ano letivo.");
-        
-        // RN-07: professor pode ter no máximo 3 turmas ativas
         if (professorRepo.contarTurmasAtivas(t.getProfessor()) >= 3)
             throw new IllegalStateException("RN-07: Professor já possui 3 turmas ativas.");
-            
         repo.salvar(t);
+    }
+
+    /** Renomear turma (checa unicidade no mesmo ano). */
+    public void renomear(TurmaId id, String novoNome) {
+        var turma = repo.porId(id).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
+        int ano = turma.getAnoLetivo();
+        if (repo.existeNomeNoAno(novoNome, ano))
+            throw new IllegalArgumentException("RN-06: Nome único no ano letivo.");
+        turma.renomear(novoNome);
+        repo.salvar(turma);
     }
 
     /** RN-10: não pode alterar professor se houver simulados finalizados. */
     public void trocarProfessor(TurmaId id, ProfessorId novoProfessor) {
         if (repo.possuiSimuladosFinalizados(id))
             throw new IllegalStateException("RN-10: Não é permitido alterar professor com simulados finalizados.");
-        var turma = repo.porId(id).orElseThrow();
+        var turma = repo.porId(id).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
         turma.mudarProfessor(novoProfessor);
         repo.salvar(turma);
     }
@@ -50,7 +59,7 @@ public class TurmaServico {
     public void inativar(TurmaId id) {
         if (repo.possuiSimuladosEmEdicao(id))
             throw new IllegalStateException("RN-95: Finalize simulados em edição antes de inativar.");
-        var turma = repo.porId(id).orElseThrow();
+        var turma = repo.porId(id).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
         turma.inativar();
         repo.salvar(turma);
     }
