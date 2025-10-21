@@ -1,6 +1,7 @@
 package dev.com.qnota.dominio.principal.aluno;
 
 import java.time.LocalDate;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -32,7 +33,7 @@ public class AlunoServico {
                              TurmaId turma,
                              List<ResponsavelId> responsaveis,
                              ResponsavelId principal) {
-        validarCadastro(nome, nascimento, turma, responsaveis);
+        validarCadastro(nome, nascimento, turma, responsaveis, principal);
         var aluno = new Aluno(nome, nascimento, true, turma, responsaveis, principal); // sem id
         return repo.salvar(aluno); // repositório/ORM atribui e devolve o AlunoId
     }
@@ -104,21 +105,46 @@ public class AlunoServico {
     }
 
     // ---------- validações compartilhadas ----------
-    private void validarCadastro(String nome, LocalDate nascimento, TurmaId turma, List<ResponsavelId> responsaveis) {
+    private void validarCadastro(String nome, LocalDate nascimento, TurmaId turma, List<ResponsavelId> responsaveis, ResponsavelId principal) {
         Objects.requireNonNull(turma, "'turma' não pode ser nula");
 
         // RN-03: único por (nome + data) na turma
         if (repo.existeOutroComMesmoNomeENascimentoNaTurma(nome, nascimento, turma))
             throw new IllegalArgumentException("já existe aluno com mesmo nome e data de nascimento na turma");
 
-        // itens não nulos + RN-136: nenhum responsável inadimplente
-        if (responsaveis != null) {
-            for (ResponsavelId rid : responsaveis) {
-                if (rid == null) throw new IllegalArgumentException("Responsável não pode ser nulo");
-                var r = responsavelRepo.porId(rid).orElseThrow();
-                if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
-                    throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
-            }
+        // Validações específicas primeiro
+        if (responsaveis == null || responsaveis.isEmpty())
+            throw new IllegalArgumentException("Aluno deve ter ao menos um responsável");
+
+        // Verificar responsáveis nulos
+        for (ResponsavelId rid : responsaveis) {
+            if (rid == null) throw new IllegalArgumentException("Responsável não pode ser nulo");
         }
+
+        // Verificar duplicados
+        var set = new LinkedHashSet<>(responsaveis);
+        if (set.size() != responsaveis.size())
+            throw new IllegalArgumentException("Vínculo de responsável duplicado");
+
+        // RN-58: deve haver exatamente um responsável principal
+        if (principal == null)
+            throw new IllegalArgumentException("é obrigatório definir um responsável principal");
+
+        // Verificar se há múltiplos responsáveis principais (isso não deveria acontecer, mas vamos validar)
+        if (responsaveis.size() > 1) {
+            // Se há mais de um responsável, deve haver exatamente um principal
+            long countPrincipais = responsaveis.stream().filter(r -> r.equals(principal)).count();
+            if (countPrincipais != 1)
+                throw new IllegalArgumentException("deve haver exatamente um responsável principal");
+        }
+
+        // RN-136: nenhum responsável inadimplente
+        for (ResponsavelId rid : responsaveis) {
+            var r = responsavelRepo.porId(rid).orElseThrow();
+            if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
+                throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
+        }
+
+        // As outras validações serão feitas pelo construtor do Aluno
     }
 }

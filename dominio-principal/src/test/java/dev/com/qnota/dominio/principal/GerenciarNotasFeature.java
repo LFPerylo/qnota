@@ -250,8 +250,8 @@ public class GerenciarNotasFeature {
         var responsavel = new Responsavel("Responsável " + alias, "123.456.789-09", "resp@ex.com", Responsavel.Status.ATIVO);
         repo.salvar(responsavel);
         
-        var alunoResponsaveis = List.of(new Aluno.AlunoResponsavel(responsavel.getId(), true));
-        var aluno = new Aluno("Aluno " + alias, LocalDate.of(2012, 1, 1), ativo, turmaId, alunoResponsaveis);
+        var alunoResponsaveis = List.of(responsavel.getId());
+        var aluno = new Aluno("Aluno " + alias, LocalDate.of(2012, 1, 1), ativo, turmaId, alunoResponsaveis, responsavel.getId());
         repo.salvar(aluno);
         return aluno.getId();
     }

@@ -91,7 +91,7 @@ public class Aluno {
             throw new IllegalStateException("o número máximo de responsáveis por aluno é 3");
 
         if (responsaveis.contains(idResp))
-            throw new IllegalStateException("Vínculo de responsável duplicado");
+            throw new IllegalStateException("já existe vínculo entre o responsável e o aluno");
 
         var nova = new ArrayList<>(responsaveis);
         nova.add(idResp);
@@ -117,7 +117,7 @@ public class Aluno {
         if (!removido) return;
 
         if (nova.isEmpty())
-            throw new IllegalStateException("Aluno deve ter ao menos um responsável");
+            throw new IllegalStateException("o aluno deve ter pelo menos um responsável");
 
         var novoPrincipal = this.responsavelPrincipal;
         if (idResp.equals(this.responsavelPrincipal)) {

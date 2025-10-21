@@ -99,7 +99,7 @@ public class RetificarNotaFeature {
         repo.salvar(responsavel);
         
         var aluno = new dev.com.qnota.dominio.principal.aluno.Aluno(alunoId, "Aluno Teste", java.time.LocalDate.of(2012, 1, 1), true, turmaId, 
-            java.util.List.of(new dev.com.qnota.dominio.principal.aluno.Aluno.AlunoResponsavel(responsavelId, true)));
+            java.util.List.of(responsavelId), responsavelId);
         repo.salvar(aluno);
 
         // Criar as disciplinas necessárias para o simulado
