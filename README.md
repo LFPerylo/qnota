@@ -7,7 +7,7 @@ O repositório é *multi-módulo Maven* e utiliza **BDD** (Cucumber) como docume
 >
 > - **Cenários Gherkin (living documentation):**  
 >   `dominio-principal/src/test/resources/dev/com/qnota/dominio/principal/*.feature`
-> - **Notas e materiais adicionais:**  
+> - **StoryMap e Descrição detalhada do Dominio:**  
 >   `Documentação/`
 > - **Context Mapper:** `qnota.cml`
 
