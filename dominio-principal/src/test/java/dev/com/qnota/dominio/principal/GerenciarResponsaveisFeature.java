@@ -31,8 +31,13 @@ public class GerenciarResponsaveisFeature {
     private Map<String, String> cpfByAlias;
 
     private String currentCpf;
+    private String lastNome;
+    private String lastEmail;
+
     private ResponsavelId currentRespId;
     private AlunoId currentAlunoId;
+    private ResponsavelId lastVinculoRespId; // p/ validar vínculo por leitura do repo
+
     private Exception lastError;
 
     @Before
@@ -46,18 +51,19 @@ public class GerenciarResponsaveisFeature {
         cpfByAlias = new HashMap<>();
 
         currentCpf     = null;
+        lastNome       = null;
+        lastEmail      = null;
+
         currentRespId  = null;
         currentAlunoId = null;
+        lastVinculoRespId = null;
+
         lastError      = null;
     }
 
     // ===== utils =====
-    private ResponsavelId newRespId() { return new ResponsavelId(seq.getAndIncrement()); }
     private AlunoId newAlunoId() { return new AlunoId(seq.getAndIncrement()); }
-    private TurmaId defaultTurma() { 
-        // Usar um ID fixo para testes simples
-        return new TurmaId(1);
-    }
+    private TurmaId defaultTurma() { return new TurmaId(1); }
     private static String normCpf(String s){ return s==null? null : s.replaceAll("\\D",""); }
 
     private String generateCpf(int seed) {
@@ -82,13 +88,14 @@ public class GerenciarResponsaveisFeature {
     }
 
     private Responsavel ensureResponsavelByCpf(String cpf, String nome, String email, Responsavel.Status status) {
+        // reaproveita se já existir na memória
         for (var e : aliasResp.entrySet()) {
             var rOpt = repo.porId(e.getValue());
             if (rOpt.isPresent() && normCpf(rOpt.get().getCpf()).equals(normCpf(cpf))) {
                 return rOpt.get();
             }
         }
-        // Como o ID é gerado pelo repositório, vamos criar o responsável e obter o ID gerado
+        // cria diretamente (fixture) e pega o ID gerado pelo repo
         var r = new Responsavel(nome, cpf, email, status);
         repo.salvar(r);
         String alias = "R" + r.getId().value();
@@ -100,10 +107,8 @@ public class GerenciarResponsaveisFeature {
     private ResponsavelId ensureRespAlias(String alias, String nome, String email, Responsavel.Status status) {
         return aliasResp.computeIfAbsent(alias, a -> {
             String cpf = cpfForAlias(a);
-            // Como o ID é gerado pelo repositório, vamos criar o responsável e obter o ID gerado
             var r = new Responsavel(nome, cpf, email, status);
             repo.salvar(r);
-            // Retornar o ID gerado pelo repositório
             return r.getId();
         });
     }
@@ -116,7 +121,6 @@ public class GerenciarResponsaveisFeature {
         if (aId != null) {
             return aId;
         }
-        
         var r1Id = ensureRespAlias(r1Alias, r1Alias + " Nome",
                 r1Alias.toLowerCase()+"@ex.com", Responsavel.Status.ATIVO);
         var r2Id = (r2Alias != null)
@@ -127,7 +131,6 @@ public class GerenciarResponsaveisFeature {
         lista.add(r1Id);
         if (r2Id != null) lista.add(r2Id);
 
-        // Como o ID é gerado pelo repositório, vamos criar o aluno e obter o ID gerado
         var aluno = new Aluno(nomeAluno, LocalDate.of(2012,1,1), true, defaultTurma(), lista, r1Id);
         repo.salvar(aluno);
         aId = aluno.getId();
@@ -185,64 +188,55 @@ public class GerenciarResponsaveisFeature {
     @Given("um \"responsável\" {string} marcado como {string}")
     public void um_responsavel_marcado_como(String verboEstado, String status) {
         lastError = null;
-        var id = newRespId();
-        var cpf = generateCpf(id.value());
+        var cpf = generateCpf(seq.getAndIncrement());
         var r = new Responsavel("Resp", cpf, "resp@ex.com", Responsavel.Status.ATIVO);
         if ("inadimplente".equalsIgnoreCase(status)) r.marcarInadimplente();
         if ("inativo".equalsIgnoreCase(status))       r.inativar();
         repo.salvar(r);
-        currentRespId = id;
+        currentRespId = r.getId();
         currentCpf = cpf;
     }
 
     @Given("um \"responsável\" {string} marcado como {string} e {string} regularizado")
     public void um_responsavel_inad_e_foi_regularizado(String estava, String status, String foi) {
-        var id = newRespId();
-        var cpf = generateCpf(id.value());
+        var cpf = generateCpf(seq.getAndIncrement());
         var r = new Responsavel("Resp Reg", cpf, "reg@ex.com", Responsavel.Status.ATIVO);
         if ("inadimplente".equalsIgnoreCase(status)) r.marcarInadimplente();
         repo.salvar(r);
         r.regularizar();
         repo.salvar(r);
-        currentRespId = id;
+        currentRespId = r.getId();
         currentCpf = cpf;
     }
 
     @Given("um \"responsável\" \"está\" registrado e \"não possui\" vínculos ativos com \"alunos\"")
     public void responsavel_estah_sem_vinculos() {
         lastError = null;
-        var id = newRespId();
-        var cpf = generateCpf(id.value());
+        var cpf = generateCpf(seq.getAndIncrement());
         var r = new Responsavel("Sem Vinculo", cpf, "sv@ex.com", Responsavel.Status.ATIVO);
         repo.salvar(r);
-        currentRespId = id;
+        currentRespId = r.getId();
         currentCpf = cpf;
     }
 
     @Given("um \"responsável\" {string} registrado e {string} vínculo com o \"aluno\" {string}")
     public void um_responsavel_registrado_e_vinculo(String estado, String possui, String alunoAlias) {
-        // cria o responsável
-        var id = newRespId();
-        var cpf = generateCpf(id.value());
+        var cpf = generateCpf(seq.getAndIncrement());
         var r = new Responsavel("Com Vinculo", cpf, "cv@ex.com", Responsavel.Status.ATIVO);
         repo.salvar(r);
-        currentRespId = id;
+        currentRespId = r.getId();
         currentCpf = cpf;
 
-        // cria (ou carrega) o aluno com um principal já definido — sem computeIfAbsent
         currentAlunoId = aliasAluno.get(alunoAlias);
         if (currentAlunoId == null) {
             currentAlunoId = ensureAlunoComVinculos(alunoAlias, "Aluno " + alunoAlias, "R0", true, null, false);
         }
-
-        // se for para "possuir" vínculo, adiciona o novo responsável como NÃO principal (RN-58)
         if ("possui".equalsIgnoreCase(possui)) {
             var aluno = repo.porId(currentAlunoId).orElseThrow();
             aluno.adicionarResponsavel(currentRespId, false);
             repo.salvar(aluno);
         }
     }
-
 
     @Given("um \"aluno\" \"está\" vinculado aos \"responsáveis\" {string} e {string}")
     public void aluno_vinculado_a_R1_e_R2(String r1, String r2) {
@@ -311,9 +305,9 @@ public class GerenciarResponsaveisFeature {
     public void cadastra_responsavel_nome_email(String nome, String email) {
         lastError = null;
         try {
-            var id = newRespId();
-            currentRespId = id;                 // <— guarda
-            servico.cadastrar(nome, currentCpf, email);
+            lastNome = nome;
+            lastEmail = email;
+            currentRespId = servico.cadastrar(nome, currentCpf, email); // captura o ID gerado
         } catch (Exception e) { lastError = e; }
     }
 
@@ -322,9 +316,9 @@ public class GerenciarResponsaveisFeature {
         lastError = null;
         currentCpf = cpf;
         try {
-            var id = newRespId();
-            currentRespId = id;                 // <— guarda
-            servico.cadastrar(nome, cpf, email);
+            lastNome = nome;
+            lastEmail = email;
+            currentRespId = servico.cadastrar(nome, cpf, email);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -345,9 +339,9 @@ public class GerenciarResponsaveisFeature {
         lastError = null;
         currentCpf = cpf;
         try {
-            var id = newRespId();
-            currentRespId = id;                 // <— guarda
-            servico.cadastrar("Nome Qualquer", cpf, "mail@ex.com");
+            lastNome = "Nome Qualquer";
+            lastEmail = "mail@ex.com";
+            currentRespId = servico.cadastrar(lastNome, cpf, lastEmail);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -373,6 +367,8 @@ public class GerenciarResponsaveisFeature {
     public void altera_nome_email(String novoNome, String novoEmail) {
         lastError = null;
         try {
+            lastNome = novoNome;
+            lastEmail = novoEmail;
             ResponsavelId id = currentRespId;
             if (id == null) {
                 for (var entry : aliasResp.entrySet()) {
@@ -383,6 +379,7 @@ public class GerenciarResponsaveisFeature {
             }
             assertNotNull(id, "Responsável não encontrado para edição");
             servico.atualizarContato(id, novoNome, novoEmail);
+            currentRespId = id; // garantir que teremos o id para assert posterior
         } catch (Exception e) { lastError = e; }
     }
 
@@ -403,6 +400,7 @@ public class GerenciarResponsaveisFeature {
         lastError = null;
         try {
             var rId = ensureRespAlias(rAlias, rAlias + " Nome", rAlias.toLowerCase()+"@ex.com", Responsavel.Status.ATIVO);
+            lastVinculoRespId = rId;
             servico.desvincularDoAluno(rId, currentAlunoId);
         } catch (Exception e) { lastError = e; }
     }
@@ -415,7 +413,7 @@ public class GerenciarResponsaveisFeature {
         lastError = null;
         try {
             var rId = ensureRespAlias(rAlias, rAlias + " Nome", rAlias.toLowerCase()+"@ex.com", Responsavel.Status.ATIVO);
-            // Use currentAlunoId que deve estar definido pelos steps anteriores
+            lastVinculoRespId = rId;
             servico.vincularAoAluno(rId, currentAlunoId, false);
         } catch (Exception e) { lastError = e; }
     }
@@ -426,12 +424,11 @@ public class GerenciarResponsaveisFeature {
         try {
             var rId = ensureRespAlias(rAlias, rAlias + " Nome", rAlias.toLowerCase()+"@ex.com", Responsavel.Status.ATIVO);
             boolean principal = "principal".equalsIgnoreCase(principalStr);
-            // Use currentAlunoId que deve estar definido pelos steps anteriores
+            lastVinculoRespId = rId;
             servico.vincularAoAluno(rId, currentAlunoId, principal);
         } catch (Exception e) { lastError = e; }
     }
 
-    // Step faltante para o cenário de grau vazio (captura exceção)
     @When("um coordenador tenta vincular o \"responsável\" {string} ao \"aluno\" com grau {string} e {string}")
     public void tenta_vincular_responsavel_ao_aluno_com_grau(String rAlias, String grau, String principalStr) {
         vincula_responsavel_ao_aluno_com_grau(rAlias, grau, principalStr);
@@ -449,6 +446,7 @@ public class GerenciarResponsaveisFeature {
                 currentAlunoId = ensureAlunoComVinculos(alunoAlias, "Aluno "+alunoAlias, "R0", true, null, false);
             }
             boolean principal = "principal".equalsIgnoreCase(principalStr);
+            lastVinculoRespId = currentRespId;
             servico.vincularAoAluno(currentRespId, currentAlunoId, principal);
         } catch (Exception e) { lastError = e; }
     }
@@ -461,6 +459,7 @@ public class GerenciarResponsaveisFeature {
             if (currentAlunoId == null) {
                 currentAlunoId = ensureAlunoComVinculos(alunoAlias, "Aluno "+alunoAlias, "R0", true, null, false);
             }
+            lastVinculoRespId = currentRespId;
             servico.vincularAoAluno(currentRespId, currentAlunoId, false);
         } catch (Exception e) { lastError = e; }
     }
@@ -474,29 +473,48 @@ public class GerenciarResponsaveisFeature {
     @When("um coordenador tenta excluir o \"responsável\"")
     public void tenta_excluir_responsavel() { exclui_responsavel(); }
 
-    // ===================== Thens =====================
+    // ===================== Thens (verificando via repo) =====================
 
     @Then("o sistema confirma o cadastro do \"responsável\"")
     public void confirma_cadastro() {
         assertNull(lastError, "Esperava sucesso, mas houve erro: " + (lastError==null?"":lastError.getMessage()));
-        // Como o ID é gerado pelo repositório, vamos verificar se o CPF existe
-        assertTrue(repo.cpfExiste(currentCpf), "CPF não foi cadastrado: " + currentCpf);
+        var salvo = repo.porId(currentRespId).orElseThrow(() -> new AssertionError("Responsável não persistido"));
+        assertEquals(normCpf(currentCpf), normCpf(salvo.getCpf()), "CPF não persistiu como esperado");
+        if (lastNome != null)  assertEquals(lastNome, salvo.getNome(), "Nome não persistiu");
+        if (lastEmail != null) assertEquals(lastEmail, salvo.getEmail(), "E-mail não persistiu");
     }
 
     @Then("o sistema confirma a atualização dos dados do \"responsável\"")
-    public void confirma_atualizacao() { assertNull(lastError, "Esperava sucesso na atualização: " + (lastError==null?"":lastError.getMessage())); }
+    public void confirma_atualizacao() {
+        assertNull(lastError, "Esperava sucesso na atualização: " + (lastError==null?"":lastError.getMessage()));
+        var salvo = repo.porId(currentRespId).orElseThrow();
+        if (lastNome != null)  assertEquals(lastNome, salvo.getNome(), "Nome não foi atualizado");
+        if (lastEmail != null) assertEquals(lastEmail, salvo.getEmail(), "E-mail não foi atualizado");
+    }
 
     @Then("o sistema confirma o vínculo do \"responsável\" ao \"aluno\"")
-    public void confirma_vinculo() { 
-        // Como o ID é gerado pelo repositório, vamos apenas verificar se não há erro
-        assertTrue(lastError == null, "Esperava sucesso no vínculo: " + (lastError == null ? "" : lastError.getMessage()));
+    public void confirma_vinculo() {
+        assertNull(lastError, "Esperava sucesso no vínculo: " + (lastError == null ? "" : lastError.getMessage()));
+        if (currentAlunoId != null && lastVinculoRespId != null) {
+            var aluno = repo.porId(currentAlunoId).orElseThrow();
+            assertTrue(aluno.getResponsaveis().contains(lastVinculoRespId), "Vínculo não persistiu no aluno");
+        }
     }
 
     @Then("o sistema confirma a desvinculação")
-    public void confirma_desvinculo() { assertNull(lastError, "Esperava sucesso na desvinculação: " + (lastError==null?"":lastError.getMessage())); }
+    public void confirma_desvinculo() {
+        assertNull(lastError, "Esperava sucesso na desvinculação: " + (lastError==null?"":lastError.getMessage()));
+        if (currentAlunoId != null && lastVinculoRespId != null) {
+            var aluno = repo.porId(currentAlunoId).orElseThrow();
+            assertFalse(aluno.getResponsaveis().contains(lastVinculoRespId), "Responsável ainda vinculado ao aluno");
+        }
+    }
 
     @Then("o sistema confirma a exclusão do \"responsável\"")
-    public void confirma_exclusao() { assertNull(lastError, "Esperava sucesso na exclusão: " + (lastError==null?"":lastError.getMessage())); }
+    public void confirma_exclusao() {
+        assertNull(lastError, "Esperava sucesso na exclusão: " + (lastError==null?"":lastError.getMessage()));
+        assertTrue(repo.porId(currentRespId).isEmpty(), "Responsável ainda existe no repositório após exclusão");
+    }
 
     @Then("o {string} permanece com pelo menos um {string} ativo")
     public void o_permanece_com_pelo_menos_um_ativo(String entidadeAluno, String entidadeResp) {
