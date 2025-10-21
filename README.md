@@ -1,15 +1,16 @@
 # QNOTA
 
-Monorepo do QNOTA — uma plataforma acadêmica organizada em **módulos** (domínio, aplicação, infraestrutura e camadas de apresentação).  
-O repositório é *multi-módulo Maven* e utiliza **BDD** (Cucumber) como documentação viva dos requisitos.
+Monorepo do **QNOTA** — plataforma acadêmica organizada em módulos (Domínio, Aplicação, Infraestrutura e Camadas de Apresentação).  
+O repositório é **multi-módulo Maven** e usa **BDD (Cucumber)** como documentação viva dos requisitos.
 
-> 📚 **Documentação oficial**
+> ### 📚 Onde está a documentação?
 >
-> - **Cenários Gherkin (living documentation):**  
->   `dominio-principal/src/test/resources/dev/com/qnota/dominio/principal/*.feature`
-> - **StoryMap e Descrição detalhada do Dominio:**  
->   `Documentação/`
-> - **Context Mapper:** `qnota.cml`
+> - **Cenários Gherkin (Living Documentation):**  
+>   `./dominio-principal/src/test/resources/dev/com/qnota/dominio/principal/*.feature`
+> - **StoryMap e Descrição detalhada do domínio (versão “em texto” logo abaixo):**  
+>   `./Documentação/StoryMap-Qnota.pdf` e `./Documentação/Descricao-Detalhada-Qnota.pdf`
+> - **Context Mapper (limites/contextos):**  
+>   `./qnota.cml`
 
 ---
 
@@ -23,6 +24,9 @@ O repositório é *multi-módulo Maven* e utiliza **BDD** (Cucumber) como docume
 - [Fluxo de desenvolvimento](#fluxo-de-desenvolvimento)
 - [Padrões e decisões do domínio](#padrões-e-decisões-do-domínio)
 - [Estrutura de pastas (alto nível)](#estrutura-de-pastas-alto-nível)
+- [StoryMap (texto)](#storymap-texto)
+- [Descrição detalhada do domínio (texto)](#descrição-detalhada-do-domínio-texto)
+- [Glossário — Linguagem onipresente](#glossário--linguagem-onipresente)
 - [Contribuindo](#contribuindo)
 - [Licença](#licença)
 
@@ -30,40 +34,29 @@ O repositório é *multi-módulo Maven* e utiliza **BDD** (Cucumber) como docume
 
 ## Arquitetura geral
 
-- **DDD** no módulo de domínio, com:
-  - **Entidades** que mantêm invariantes locais,
-  - **Serviços de aplicação** que orquestram regras entre agregados,
+- **DDD** no módulo de domínio:
+  - **Entidades** com invariantes locais.
+  - **Serviços de aplicação** que orquestram regras entre agregados.
   - **Repositórios** como **interfaces** (persistência plugável).
-- **Documentação por BDD**: cada regra de negócio relevante aparece como cenário Gherkin; os testes executam os serviços e validam o estado via repositório.
-- **Monorepo Maven**: um `pom.xml` raiz agrega os módulos e padroniza plugins/versões.
+- **Documentação por comportamento (BDD)**:
+  - Cada regra relevante aparece como **cenário Gherkin**.
+  - Os testes invocam serviços e validam persistência via repositório em memória.
+- **Monorepo Maven**:
+  - Um `pom.xml` na raiz agrega os módulos e padroniza plugins/versões.
 
 ---
 
 ## Módulos
 
-> Os nomes a seguir refletem as pastas de primeiro nível. Alguns podem ser *placeholders* para futuras integrações — consulte o `pom.xml` raiz para a lista efetiva de módulos.
+> Os nomes a seguir refletem as pastas de primeiro nível. Consulte o `pom.xml` raiz para a lista efetiva de módulos.
 
-- **`dominio-principal/`**  
-  Núcleo de regras do subdomínio principal (aluno, responsável, turma, simulado, etc.).  
-  - Entidades + Serviços + Contratos de repositório  
-  - Testes BDD com Cucumber + JUnit 5  
-  - **Repositorio em memória** para execução de cenários (somente `test`)
-
-- **`aplicacao/`**  
-  Casos de uso/orquestrações de aplicação (separado do domínio puro). Pode expor *ports* de entrada/saída.
-
-- **`infraestrutura/`**  
-  Adaptações de persistência, mensageria, integrações externas, etc. (ex.: implementação JPA dos repositórios).
-
-- **`apresentacao-backend/`**  
-  Endpoints/transport (REST/GraphQL/gRPC) sobre os serviços da aplicação.
-
-- **`apresentacao-frontend/`**  
-  Interface web (SPA). **Se presente**, ver seção de *Requisitos* para Node/NPM.
-
-- **`Documentação/`**  
-  Materiais de apoio (especificações, diagramas, guias).  
-  > Os **.feature** continuam sendo a fonte de verdade do comportamento.
+- `dominio-principal/` — núcleo de regras (aluno, responsável, turma, simulado, nota, disciplina, ranking, etc.).  
+  Inclui **Cucumber + JUnit 5** e um **repositório em memória** somente para testes.
+- `aplicacao/` — casos de uso/orquestrações (ports de entrada/saída).
+- `infraestrutura/` — persistência, mensageria e integrações (ex.: JPA).
+- `apresentacao-backend/` — camada de transporte (REST/GraphQL/gRPC).
+- `apresentacao-frontend/` — SPA (quando aplicável).
+- `Documentação/` — PDFs e materiais auxiliares (o *source of truth* comportamental continua sendo os `.feature`).
 
 ---
 
@@ -76,7 +69,9 @@ O repositório é *multi-módulo Maven* e utiliza **BDD** (Cucumber) como docume
 
 ## Como buildar
 
-Build completo do monorepo:
+Build do monorepo:
 
 ```bash
 mvn -T1C clean verify
+# ou
+mvn test
