@@ -67,6 +67,10 @@ public class SimuladoServico {
     public void editarDisciplinas(SimuladoId id, List<Simulado.DisciplinaPeso> novas) {
         var s = repo.porId(id).orElseThrow(() -> new IllegalStateException("simulado não encontrado"));
 
+        // RN-14C: verificar se está finalizado primeiro
+        if (s.getStatus() == Simulado.Status.FINALIZADO)
+            throw new IllegalStateException("RN-14C: Não é permitido editar simulado finalizado.");
+
         // RN-34: validar existência das disciplinas informadas
         var disciplinasCarregadas = novas.stream()
                 .map(dp -> disciplinaRepo.porId(dp.disciplina())
@@ -88,7 +92,9 @@ public class SimuladoServico {
             throw new IllegalStateException(
                 "RN-53: Professor não possui especialidade compatível com as disciplinas do simulado.");
 
-        s.alterarDisciplinas(novas); // RN-12/13/14B/14C na entidade
+        // Agora alterar as disciplinas (RN-12/13/14B na entidade)
+        s.alterarDisciplinas(novas);
+
         repo.salvar(s);
         rankingServico.recalcular(id); // RN-98/99
     }

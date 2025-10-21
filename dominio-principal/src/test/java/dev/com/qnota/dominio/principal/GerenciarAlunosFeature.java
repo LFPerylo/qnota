@@ -117,34 +117,30 @@ public class GerenciarAlunosFeature {
         });
     }
 
-    private List<Aluno.AlunoResponsavel> buildResponsaveisValidos(int qtd, boolean marcarUmPrincipal) {
-        List<Aluno.AlunoResponsavel> lista = new ArrayList<>();
-        boolean principalSet = false;
+    private List<ResponsavelId> buildResponsaveisValidos(int qtd, boolean marcarUmPrincipal) {
+        List<ResponsavelId> lista = new ArrayList<>();
         for (int i = 1; i <= qtd; i++) {
             String alias = "R" + (aliasResp.size() + i);
             var rid = ensureResp(alias, false, "Parente");
-            boolean principal = marcarUmPrincipal && !principalSet;
-            lista.add(new Aluno.AlunoResponsavel(rid, principal));
-            principalSet |= principal;
-        }
-        if (marcarUmPrincipal && !lista.isEmpty() && !lista.stream().anyMatch(Aluno.AlunoResponsavel::principal)) {
-            var first = lista.get(0);
-            lista.set(0, new Aluno.AlunoResponsavel(first.responsavel(), true));
+            lista.add(rid);
         }
         return lista;
     }
 
-    private List<Aluno.AlunoResponsavel> buildResponsaveisDuplicados(String alias) {
-        var rid = ensureResp(alias, false, "Parente");
-        return List.of(
-            new Aluno.AlunoResponsavel(rid, true),
-            new Aluno.AlunoResponsavel(rid, false)
-        );
+    private ResponsavelId getPrincipalFromList(List<ResponsavelId> lista, boolean marcarUmPrincipal) {
+        if (lista.isEmpty() || !marcarUmPrincipal) return null;
+        return lista.get(0);
     }
 
-    private AlunoId persistAlunoBasico(AlunoId id, String nome, LocalDate nasc, TurmaId turma, List<Aluno.AlunoResponsavel> r) {
+    private List<ResponsavelId> buildResponsaveisDuplicados(String alias) {
+        var rid = ensureResp(alias, false, "Parente");
+        return List.of(rid, rid);
+    }
+
+    private AlunoId persistAlunoBasico(AlunoId id, String nome, LocalDate nasc, TurmaId turma, List<ResponsavelId> r) {
         // Como o ID é gerado pelo repositório, vamos salvar sem o ID específico
-        var aluno = new Aluno(nome, nasc, true, turma, r);
+        var principal = getPrincipalFromList(r, true);
+        var aluno = new Aluno(nome, nasc, true, turma, r, principal);
         repo.salvar(aluno);
         // Retornar o ID gerado pelo repositório
         return aluno.getId();
@@ -282,7 +278,8 @@ public class GerenciarAlunosFeature {
             if (currentNome == null) currentNome = "Aluno Novo";
             if (currentNascimento == null) currentNascimento = LocalDate.of(2012,1,1);
             var lista = buildResponsaveisValidos(2, true);
-            currentAlunoId = alunoSrv.cadastrar(currentNome, currentNascimento, currentTurmaId, lista);
+            var principal = getPrincipalFromList(lista, true);
+            currentAlunoId = alunoSrv.cadastrar(currentNome, currentNascimento, currentTurmaId, lista, principal);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -291,7 +288,8 @@ public class GerenciarAlunosFeature {
         lastError = null;
         try {
             var lista = buildResponsaveisValidos(2, true);
-            alunoSrv.cadastrar(currentNome, currentNascimento, currentTurmaId, lista);
+            var principal = getPrincipalFromList(lista, true);
+            alunoSrv.cadastrar(currentNome, currentNascimento, currentTurmaId, lista, principal);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -304,7 +302,8 @@ public class GerenciarAlunosFeature {
             currentNascimento = LocalDate.of(2012, 1, 1);
             var lista = buildResponsaveisValidos(qtd, true);
             currentAlunoId = newAlunoId();
-            currentAlunoId = alunoSrv.cadastrar(currentNome, currentNascimento, currentTurmaId, lista);
+            var principal = getPrincipalFromList(lista, true);
+            currentAlunoId = alunoSrv.cadastrar(currentNome, currentNascimento, currentTurmaId, lista, principal);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -313,7 +312,8 @@ public class GerenciarAlunosFeature {
         lastError = null;
         try {
             var lista = buildResponsaveisValidos(qtd, true);
-            alunoSrv.cadastrar("Aluno X", LocalDate.of(2012,1,1), ensureTurmaDefault("7A"), lista);
+            var principal = getPrincipalFromList(lista, true);
+            alunoSrv.cadastrar("Aluno X", LocalDate.of(2012,1,1), ensureTurmaDefault("7A"), lista, principal);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -324,7 +324,8 @@ public class GerenciarAlunosFeature {
             var lista = buildResponsaveisValidos(2, true);
             currentTurmaId = ensureTurmaDefault("7A");
             currentAlunoId = newAlunoId();
-            alunoSrv.cadastrar(currentAlunoId, "Aluno Válido", LocalDate.of(2012,1,1), currentTurmaId, lista);
+            var principalResp = getPrincipalFromList(lista, true);
+            alunoSrv.cadastrar("Aluno Válido", LocalDate.of(2012,1,1), currentTurmaId, lista, principalResp);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -333,7 +334,8 @@ public class GerenciarAlunosFeature {
         lastError = null;
         try {
             var lista = buildResponsaveisValidos(2, false);
-            alunoSrv.cadastrar("Aluno Sem Principal", LocalDate.of(2012,1,1), ensureTurmaDefault("7A"), lista);
+            var principalResp = getPrincipalFromList(lista, false);
+            alunoSrv.cadastrar("Aluno Sem Principal", LocalDate.of(2012,1,1), ensureTurmaDefault("7A"), lista, principalResp);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -382,8 +384,8 @@ public class GerenciarAlunosFeature {
     public void coord_tenta_cadastrar_sem_responsaveis(String turmaAlias, String detalhe) {
         lastError = null;
         try {
-            var lista = List.<Aluno.AlunoResponsavel>of();
-            alunoSrv.cadastrar("Aluno Sem Resp", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista);
+            var lista = List.<ResponsavelId>of();
+            alunoSrv.cadastrar("Aluno Sem Resp", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista, null);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -391,12 +393,13 @@ public class GerenciarAlunosFeature {
     public void coord_tenta_cadastrar_com_respos_duplicados(String turmaAlias, String r1, String r2) {
         lastError = null;
         try {
-            List<Aluno.AlunoResponsavel> lista = r1.equals(r2) ? buildResponsaveisDuplicados(r1)
+            List<ResponsavelId> lista = r1.equals(r2) ? buildResponsaveisDuplicados(r1)
                 : List.of(
-                    new Aluno.AlunoResponsavel(ensureResp(r1, true, "Parente"), true),
-                    new Aluno.AlunoResponsavel(ensureResp(r2, false, "Parente"), false)
+                    ensureResp(r1, true, "Parente"),
+                    ensureResp(r2, false, "Parente")
                   );
-            alunoSrv.cadastrar("Aluno Dup", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista);
+            var principal = getPrincipalFromList(lista, true);
+            alunoSrv.cadastrar("Aluno Dup", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista, principal);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -406,11 +409,10 @@ public class GerenciarAlunosFeature {
         try {
             var rA = ensureResp("R1", true, "Parente");
             var rB = ensureResp("R2", false, "Parente");
-            var lista = List.of(
-                new Aluno.AlunoResponsavel(rA, true),
-                new Aluno.AlunoResponsavel(rB, true)
-            );
-            alunoSrv.cadastrar("Aluno Dois Principais", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista);
+            var rC = ensureResp("R3", false, "Parente");
+            var lista = List.of(rA, rB);
+            // Passar um responsável que não está na lista como principal para testar RN-58
+            alunoSrv.cadastrar("Aluno Dois Principais", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista, rC);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -420,7 +422,8 @@ public class GerenciarAlunosFeature {
         try {
             var lista = buildResponsaveisValidos(2, true);
             // >>> não faz fallback quando currentTurmaId é null (para testar "'turma' não pode ser nula")
-            alunoSrv.cadastrar(newAlunoId(), currentNome, currentNascimento, currentTurmaId, lista);
+            var principal = getPrincipalFromList(lista, true);
+            alunoSrv.cadastrar(currentNome, currentNascimento, currentTurmaId, lista, principal);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -428,10 +431,10 @@ public class GerenciarAlunosFeature {
     public void coord_tenta_cadastrar_com_responsavel_nulo(String turmaAlias, String marcador) {
         lastError = null;
         try {
-            List<Aluno.AlunoResponsavel> lista = new ArrayList<>();
-            lista.add(new Aluno.AlunoResponsavel(ensureResp("R1", true, "Parente"), true));
+            List<ResponsavelId> lista = new ArrayList<>();
+            lista.add(ensureResp("R1", true, "Parente"));
             lista.add(null); // item nulo proposital
-            alunoSrv.cadastrar("Aluno Item Nulo", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista);
+            alunoSrv.cadastrar("Aluno Item Nulo", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista, null);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -440,8 +443,8 @@ public class GerenciarAlunosFeature {
         lastError = null;
         try {
             var rid = ensureResp(r1, false, "Parente");
-            var lista = List.of(new Aluno.AlunoResponsavel(rid, false)); // sem grau parentesco
-            alunoSrv.cadastrar("Aluno Grau Vazio", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista);
+            var lista = List.of(rid); // sem grau parentesco
+            alunoSrv.cadastrar("Aluno Grau Vazio", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista, rid);
         } catch (Exception e) { lastError = e; }
     }
 
@@ -491,3 +494,4 @@ public class GerenciarAlunosFeature {
     @Then("o sistema rejeita a inativação em alunos")
     public void rejeita_inativacao() { assertNotNull(lastError, "Esperava erro na inativação"); }
 }
+

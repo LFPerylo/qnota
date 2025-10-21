@@ -164,7 +164,7 @@ public class GerenciarSimuladosFeature {
     @Given("um \"simulado\" \"está\" em edição para a turma {string}")
     public void simulado_em_edicao_para_turma(String turmaAlias) {
         if (currentTurmaId == null) {
-            currentTurmaId = ensureTurma(turmaAlias, true, "P1", "Matemática");
+            currentTurmaId = ensureTurma(turmaAlias, true, "P1", "Exatas"); // Usar "Exatas" para aceitar todas as disciplinas da área
         }
         var disciplinas = List.of(
             disciplinaPeso("Matemática", "Exatas", 6.0),
@@ -202,8 +202,8 @@ public class GerenciarSimuladosFeature {
         var responsavel = new dev.com.qnota.dominio.principal.responsavel.Responsavel("Responsável Teste", "123.456.789-09", "resp@ex.com", dev.com.qnota.dominio.principal.responsavel.Responsavel.Status.ATIVO);
         repo.salvar(responsavel);
         
-        var alunoResponsaveis = List.of(new Aluno.AlunoResponsavel(responsavel.getId(), true));
-        var aluno = new Aluno("Aluno Teste", LocalDate.of(2012, 1, 1), true, currentTurmaId, alunoResponsaveis);
+        var alunoResponsaveis = List.of(responsavel.getId());
+        var aluno = new Aluno("Aluno Teste", LocalDate.of(2012, 1, 1), true, currentTurmaId, alunoResponsaveis, responsavel.getId());
         repo.salvar(aluno);
         
         var nota1 = new Nota(alunoId, currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0, java.time.LocalDateTime.now());
@@ -231,8 +231,8 @@ public class GerenciarSimuladosFeature {
         var responsavel = new dev.com.qnota.dominio.principal.responsavel.Responsavel("Responsável Teste", "123.456.789-09", "resp@ex.com", dev.com.qnota.dominio.principal.responsavel.Responsavel.Status.ATIVO);
         repo.salvar(responsavel);
         
-        var alunoResponsaveis = List.of(new Aluno.AlunoResponsavel(responsavel.getId(), true));
-        var aluno = new Aluno("Aluno Teste", LocalDate.of(2012, 1, 1), true, currentTurmaId, alunoResponsaveis);
+        var alunoResponsaveis = List.of(responsavel.getId());
+        var aluno = new Aluno("Aluno Teste", LocalDate.of(2012, 1, 1), true, currentTurmaId, alunoResponsaveis, responsavel.getId());
         repo.salvar(aluno);
         
         var nota = new Nota(alunoId, currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0, java.time.LocalDateTime.now());
