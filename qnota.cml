@@ -7,6 +7,54 @@ ContextMap {
 }
 
 BoundedContext Principal implements Principal {
+    Aggregate Coordenador {
+
+        Entity Coordenador {
+            aggregateRoot
+
+            -CoordenadorId id
+            String nome
+            String email
+            String senhaHash
+            boolean ativo
+
+            void atribuirIdSeAusente(@CoordenadorId novoId);
+            void renomear(String novoNome);
+            void alterarEmail(String novoEmail);
+            void alterarSenhaHash(String novoHash);
+            void ativar();
+            void inativar();
+
+            repository CoordenadorRepositorio {
+                @CoordenadorId salvar(@Coordenador c);
+
+                Optional<@Coordenador> porId(@CoordenadorId id);
+                Optional<@Coordenador> porEmail(String email);
+
+                boolean emailExiste(String email);
+
+                void excluir(@CoordenadorId id);
+            }
+        }
+
+        ValueObject CoordenadorId{
+            int id
+        }
+
+        service CoordenadorServico {
+            @CoordenadorId cadastrar(String nome, String email, String senhaPlano);
+
+            @CoordenadorId autenticar(String email, String senhaPlano);
+
+            void alterarSenha(@CoordenadorId id, String senhaAtual, String novaSenha);
+
+            void atualizarContato(@CoordenadorId id, String novoNome, String novoEmail);
+
+            void inativar(@CoordenadorId id);
+            void ativar(@CoordenadorId id);
+            void excluir(@CoordenadorId id);
+        }
+    }
 
     Aggregate Aluno {
         Entity Aluno {
