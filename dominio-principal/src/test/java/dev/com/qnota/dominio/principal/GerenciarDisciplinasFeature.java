@@ -19,7 +19,6 @@ import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaServico;
 
 import dev.com.qnota.dominio.principal.simulado.Simulado;
-import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 
 public class GerenciarDisciplinasFeature {
 
@@ -55,9 +54,7 @@ public class GerenciarDisciplinasFeature {
     }
 
     // ===== utils =====
-    private DisciplinaId newDisciplinaId() { return new DisciplinaId(seq.getAndIncrement()); }
-    private SimuladoId newSimuladoId() { return new SimuladoId(seq.getAndIncrement()); }
-
+    
     private AreaConhecimento areaByNome(String nome) {
         return aliasArea.computeIfAbsent(nome, n -> new AreaConhecimento(seq.getAndIncrement(), n));
     }

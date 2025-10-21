@@ -11,8 +11,9 @@ public interface SimuladoRepositorio {
     /**
      * Persiste o simulado. Se {@code getId()==null}, a infraestrutura deve
      * gerar um novo ID e chamar {@code atribuirIdSeAusente(novoId)} antes de concluir.
+     * @return o SimuladoId atribuído (novo ou existente)
      */
-    void salvar(Simulado s);
+    SimuladoId salvar(Simulado s);
 
     Optional<Simulado> porId(SimuladoId id);
 
@@ -24,10 +25,10 @@ public interface SimuladoRepositorio {
 
     /** RN-16: checar se todas as notas da turma foram lançadas */
     boolean todasNotasLancadas(SimuladoId id);
-    
+
     /** RN-15: verificar se existe nota para o simulado */
     boolean existeNotaParaSimulado(SimuladoId id);
-    
+
     /** RN-15: remover simulado */
     void remover(SimuladoId id);
 }

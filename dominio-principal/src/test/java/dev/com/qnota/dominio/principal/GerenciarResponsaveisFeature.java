@@ -62,7 +62,6 @@ public class GerenciarResponsaveisFeature {
     }
 
     // ===== utils =====
-    private AlunoId newAlunoId() { return new AlunoId(seq.getAndIncrement()); }
     private TurmaId defaultTurma() { return new TurmaId(1); }
     private static String normCpf(String s){ return s==null? null : s.replaceAll("\\D",""); }
 

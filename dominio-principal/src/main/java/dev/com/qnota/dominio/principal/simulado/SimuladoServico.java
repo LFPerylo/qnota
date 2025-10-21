@@ -29,13 +29,13 @@ public class SimuladoServico {
     }
 
     /** Factory de conveniência para criar EM_EDICAO sem expor ID. */
-    public void criar(LocalDate dataAplicacao, TurmaId turma, List<Simulado.DisciplinaPeso> disciplinas) {
+    public SimuladoId criar(LocalDate dataAplicacao, TurmaId turma, List<Simulado.DisciplinaPeso> disciplinas) {
         var s = new Simulado(dataAplicacao, turma, disciplinas);
-        criar(s);
+        return criar(s);
     }
 
     /** Criação: RN-52 (máx. 2 em edição por turma) + RN-96 + RN-53. */
-    public void criar(Simulado s) {
+    public SimuladoId criar(Simulado s) {
         // RN-96: não pode criar simulado em turma inativa
         var turma = turmaRepo.porId(s.getTurma())
                 .orElseThrow(() -> new IllegalStateException("turma não encontrada"));
@@ -60,7 +60,7 @@ public class SimuladoServico {
         if (repo.contarEmEdicaoPorTurma(s.getTurma()) >= 2)
             throw new IllegalStateException("RN-52: Máximo de 2 simulados em edição por turma.");
 
-        repo.salvar(s); // ORM atribui o ID se estiver nulo
+        return repo.salvar(s); // ORM atribui o ID se estiver nulo
     }
 
     /** Edição de disciplinas: RN-12/13/14B/14C (entidade) + RN-34 + RN-53 + recalcula ranking. */

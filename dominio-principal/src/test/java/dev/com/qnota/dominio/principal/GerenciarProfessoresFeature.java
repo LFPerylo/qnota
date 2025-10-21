@@ -18,7 +18,6 @@ import dev.com.qnota.dominio.principal.turma.Turma;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 
 import dev.com.qnota.dominio.principal.simulado.Simulado;
-import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 
 public class GerenciarProfessoresFeature {
@@ -62,7 +61,6 @@ public class GerenciarProfessoresFeature {
     // ===== utils =====
     private ProfessorId newProfessorId() { return new ProfessorId(seq.getAndIncrement()); }
     private TurmaId newTurmaId() { return new TurmaId(seq.getAndIncrement()); }
-    private SimuladoId newSimuladoId() { return new SimuladoId(seq.getAndIncrement()); }
 
     private ProfessorId ensureProfessor(String alias) {
         return aliasProfessor.computeIfAbsent(alias, a -> {

@@ -15,7 +15,7 @@ public class TurmaServico {
     }
 
     /** Factory de conveniência para criar sem expor ID. */
-    public void criar(String nome, int anoLetivo, ProfessorId professor) {
+    public TurmaId criar(String nome, int anoLetivo, ProfessorId professor) {
         if (repo.existeNomeNoAno(nome, anoLetivo))
             throw new IllegalArgumentException("RN-06: Nome único no ano letivo.");
 
@@ -24,16 +24,16 @@ public class TurmaServico {
             throw new IllegalStateException("RN-07: Professor já possui 3 turmas ativas.");
 
         var t = new Turma(nome, anoLetivo, true, professor);
-        repo.salvar(t); // ORM atribui o ID se estiver nulo
+        return repo.salvar(t); // ORM atribui o ID se estiver nulo
     }
 
     /** Mantido por compatibilidade: aceita a entidade (id deve estar nulo). */
-    public void criar(Turma t) {
+    public TurmaId criar(Turma t) {
         if (repo.existeNomeNoAno(t.getNome(), t.getAnoLetivo()))
             throw new IllegalArgumentException("RN-06: Nome único no ano letivo.");
         if (professorRepo.contarTurmasAtivas(t.getProfessor()) >= 3)
             throw new IllegalStateException("RN-07: Professor já possui 3 turmas ativas.");
-        repo.salvar(t);
+        return repo.salvar(t);
     }
 
     /** Renomear turma (checa unicidade no mesmo ano). */

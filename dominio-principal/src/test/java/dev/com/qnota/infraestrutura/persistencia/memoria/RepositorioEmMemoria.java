@@ -215,11 +215,10 @@ public class RepositorioEmMemoria implements
     // =============== TurmaRepositorio ========================
     // =========================================================
     @Override
-    public void salvar(Turma t) {
-        if (t.getId() == null) {
-            t.atribuirIdSeAusente(new TurmaId(seqTurma++));
-        }
+    public TurmaId salvar(Turma t) {
+        if (t.getId() == null) t.atribuirIdSeAusente(new TurmaId(seqTurma++));
         turmas.put(t.getId().value(), t);
+        return t.getId();                       // ← devolve o ID
     }
 
     @Override public Optional<Turma> porId(TurmaId id) { return Optional.ofNullable(turmas.get(id.value())); }
@@ -301,14 +300,13 @@ public class RepositorioEmMemoria implements
     // =============== SimuladoRepositorio =====================
     // =========================================================
     @Override
-    public void salvar(Simulado s) {
-        if (s.getId() == null) {
-            s.atribuirIdSeAusente(new SimuladoId(seqSimulado++));
-        }
+    public SimuladoId salvar(Simulado s) {
+        if (s.getId() == null) s.atribuirIdSeAusente(new SimuladoId(seqSimulado++));
         simulados.put(s.getId().value(), s);
         var map = s.getDisciplinas().stream()
-                .collect(Collectors.toMap(dp -> dp.disciplina().value(), Simulado.DisciplinaPeso::peso));
+            .collect(Collectors.toMap(dp -> dp.disciplina().value(), Simulado.DisciplinaPeso::peso));
         pesosPorSimulado.put(s.getId().value(), map);
+        return s.getId();                       // ← devolve o ID
     }
 
     @Override public Optional<Simulado> porId(SimuladoId id) { return Optional.ofNullable(simulados.get(id.value())); }

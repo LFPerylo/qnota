@@ -106,21 +106,6 @@ Feature: Gerenciar responsáveis
     Then o sistema rejeita o vínculo
     And o sistema informa que "já existe vínculo entre o responsável e o aluno"
 
-  # --------- Validação básica no VÍNCULO (grau de parentesco removido do domínio) ---------
-
-  # Cenários removidos: grau de parentesco foi removido do domínio
-  # Scenario: Vincular com grau de parentesco preenchido (sucesso - NOT BLANK)
-  #   Given um "aluno" "está" vinculado ao "responsável" "R1"
-  #   And o "responsável" "R3" "não está" vinculado a esse "aluno"
-  #   When um coordenador vincula o "responsável" "R3" ao "aluno" com grau "Pai" e "não principal"
-  #   Then o sistema confirma o vínculo do "responsável" ao "aluno"
-
-  # Scenario: Bloquear vínculo com grau de parentesco vazio (falha - NOT BLANK)
-  #   Given um "aluno" "está" vinculado ao "responsável" "R1"
-  #   And o "responsável" "R4" "não está" vinculado a esse "aluno"
-  #   When um coordenador tenta vincular o "responsável" "R4" ao "aluno" com grau "" e "não principal"
-  #   Then o sistema rejeita o vínculo
-  #   And o sistema informa que "'grauParentesco' não pode ser vazio"
 
   # --------- Inadimplência no vínculo (RN-136) ---------
 

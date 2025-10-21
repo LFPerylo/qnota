@@ -246,7 +246,7 @@ BoundedContext Principal implements Principal {
             void alterarAnoLetivo(int novoAno);
 
             repository TurmaRepositorio {
-                void salvar(@Turma t);
+                @TurmaId salvar(@Turma t);
 
                 Optional<@Turma> porId(@TurmaId id);
                 void remover(@TurmaId id);
@@ -266,8 +266,8 @@ BoundedContext Principal implements Principal {
         }
 
         service TurmaServico {
-            void criar(String nome, int anoLetivo, @ProfessorId professor);
-            void criar(@Turma t);
+            @TurmaId criar(String nome, int anoLetivo, @ProfessorId professor);
+            @TurmaId criar(@Turma t);
             void renomear(@TurmaId id, String novoNome);
             void trocarProfessor(@TurmaId id, @ProfessorId novoProfessor);
             void inativar(@TurmaId id);
@@ -341,7 +341,7 @@ BoundedContext Principal implements Principal {
             void validarDisciplinas(List<@DisciplinaPeso> lista);
 
             repository SimuladoRepositorio {
-                void salvar(@Simulado s);
+                @SimuladoId salvar(@Simulado s);
 
                 Optional<@Simulado> porId(@SimuladoId id);
 
@@ -368,8 +368,8 @@ BoundedContext Principal implements Principal {
         }
 
         service SimuladoServico {
-            void criar(LocalDate dataAplicacao, @TurmaId turma, List<@DisciplinaPeso> disciplinas);
-            void criar(@Simulado s);
+            @SimuladoId criar(LocalDate dataAplicacao, @TurmaId turma, List<@DisciplinaPeso> disciplinas);
+            @SimuladoId criar(@Simulado s);
             void editarDisciplinas(@SimuladoId id, List<@DisciplinaPeso> novas);
             void finalizar(@SimuladoId id);
             void excluir(@SimuladoId id);

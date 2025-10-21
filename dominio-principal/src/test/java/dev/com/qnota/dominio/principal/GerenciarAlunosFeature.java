@@ -11,11 +11,9 @@ import io.cucumber.java.en.*;
 
 import dev.com.qnota.infraestrutura.persistencia.memoria.RepositorioEmMemoria;
 
-import dev.com.qnota.dominio.principal.aluno.Aluno;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.aluno.AlunoServico;
 
-import dev.com.qnota.dominio.principal.responsavel.Responsavel;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelServico;
 
@@ -23,10 +21,8 @@ import dev.com.qnota.dominio.principal.turma.Turma;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 
 import dev.com.qnota.dominio.principal.simulado.Simulado;
-import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 
 import dev.com.qnota.dominio.principal.nota.Nota;
-import dev.com.qnota.dominio.principal.nota.NotaId;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 
 // novo import para professor
@@ -80,9 +76,6 @@ public class GerenciarAlunosFeature {
     }
 
     // ===== utils =====
-    private ResponsavelId newRespId() { return new ResponsavelId(seq.getAndIncrement()); }
-    private SimuladoId newSimId() { return new SimuladoId(seq.getAndIncrement()); }
-    private NotaId newNotaId() { return new NotaId(seq.getAndIncrement()); }
     private ProfessorId newProfessorId() { return new ProfessorId(seq.getAndIncrement()); }
 
     // gera CPF válido (11 dígitos com DV)
