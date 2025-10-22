@@ -12,7 +12,7 @@ public interface ProfessorRepositorio {
      */
     ProfessorId salvar(Professor p);
 
-    Optional<Professor> porId(ProfessorId id);
+    Professor porId(ProfessorId id);
 
     // Regras que dependem de Turma/Simulado:
     int contarTurmasAtivas(ProfessorId id);                // RN-07

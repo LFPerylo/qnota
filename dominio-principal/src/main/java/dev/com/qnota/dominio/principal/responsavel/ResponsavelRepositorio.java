@@ -11,7 +11,7 @@ public interface ResponsavelRepositorio {
      */
     ResponsavelId salvar(Responsavel r);
 
-    Optional<Responsavel> porId(ResponsavelId id);
+    Responsavel porId(ResponsavelId id);
 
     boolean cpfExiste(String cpf);
 
@@ -24,8 +24,10 @@ public interface ResponsavelRepositorio {
 
     // RN-136 (helper)
     default boolean estaInadimplente(ResponsavelId id) {
-        return porId(id)
-            .map(r -> r.getStatus() == Responsavel.Status.INADIMPLENTE)
-            .orElse(false);
+        try {
+            return porId(id).getStatus() == Responsavel.Status.INADIMPLENTE;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

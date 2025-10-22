@@ -235,7 +235,7 @@ public class GerenciarTurmasFeature {
         try {
             // Como o ID é gerado pelo repositório, vamos usar o currentTurmaId se disponível
             if (currentTurmaId != null) {
-                var turma = repo.porId(currentTurmaId).orElseThrow();
+                var turma = repo.porId(currentTurmaId);
                 turma.renomear(novoNome);
                 repo.salvar(turma);
             }
@@ -326,7 +326,7 @@ public class GerenciarTurmasFeature {
     @Then("o sistema confirma a alteração da \"turma\"")
     public void confirma_alteracao_turma() {
         assertNull(lastError, "Esperava sucesso na alteração: " + lastError);
-        var t = repo.porId(currentTurmaId).orElseThrow();
+        var t = repo.porId(currentTurmaId);
         assertNotNull(t, "Turma não encontrada após alteração");
     }
 
@@ -338,7 +338,7 @@ public class GerenciarTurmasFeature {
     @Then("o sistema confirma a inativação da \"turma\"")
     public void confirma_inativacao_turma() {
         assertNull(lastError, "Esperava sucesso na inativação: " + lastError);
-        var t = repo.porId(currentTurmaId).orElseThrow();
+        var t = repo.porId(currentTurmaId);
         assertFalse(t.isAtivo(), "Turma ainda ativa após inativação");
     }
 
@@ -350,8 +350,13 @@ public class GerenciarTurmasFeature {
     @Then("o sistema confirma a exclusão da \"turma\"")
     public void confirma_exclusao_turma() {
         assertNull(lastError, "Esperava sucesso na exclusão: " + lastError);
-        var t = repo.porId(currentTurmaId);
-        assertTrue(t.isEmpty(), "Turma ainda presente após exclusão");
+        // Verifica se a turma foi realmente excluída tentando acessá-la
+        try {
+            repo.porId(currentTurmaId);
+            fail("Turma ainda existe no repositório após exclusão");
+        } catch (IllegalStateException e) {
+            // Esperado - turma foi excluída
+        }
     }
 
     @Then("o sistema rejeita a exclusão em turmas")

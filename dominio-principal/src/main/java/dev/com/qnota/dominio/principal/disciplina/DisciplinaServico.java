@@ -25,8 +25,7 @@ public class DisciplinaServico {
      * Sempre respeita unicidade por área quando há mudança de nome/área (RN-121).
      */
     public void editar(DisciplinaId id, String novoNome, Disciplina.AreaConhecimento novaArea) {
-        var atual = repo.porId(id).orElseThrow(() ->
-                new IllegalStateException("Disciplina não encontrada"));
+        var atual = repo.porId(id);
 
         boolean mudouNome = !atual.getNome().equalsIgnoreCase(novoNome);
         boolean mudouArea = !atual.getArea().nome().equalsIgnoreCase(novaArea.nome());
@@ -46,15 +45,13 @@ public class DisciplinaServico {
     }
 
     public void ativar(DisciplinaId id) {
-        var d = repo.porId(id).orElseThrow(() ->
-                new IllegalStateException("Disciplina não encontrada"));
+        var d = repo.porId(id);
         d.ativar();
         repo.salvar(d);
     }
 
     public void inativar(DisciplinaId id) {
-        var d = repo.porId(id).orElseThrow(() ->
-                new IllegalStateException("Disciplina não encontrada"));
+        var d = repo.porId(id);
         d.inativar();
         repo.salvar(d);
     }

@@ -24,26 +24,26 @@ public class ResponsavelServico {
 
     /** Edita nome/e-mail sem trocar CPF. */
     public void atualizarContato(ResponsavelId id, String novoNome, String novoEmail) {
-        var r = responsavelRepo.porId(id).orElseThrow(() -> new IllegalStateException("responsável não encontrado"));
+        var r = responsavelRepo.porId(id);
         r.renomear(novoNome);
         r.alterarEmail(novoEmail);
         responsavelRepo.salvar(r);
     }
 
     public void marcarInadimplente(ResponsavelId id) {
-        var r = responsavelRepo.porId(id).orElseThrow();
+        var r = responsavelRepo.porId(id);
         r.marcarInadimplente();
         responsavelRepo.salvar(r);
     }
 
     public void regularizar(ResponsavelId id) {
-        var r = responsavelRepo.porId(id).orElseThrow();
+        var r = responsavelRepo.porId(id);
         r.regularizar();
         responsavelRepo.salvar(r);
     }
 
     public void inativar(ResponsavelId id) {
-        var r = responsavelRepo.porId(id).orElseThrow();
+        var r = responsavelRepo.porId(id);
         r.inativar();
         responsavelRepo.salvar(r);
     }
@@ -57,8 +57,8 @@ public class ResponsavelServico {
 
     /** Vincula responsável a um aluno. */
     public void vincularAoAluno(ResponsavelId responsavelId, AlunoId alunoId, boolean principal) {
-        var aluno = alunoRepo.porId(alunoId).orElseThrow(() -> new IllegalStateException("aluno não encontrado"));
-        var responsavel = responsavelRepo.porId(responsavelId).orElseThrow(() -> new IllegalStateException("responsável não encontrado"));
+        var aluno = alunoRepo.porId(alunoId);
+        var responsavel = responsavelRepo.porId(responsavelId);
         
         // RN-136: impedir vínculo com inadimplente
         if (responsavel.getStatus() == Responsavel.Status.INADIMPLENTE)
@@ -70,7 +70,7 @@ public class ResponsavelServico {
 
     /** Desvincula responsável de um aluno. */
     public void desvincularDoAluno(ResponsavelId responsavelId, AlunoId alunoId) {
-        var aluno = alunoRepo.porId(alunoId).orElseThrow(() -> new IllegalStateException("aluno não encontrado"));
+        var aluno = alunoRepo.porId(alunoId);
         
         aluno.removerResponsavel(responsavelId);
         alunoRepo.salvar(aluno);

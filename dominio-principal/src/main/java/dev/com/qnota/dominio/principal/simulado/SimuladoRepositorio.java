@@ -15,7 +15,7 @@ public interface SimuladoRepositorio {
      */
     SimuladoId salvar(Simulado s);
 
-    Optional<Simulado> porId(SimuladoId id);
+    Simulado porId(SimuladoId id);
 
     int contarEmEdicaoPorTurma(TurmaId turmaId);
     List<Simulado> listarPorTurma(TurmaId turmaId);

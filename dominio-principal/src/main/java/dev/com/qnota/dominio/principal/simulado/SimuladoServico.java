@@ -37,16 +37,14 @@ public class SimuladoServico {
     /** Criação: RN-52 (máx. 2 em edição por turma) + RN-96 + RN-53. */
     public SimuladoId criar(Simulado s) {
         // RN-96: não pode criar simulado em turma inativa
-        var turma = turmaRepo.porId(s.getTurma())
-                .orElseThrow(() -> new IllegalStateException("turma não encontrada"));
+        var turma = turmaRepo.porId(s.getTurma());
         if (!turma.isAtivo())
             throw new IllegalStateException("RN-96: Não é possível criar simulado em turma inativa.");
 
         // RN-53: compatibilidade de especialidades do professor com as áreas das disciplinas
         var areasProfessor = professorRepo.nomesDeAreasDoProfessor(turma.getProfessor());
         var areasDisciplinas = s.getDisciplinas().stream()
-                .map(dp -> disciplinaRepo.porId(dp.disciplina())
-                        .orElseThrow(() -> new IllegalStateException("disciplina não encontrada")))
+                .map(dp -> disciplinaRepo.porId(dp.disciplina()))
                 .map(Disciplina::getArea)
                 .map(Disciplina.AreaConhecimento::nome)
                 .distinct()
@@ -65,7 +63,7 @@ public class SimuladoServico {
 
     /** Edição de disciplinas: RN-12/13/14B/14C (entidade) + RN-34 + RN-53 + recalcula ranking. */
     public void editarDisciplinas(SimuladoId id, List<Simulado.DisciplinaPeso> novas) {
-        var s = repo.porId(id).orElseThrow(() -> new IllegalStateException("simulado não encontrado"));
+        var s = repo.porId(id);
 
         // RN-14C: verificar se está finalizado primeiro
         if (s.getStatus() == Simulado.Status.FINALIZADO)
@@ -73,13 +71,11 @@ public class SimuladoServico {
 
         // RN-34: validar existência das disciplinas informadas
         var disciplinasCarregadas = novas.stream()
-                .map(dp -> disciplinaRepo.porId(dp.disciplina())
-                        .orElseThrow(() -> new IllegalStateException("disciplina não encontrada")))
+                .map(dp -> disciplinaRepo.porId(dp.disciplina()))
                 .toList();
 
         // RN-53: compatibilidade com o professor da turma do simulado
-        var turma = turmaRepo.porId(s.getTurma())
-                .orElseThrow(() -> new IllegalStateException("turma não encontrada"));
+        var turma = turmaRepo.porId(s.getTurma());
         var areasProfessor = professorRepo.nomesDeAreasDoProfessor(turma.getProfessor());
         var areasDisciplinas = disciplinasCarregadas.stream()
                 .map(Disciplina::getArea)
@@ -101,7 +97,7 @@ public class SimuladoServico {
 
     /** Finalização: RN-16 e congelamento do ranking (RN-102). */
     public void finalizar(SimuladoId id) {
-        var s = repo.porId(id).orElseThrow(() -> new IllegalStateException("simulado não encontrado"));
+        var s = repo.porId(id);
         if (s.getStatus() == Simulado.Status.FINALIZADO)
             throw new IllegalStateException("Simulado já está finalizado.");
 

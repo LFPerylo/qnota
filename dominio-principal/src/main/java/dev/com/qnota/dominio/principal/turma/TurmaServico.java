@@ -38,7 +38,7 @@ public class TurmaServico {
 
     /** Renomear turma (checa unicidade no mesmo ano). */
     public void renomear(TurmaId id, String novoNome) {
-        var turma = repo.porId(id).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
+        var turma = repo.porId(id);
         int ano = turma.getAnoLetivo();
         if (repo.existeNomeNoAno(novoNome, ano))
             throw new IllegalArgumentException("RN-06: Nome único no ano letivo.");
@@ -50,7 +50,7 @@ public class TurmaServico {
     public void trocarProfessor(TurmaId id, ProfessorId novoProfessor) {
         if (repo.possuiSimuladosFinalizados(id))
             throw new IllegalStateException("RN-10: Não é permitido alterar professor com simulados finalizados.");
-        var turma = repo.porId(id).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
+        var turma = repo.porId(id);
         turma.mudarProfessor(novoProfessor);
         repo.salvar(turma);
     }
@@ -59,7 +59,7 @@ public class TurmaServico {
     public void inativar(TurmaId id) {
         if (repo.possuiSimuladosEmEdicao(id))
             throw new IllegalStateException("RN-95: Finalize simulados em edição antes de inativar.");
-        var turma = repo.porId(id).orElseThrow(() -> new IllegalStateException("turma não encontrada"));
+        var turma = repo.porId(id);
         turma.inativar();
         repo.salvar(turma);
     }

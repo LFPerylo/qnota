@@ -11,7 +11,7 @@ public interface DisciplinaRepositorio {
      */
     DisciplinaId salvar(Disciplina d);
 
-    Optional<Disciplina> porId(DisciplinaId id);
+    Disciplina porId(DisciplinaId id);
     void remover(DisciplinaId id);
 
     // Regras/consultas usadas pelo serviço

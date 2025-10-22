@@ -11,8 +11,6 @@ import dev.com.qnota.dominio.principal.professor.*;
 import dev.com.qnota.dominio.principal.turma.*;
 import dev.com.qnota.dominio.principal.disciplina.*;
 import dev.com.qnota.dominio.principal.simulado.*;
-import dev.com.qnota.dominio.principal.nota.*;
-import dev.com.qnota.dominio.principal.justificativa.*;
 import dev.com.qnota.dominio.principal.ranking.*;
 
 /** Repositório em memória para testes. Implementa TODAS as interfaces do subdomínio principal. */
@@ -23,8 +21,6 @@ public class RepositorioEmMemoria implements
         TurmaRepositorio,
         DisciplinaRepositorio,
         SimuladoRepositorio,
-        NotaRepositorio,
-        JustificativaRepositorio,
         RankingRepositorio {
 
     // ---------- storage ----------
@@ -34,8 +30,6 @@ public class RepositorioEmMemoria implements
     private final Map<Integer, Turma> turmas = new ConcurrentHashMap<>();
     private final Map<Integer, Disciplina> disciplinas = new ConcurrentHashMap<>();
     private final Map<Integer, Simulado> simulados = new ConcurrentHashMap<>();
-    private final Map<Integer, Nota> notas = new ConcurrentHashMap<>();
-    private final Map<Integer, List<Justificativa>> justificativasPorNota = new ConcurrentHashMap<>();
 
     // auxiliares
     private final Map<Integer, Map<Integer, Double>> pesosPorSimulado = new HashMap<>();
@@ -52,8 +46,6 @@ public class RepositorioEmMemoria implements
     private int seqTurma = 1;
     private int seqSimulado = 1;
     private int seqDisciplina = 1;
-    private int seqNota = 1;
-    private int seqJustificativa = 1;
 
     // =========================================================
     // =============== AlunoRepositorio ========================
@@ -67,7 +59,13 @@ public class RepositorioEmMemoria implements
         return a.getId();
     }
 
-    @Override public Optional<Aluno> porId(AlunoId id) { return Optional.ofNullable(alunos.get(id.value())); }
+    @Override public Aluno porId(AlunoId id) { 
+        Aluno aluno = alunos.get(id.value());
+        if (aluno == null) {
+            throw new IllegalStateException("Aluno não encontrado com ID: " + id.value());
+        }
+        return aluno;
+    }
     @Override public void remover(AlunoId id) { alunos.remove(id.value()); }
 
     @Override
@@ -78,7 +76,13 @@ public class RepositorioEmMemoria implements
                         && a.getTurma().equals(turmaId));
     }
 
-    @Override public int contarResponsaveis(AlunoId id) { return porId(id).map(a -> a.getResponsaveis().size()).orElse(0); }
+    @Override public int contarResponsaveis(AlunoId id) { 
+        try {
+            return porId(id).getResponsaveis().size();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
     @Override public boolean existeVinculo(AlunoId id) { return alunos.containsKey(id.value()); }
 
     @Override
@@ -97,7 +101,8 @@ public class RepositorioEmMemoria implements
     }
 
     @Override public boolean temNotas(AlunoId alunoId) {
-        return notas.values().stream().anyMatch(n -> n.getAluno().equals(alunoId));
+        var aluno = alunos.get(alunoId.value());
+        return aluno != null && !aluno.getNotas().isEmpty();
     }
 
     @Override
@@ -137,7 +142,13 @@ public class RepositorioEmMemoria implements
         return r.getId();
     }
 
-    @Override public Optional<Responsavel> porId(ResponsavelId id) { return Optional.ofNullable(responsaveis.get(id.value())); }
+    @Override public Responsavel porId(ResponsavelId id) { 
+        Responsavel responsavel = responsaveis.get(id.value());
+        if (responsavel == null) {
+            throw new IllegalStateException("Responsável não encontrado com ID: " + id.value());
+        }
+        return responsavel;
+    }
     @Override public boolean cpfExiste(String cpf) { return cpfsResponsavel.contains(normCpf(cpf)); }
 
     @Override
@@ -174,7 +185,13 @@ public class RepositorioEmMemoria implements
         return p.getId();
     }
 
-    @Override public Optional<Professor> porId(ProfessorId id) { return Optional.ofNullable(professores.get(id.value())); }
+    @Override public Professor porId(ProfessorId id) { 
+        Professor professor = professores.get(id.value());
+        if (professor == null) {
+            throw new IllegalStateException("Professor não encontrado com ID: " + id.value());
+        }
+        return professor;
+    }
 
     @Override
     public int contarTurmasAtivas(ProfessorId id) {
@@ -221,7 +238,13 @@ public class RepositorioEmMemoria implements
         return t.getId();                       // ← devolve o ID
     }
 
-    @Override public Optional<Turma> porId(TurmaId id) { return Optional.ofNullable(turmas.get(id.value())); }
+    @Override public Turma porId(TurmaId id) { 
+        Turma turma = turmas.get(id.value());
+        if (turma == null) {
+            throw new IllegalStateException("Turma não encontrada com ID: " + id.value());
+        }
+        return turma;
+    }
     @Override public void remover(TurmaId id) { turmas.remove(id.value()); }
 
     @Override
@@ -276,7 +299,13 @@ public class RepositorioEmMemoria implements
         return d.getId();
     }
 
-    @Override public Optional<Disciplina> porId(DisciplinaId id) { return Optional.ofNullable(disciplinas.get(id.value())); }
+    @Override public Disciplina porId(DisciplinaId id) { 
+        Disciplina disciplina = disciplinas.get(id.value());
+        if (disciplina == null) {
+            throw new IllegalStateException("Disciplina não encontrada com ID: " + id.value());
+        }
+        return disciplina;
+    }
     @Override public void remover(DisciplinaId id) { disciplinas.remove(id.value()); rebuildDisciplinaIndex(); }
 
     @Override public boolean existeNomeNaArea(String nome, String areaNome) {
@@ -309,7 +338,13 @@ public class RepositorioEmMemoria implements
         return s.getId();                       // ← devolve o ID
     }
 
-    @Override public Optional<Simulado> porId(SimuladoId id) { return Optional.ofNullable(simulados.get(id.value())); }
+    @Override public Simulado porId(SimuladoId id) { 
+        Simulado simulado = simulados.get(id.value());
+        if (simulado == null) {
+            throw new IllegalStateException("Simulado não encontrado com ID: " + id.value());
+        }
+        return simulado;
+    }
 
     @Override
     public int contarEmEdicaoPorTurma(TurmaId turmaId) {
@@ -327,7 +362,9 @@ public class RepositorioEmMemoria implements
 
     @Override
     public boolean existeNotaParaSimulado(SimuladoId id) {
-        return notas.values().stream().anyMatch(n -> n.getSimulado().equals(id));
+        return alunos.values().stream()
+                .anyMatch(aluno -> aluno.getNotas().stream()
+                        .anyMatch(nota -> nota.getSimuladoId().equals(id)));
     }
 
     @Override
@@ -340,58 +377,6 @@ public class RepositorioEmMemoria implements
     // util p/ testes
     public void setTodasNotasLancadas(SimuladoId id, boolean ok) {
         if (ok) simuladoComTodasNotasLancadas.add(id.value()); else simuladoComTodasNotasLancadas.remove(id.value());
-    }
-
-    // =========================================================
-    // =============== NotaRepositorio =========================
-    // =========================================================
-    @Override
-    public NotaId salvar(Nota n) {
-        if (n.getId() == null) {
-            n.atribuirIdSeAusente(new NotaId(seqNota++));
-        }
-        notas.put(n.getId().value(), n);
-        return n.getId();
-    }
-
-    @Override public Optional<Nota> porId(NotaId id) { return Optional.ofNullable(notas.get(id.value())); }
-
-    @Override
-    public Optional<Nota> porChave(AlunoId aluno, SimuladoId simulado, DisciplinaId disciplina) {
-        return notas.values().stream()
-            .filter(n -> n.getAluno().equals(aluno)
-                    && n.getSimulado().equals(simulado)
-                    && n.getDisciplina().equals(disciplina))
-            .findFirst();
-    }
-
-    @Override
-    public List<Nota> porSimulado(SimuladoId simulado) {
-        return notas.values().stream().filter(n -> n.getSimulado().equals(simulado)).toList();
-    }
-
-    @Override
-    public boolean simuladoEstaEmEdicao(SimuladoId simulado) {
-        var s = simulados.get(simulado.value());
-        return s != null && s.getStatus() == Simulado.Status.EM_EDICAO;
-    }
-
-    // =========================================================
-    // =============== JustificativaRepositorio ================
-    // =========================================================
-    @Override
-    public JustificativaId salvar(Justificativa j) {
-        if (j.getId() == null) {
-            j.atribuirIdSeAusente(new JustificativaId(seqJustificativa++));
-        }
-        justificativasPorNota
-                .computeIfAbsent(j.getNota().value(), k -> new ArrayList<>())
-                .add(j);
-        return j.getId();
-    }
-
-    @Override public List<Justificativa> porNota(NotaId idNota) {
-        return justificativasPorNota.getOrDefault(idNota.value(), List.of());
     }
 
     // =========================================================

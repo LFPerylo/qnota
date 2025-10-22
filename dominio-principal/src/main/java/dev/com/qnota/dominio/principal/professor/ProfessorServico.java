@@ -19,7 +19,7 @@ public class ProfessorServico {
 
     /** Edição de dados de contato (CPF é imutável na entidade). */
     public void atualizarContato(ProfessorId id, String novoNome, String novoEmail) {
-        var p = repo.porId(id).orElseThrow(() -> new IllegalStateException("professor não encontrado"));
+        var p = repo.porId(id);
         p.renomear(novoNome);
         p.alterarEmail(novoEmail);
         repo.salvar(p); // ignoramos o retorno aqui
@@ -44,13 +44,13 @@ public class ProfessorServico {
 
     /** Conveniências para especialidades (invariantes ficam na entidade). */
     public void adicionarEspecialidade(ProfessorId id, String area) {
-        var p = repo.porId(id).orElseThrow(() -> new IllegalStateException("professor não encontrado"));
+        var p = repo.porId(id);
         p.adicionarEspecialidade(area);
         repo.salvar(p);
     }
 
     public void removerEspecialidade(ProfessorId id, String area) {
-        var p = repo.porId(id).orElseThrow(() -> new IllegalStateException("professor não encontrado"));
+        var p = repo.porId(id);
         p.removerEspecialidade(area); // não deixa zerar (RN-84)
         repo.salvar(p);
     }

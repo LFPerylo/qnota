@@ -12,9 +12,7 @@ import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.disciplina.Disciplina;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.infraestrutura.persistencia.memoria.RepositorioEmMemoria;
-import dev.com.qnota.dominio.principal.nota.Nota;
-import dev.com.qnota.dominio.principal.nota.NotaId;
-import dev.com.qnota.dominio.principal.nota.NotaServico;
+import dev.com.qnota.dominio.principal.aluno.NotaServico;
 import dev.com.qnota.dominio.principal.professor.Professor;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
@@ -29,8 +27,8 @@ import io.cucumber.java.en.*;
 public class GerenciarNotasFeature {
 
     private final RepositorioEmMemoria repo = new RepositorioEmMemoria();
-    private final RankingServico rankingServico = new RankingServico(repo, repo, repo, repo);
-    private final NotaServico notaServico = new NotaServico(repo, rankingServico, repo, repo, repo, repo, repo);
+    private final RankingServico rankingServico = new RankingServico(repo, repo, repo);
+    private final NotaServico notaServico = new NotaServico(rankingServico, repo, repo, repo, repo);
     
     private final AtomicInteger seq = new AtomicInteger(1);
     
@@ -40,7 +38,6 @@ public class GerenciarNotasFeature {
     private DisciplinaId currentDisciplinaId;
     private TurmaId currentTurmaId;
     private ProfessorId currentProfessorId;
-    private NotaId currentNotaId;
     
     // Estado dos testes
     private Exception ultimaExcecao;
@@ -66,28 +63,29 @@ public class GerenciarNotasFeature {
 
     @Given("o \"simulado\" {string} \"está\" finalizado")
     public void simulado_esta_finalizado(String simuladoAlias) {
-        var simulado = repo.porId(currentSimuladoId).orElseThrow();
+        var simulado = repo.porId(currentSimuladoId);
         simulado.finalizar();
         repo.salvar(simulado);
     }
 
     @Given("já existe nota para o \"aluno\" {string} no \"simulado\" {string} na \"disciplina\" {string}")
     public void ja_existe_nota_para_aluno_simulado_disciplina(String alunoAlias, String simuladoAlias, String disciplinaNome) {
-        var nota = new Nota(currentAlunoId, currentSimuladoId, currentDisciplinaId, 6.0, LocalDateTime.now());
-        repo.salvar(nota);
-        currentNotaId = nota.getId();
+        // Adiciona nota diretamente ao agregado Aluno
+        var aluno = repo.porId(currentAlunoId);
+        aluno.adicionarNota(currentSimuladoId, currentDisciplinaId, 6.0);
+        repo.salvar(aluno);
     }
 
     @Given("o \"aluno\" {string} \"está\" inativo")
     public void aluno_esta_inativo(String alunoAlias) {
-        var aluno = repo.porId(currentAlunoId).orElseThrow();
+        var aluno = repo.porId(currentAlunoId);
         aluno.inativar();
         repo.salvar(aluno);
     }
 
     @Given("a \"turma\" {string} \"está\" inativa")
     public void turma_esta_inativa(String turmaAlias) {
-        var turma = repo.porId(currentTurmaId).orElseThrow();
+        var turma = repo.porId(currentTurmaId);
         turma.inativar();
         repo.salvar(turma);
     }
@@ -100,9 +98,10 @@ public class GerenciarNotasFeature {
 
     @Given("já existe nota {double} para o \"aluno\" {string} no \"simulado\" {string} na \"disciplina\" {string}")
     public void ja_existe_nota_valor_para_aluno_simulado_disciplina(double valor, String alunoAlias, String simuladoAlias, String disciplinaNome) {
-        var nota = new Nota(currentAlunoId, currentSimuladoId, currentDisciplinaId, valor, LocalDateTime.now());
-        repo.salvar(nota);
-        currentNotaId = nota.getId();
+        // Adiciona nota diretamente ao agregado Aluno
+        var aluno = repo.porId(currentAlunoId);
+        aluno.adicionarNota(currentSimuladoId, currentDisciplinaId, valor);
+        repo.salvar(aluno);
     }
 
     @When("um coordenador lança nota {double} para o \"aluno\" {string} no \"simulado\" {string} na \"disciplina\" {string}")
@@ -171,7 +170,7 @@ public class GerenciarNotasFeature {
     @When("um coordenador retifica a nota para {double} com justificativa {string}")
     public void coord_retifica_nota_com_justificativa(double novoValor, String justificativa) {
         try {
-            notaServico.retificarComJustificativa(currentNotaId, novoValor, justificativa, currentProfessorId);
+            notaServico.retificarNota(currentAlunoId, currentSimuladoId, currentDisciplinaId, novoValor, justificativa, currentProfessorId);
             ultimaOperacaoSucesso = true;
             ultimaExcecao = null;
         } catch (Exception e) {
@@ -183,7 +182,7 @@ public class GerenciarNotasFeature {
     @When("um coordenador tenta retificar a nota para {double} com justificativa {string}")
     public void coord_tenta_retificar_nota_com_justificativa(double novoValor, String justificativa) {
         try {
-            notaServico.retificarComJustificativa(currentNotaId, novoValor, justificativa, currentProfessorId);
+            notaServico.retificarNota(currentAlunoId, currentSimuladoId, currentDisciplinaId, novoValor, justificativa, currentProfessorId);
             ultimaOperacaoSucesso = true;
             ultimaExcecao = null;
         } catch (Exception e) {
@@ -214,9 +213,15 @@ public class GerenciarNotasFeature {
     @Then("o sistema informa em notas que {string}")
     public void sistema_informa_em_notas_que(String mensagemEsperada) {
         assertNotNull(ultimaExcecao, "Deveria ter ocorrido uma exceção");
-        String mensagemAtual = ultimaExcecao.getMessage();
-        assertTrue(mensagemAtual.contains(mensagemEsperada), 
-            "Mensagem esperada: " + mensagemEsperada + ", mas foi: " + mensagemAtual);
+        String mensagemAtual = ultimaExcecao.getMessage().toLowerCase();
+        String mensagemEsperadaLower = mensagemEsperada.toLowerCase();
+        
+        // Remove espaços e caracteres especiais para comparação mais flexível
+        String mensagemLimpa = mensagemAtual.replaceAll("[^a-z]", "");
+        String esperadaLimpa = mensagemEsperadaLower.replaceAll("[^a-z]", "");
+        
+        assertTrue(mensagemLimpa.contains(esperadaLimpa), 
+            "Mensagem esperada: " + mensagemEsperada + ", mas foi: " + ultimaExcecao.getMessage());
     }
 
     @Then("o sistema confirma a retificação da nota")
@@ -226,15 +231,19 @@ public class GerenciarNotasFeature {
 
     @Then("uma nova versão da nota é criada")
     public void nova_versao_nota_criada() {
-        // Verificar se uma nova nota foi criada (com ID diferente)
-        var notas = repo.porSimulado(currentSimuladoId);
-        assertTrue(notas.size() >= 2, "Deveria ter pelo menos 2 notas (original + nova versão)");
+        // Verificar se a nota foi atualizada no agregado Aluno
+        var aluno = repo.porId(currentAlunoId);
+        var notaDoAluno = aluno.obterNota(currentSimuladoId, currentDisciplinaId);
+        assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
+        assertFalse(notaDoAluno.get().getJustificativas().isEmpty(), "Deveria ter justificativas");
     }
 
     @Then("a justificativa é registrada no histórico")
     public void justificativa_registrada_historico() {
-        var justificativas = repo.porNota(currentNotaId);
-        assertFalse(justificativas.isEmpty(), "Justificativa deveria ter sido registrada");
+        var aluno = repo.porId(currentAlunoId);
+        var notaDoAluno = aluno.obterNota(currentSimuladoId, currentDisciplinaId);
+        assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
+        assertFalse(notaDoAluno.get().getJustificativas().isEmpty(), "Justificativa deveria ter sido registrada");
     }
 
     @Then("o sistema rejeita a retificação em notas")

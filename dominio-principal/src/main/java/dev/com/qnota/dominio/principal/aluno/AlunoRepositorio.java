@@ -10,7 +10,7 @@ public interface AlunoRepositorio {
     /** Persiste o agregado. Se getId()==null, gera/atribui um novo ID e retorna. */
     AlunoId salvar(Aluno aluno);
 
-    Optional<Aluno> porId(AlunoId id);
+    Aluno porId(AlunoId id);
     void remover(AlunoId id);
 
     boolean existeOutroComMesmoNomeENascimentoNaTurma(String nome, LocalDate data, TurmaId turmaId);

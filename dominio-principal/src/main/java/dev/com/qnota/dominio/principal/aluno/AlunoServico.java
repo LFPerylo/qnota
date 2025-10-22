@@ -40,15 +40,15 @@ public class AlunoServico {
 
     // ---------- TRANSFERIR ----------
     public void transferir(AlunoId id, TurmaId novaTurma) {
-        var aluno = repo.porId(id).orElseThrow();
+        var aluno = repo.porId(id);
 
         // RN-57.1: não pode se houver simulados finalizados
         if (repo.possuiSimuladoFinalizado(id))
             throw new IllegalStateException("não é permitido alterar a turma do aluno com simulados finalizados");
 
         // RN-57.2: mesma série/ano letivo
-        int anoAtual = turmaRepo.porId(aluno.getTurma()).map(Turma::getAnoLetivo).orElseThrow();
-        int anoNovo  = turmaRepo.porId(novaTurma).map(Turma::getAnoLetivo).orElseThrow();
+        int anoAtual = turmaRepo.porId(aluno.getTurma()).getAnoLetivo();
+        int anoNovo  = turmaRepo.porId(novaTurma).getAnoLetivo();
         if (anoAtual != anoNovo)
             throw new IllegalStateException("a nova turma deve estar no mesmo ano letivo");
 
@@ -62,7 +62,7 @@ public class AlunoServico {
         if (repo.temNotasPendentesEmSimuladosEmEdicao(id))
             throw new IllegalStateException("existem notas pendentes de lançamento");
 
-        var aluno = repo.porId(id).orElseThrow();
+        var aluno = repo.porId(id);
         aluno.inativar();
         repo.salvar(aluno);
     }
@@ -78,23 +78,23 @@ public class AlunoServico {
     // ---------- VÍNCULOS COM RESPONSÁVEL ----------
     public void vincularResponsavel(AlunoId id, ResponsavelId resp, boolean principal) {
         // RN-136: impedir vínculo com inadimplente
-        var r = responsavelRepo.porId(resp).orElseThrow();
+        var r = responsavelRepo.porId(resp);
         if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
             throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
 
-        var aluno = repo.porId(id).orElseThrow();
+        var aluno = repo.porId(id);
         aluno.adicionarResponsavel(resp, principal);
         repo.salvar(aluno);
     }
 
     public void desvincularResponsavel(AlunoId id, ResponsavelId resp) {
-        var aluno = repo.porId(id).orElseThrow();
+        var aluno = repo.porId(id);
         aluno.removerResponsavel(resp); // garante RN-19/RN-58 (auto-promove outro principal)
         repo.salvar(aluno);
     }
 
     public void definirPrincipal(AlunoId id, ResponsavelId resp) {
-        var aluno = repo.porId(id).orElseThrow();
+        var aluno = repo.porId(id);
         aluno.definirPrincipal(resp); // RN-58
         repo.salvar(aluno);
     }
@@ -140,7 +140,7 @@ public class AlunoServico {
 
         // RN-136: nenhum responsável inadimplente
         for (ResponsavelId rid : responsaveis) {
-            var r = responsavelRepo.porId(rid).orElseThrow();
+            var r = responsavelRepo.porId(rid);
             if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
                 throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
         }

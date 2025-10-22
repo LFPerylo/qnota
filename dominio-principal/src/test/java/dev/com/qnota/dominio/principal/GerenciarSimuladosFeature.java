@@ -27,9 +27,6 @@ import dev.com.qnota.dominio.principal.disciplina.Disciplina.AreaConhecimento;
 
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
 
-import dev.com.qnota.dominio.principal.nota.Nota;
-import dev.com.qnota.dominio.principal.nota.NotaId;
-
 import dev.com.qnota.dominio.principal.aluno.Aluno;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 
@@ -56,7 +53,7 @@ public class GerenciarSimuladosFeature {
     @Before
     public void reset() {
         repo = new RepositorioEmMemoria();
-        rankingSrv = new RankingServico(repo, repo, repo, repo);
+        rankingSrv = new RankingServico(repo, repo, repo);
         simuladoSrv = new SimuladoServico(repo, rankingSrv, repo, repo, repo);
 
         seq = new AtomicInteger(1);
@@ -79,7 +76,6 @@ public class GerenciarSimuladosFeature {
     private ProfessorId newProfessorId() { return new ProfessorId(seq.getAndIncrement()); }
     private DisciplinaId newDisciplinaId() { return new DisciplinaId(seq.getAndIncrement()); }
     private AlunoId newAlunoId() { return new AlunoId(seq.getAndIncrement()); }
-    private NotaId newNotaId() { return new NotaId(seq.getAndIncrement()); }
 
     private AreaConhecimento areaByNome(String nome) {
         return aliasArea.computeIfAbsent(nome, n -> new AreaConhecimento(seq.getAndIncrement(), n));
@@ -206,10 +202,10 @@ public class GerenciarSimuladosFeature {
         var aluno = new Aluno("Aluno Teste", LocalDate.of(2012, 1, 1), true, currentTurmaId, alunoResponsaveis, responsavel.getId());
         repo.salvar(aluno);
         
-        var nota1 = new Nota(alunoId, currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0, java.time.LocalDateTime.now());
-        var nota2 = new Nota(alunoId, currentSimuladoId, ensureDisciplina("Física", "Exatas"), 7.5, java.time.LocalDateTime.now());
-        repo.salvar(nota1);
-        repo.salvar(nota2);
+        // Adiciona notas diretamente ao agregado Aluno
+        aluno.adicionarNota(currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0);
+        aluno.adicionarNota(currentSimuladoId, ensureDisciplina("Física", "Exatas"), 7.5);
+        repo.salvar(aluno);
         
         // Marcar que todas as notas foram lançadas para este simulado
         repo.setTodasNotasLancadas(currentSimuladoId, true);
@@ -235,8 +231,9 @@ public class GerenciarSimuladosFeature {
         var aluno = new Aluno("Aluno Teste", LocalDate.of(2012, 1, 1), true, currentTurmaId, alunoResponsaveis, responsavel.getId());
         repo.salvar(aluno);
         
-        var nota = new Nota(alunoId, currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0, java.time.LocalDateTime.now());
-        repo.salvar(nota);
+        // Adiciona nota diretamente ao agregado Aluno
+        aluno.adicionarNota(currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0);
+        repo.salvar(aluno);
     }
 
     // ===== Whens =====

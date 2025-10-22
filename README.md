@@ -7,10 +7,19 @@ O repositório é **multi-módulo Maven** e usa **BDD (Cucumber)** como document
 >
 > - **Cenários Gherkin (Living Documentation):**  
 >   `./dominio-principal/src/test/resources/dev/com/qnota/dominio/principal/*.feature`
-> - **StoryMap e Descrição detalhada do domínio (versão “em texto” logo abaixo):**  
+> - **StoryMap e Descrição detalhada do domínio (versão "em texto" logo abaixo):**  
 >   `./Documentação/StoryMap-Qnota.pdf` e `./Documentação/Descricao-Detalhada-Qnota.pdf`
 > - **Context Mapper (limites/contextos):**  
 >   `./qnota.cml`
+
+> ### 🔗 Links de Documentação e Protótipos
+>
+> - **📊 Apresentação de Slides:** [Canva - Apresentação Qnota](https://www.canva.com/design/DAG2hHoU1Xc/W5c08d-kTnlAgOMW92z4Cw/edit)  
+>   Apresentação completa do projeto com visão geral, arquitetura e funcionalidades
+> - **🗺️ StoryMap:** [Avion - StoryMap Qnota](https://qnota-1.avion.io/share/S6rMboJu28Fd2Np36)  
+>   Mapa de histórias do usuário organizadas por épicos e releases
+> - **🎨 Protótipo Navegável:** [Figma - Protótipo Qnota](https://www.figma.com/make/wx4obguhFd80NeadgO1Knm/Naveg%C3%A1vel-QNota-para-Coordenador?node-id=0-1&p=f&t=xnJiUhDBY9S5lLq1-0)  
+>   Protótipo interativo da interface do coordenador
 
 ---
 

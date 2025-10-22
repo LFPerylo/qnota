@@ -382,7 +382,7 @@ public class GerenciarProfessoresFeature {
         assertNull(lastError, "Esperava sucesso, mas houve erro: " + (lastError == null ? "" : lastError.getMessage()));
         assertNotNull(currentProfessorId, "Sem ID atual de professor após cadastro");
         var p = repo.porId(currentProfessorId);
-        assertTrue(p.isPresent(), "Professor não foi persistido");
+        assertTrue(p != null, "Professor não foi persistido");
     }
 
     @Then("o sistema rejeita o cadastro em professores")
@@ -401,7 +401,7 @@ public class GerenciarProfessoresFeature {
     @Then("o sistema confirma a alteração do \"professor\"")
     public void confirma_alteracao_professor() {
         assertNull(lastError, "Esperava sucesso na alteração: " + lastError);
-        var p = repo.porId(currentProfessorId).orElseThrow();
+        var p = repo.porId(currentProfessorId);
         assertNotNull(p, "Professor não encontrado após alteração");
     }
 
@@ -423,8 +423,13 @@ public class GerenciarProfessoresFeature {
     @Then("o sistema confirma a exclusão do \"professor\"")
     public void confirma_exclusao_professor() {
         assertNull(lastError, "Esperava sucesso na exclusão: " + lastError);
-        var p = repo.porId(currentProfessorId);
-        assertTrue(p.isEmpty(), "Professor ainda presente após exclusão");
+        // Verifica se o professor foi realmente excluído tentando acessá-lo
+        try {
+            repo.porId(currentProfessorId);
+            fail("Professor ainda existe no repositório após exclusão");
+        } catch (IllegalStateException e) {
+            // Esperado - professor foi excluído
+        }
     }
 
     @Then("o sistema rejeita a exclusão em professores")
