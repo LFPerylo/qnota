@@ -36,7 +36,7 @@ public class RepositorioEmMemoria implements
     private final Set<Integer> simuladoComTodasNotasLancadas = new HashSet<>();
 
     // ranking (snapshot opcional para testes)
-    private final Map<Integer, List<ItemRanking>> rankingPorSimulado = new HashMap<>();
+    private final Map<Integer, List<Ranking.Linha>> rankingPorSimulado = new HashMap<>();
     private final Set<Integer> rankingCongelado = new HashSet<>();
 
     // ---------- seqs de ID (infra) ----------
@@ -385,13 +385,23 @@ public class RepositorioEmMemoria implements
     // =========================================================
     // =============== RankingRepositorio ======================
     // =========================================================
-    @Override public void limpar(SimuladoId simulado) { rankingPorSimulado.remove(simulado.value()); }
-    @Override public void salvarPosicoes(SimuladoId simulado, List<ItemRanking> itens) {
-        rankingPorSimulado.put(simulado.value(), List.copyOf(itens));
+    @Override public void limpar(SimuladoId simulado) {
+    rankingPorSimulado.remove(simulado.value());
+}
+
+    @Override public void salvarPosicoes(SimuladoId simulado, List<Ranking.Linha> linhas) {
+        rankingPorSimulado.put(simulado.value(), List.copyOf(linhas));
     }
-    @Override public void congelar(SimuladoId simulado) { rankingCongelado.add(simulado.value()); }
-    @Override public boolean estaCongelado(SimuladoId simulado) { return rankingCongelado.contains(simulado.value()); }
-    @Override public List<ItemRanking> carregar(SimuladoId simulado) {
+
+    @Override public void congelar(SimuladoId simulado) {
+        rankingCongelado.add(simulado.value());
+    }
+
+    @Override public boolean estaCongelado(SimuladoId simulado) {
+        return rankingCongelado.contains(simulado.value());
+    }
+
+    @Override public List<Ranking.Linha> carregar(SimuladoId simulado) {
         return rankingPorSimulado.getOrDefault(simulado.value(), List.of());
     }
 }

@@ -28,7 +28,7 @@ public class RankingServico {
     }
 
     /** RN-98/99: recalcula e salva (não congela). Se já estiver congelado, devolve o atual. */
-    public List<RankingRepositorio.ItemRanking> recalcular(SimuladoId simuladoId) {
+    public List<Ranking.Linha> recalcular(SimuladoId simuladoId) {
         var simulado = simuladoRepo.porId(simuladoId);
 
         if (simulado.getStatus() == Simulado.Status.FINALIZADO || rankingRepo.estaCongelado(simuladoId)) {
@@ -38,28 +38,25 @@ public class RankingServico {
         var pesos = simuladoRepo.pesosDoSimulado(simuladoId);
         var alunos = alunoRepo.porTurma(simulado.getTurma());
 
-        var itens = calcularPosicoes(alunos, alunos, pesos);
+        var linhas = calcularPosicoes(alunos, alunos, pesos);
         rankingRepo.limpar(simuladoId);
-        rankingRepo.salvarPosicoes(simuladoId, itens);
-        return itens;
+        rankingRepo.salvarPosicoes(simuladoId, linhas);
+        return linhas;
     }
 
-    /** Versão orientada a agregado (opcional). Usa os métodos default do repositório. */
+    /** Versão orientada a agregado (opcional). */
     public Ranking recalcularComoAgregado(SimuladoId simuladoId) {
         var simulado = simuladoRepo.porId(simuladoId);
 
         if (simulado.getStatus() == Simulado.Status.FINALIZADO || rankingRepo.estaCongelado(simuladoId)) {
-            return rankingRepo.carregarAgregado(simuladoId).orElseGet(() -> new Ranking(simuladoId, List.of()));
+            return rankingRepo.carregarAgregado(simuladoId)
+                    .orElseGet(() -> new Ranking(simuladoId, List.of()));
         }
 
         var pesos = simuladoRepo.pesosDoSimulado(simuladoId);
         var alunos = alunoRepo.porTurma(simulado.getTurma());
 
-        var itens = calcularPosicoes(alunos, alunos, pesos);
-
-        var linhas = itens.stream()
-                .map(i -> new Ranking.Linha(i.aluno(), i.media(), i.posicao()))
-                .toList();
+        var linhas = calcularPosicoes(alunos, alunos, pesos);
         var ranking = new Ranking(simuladoId, linhas);
         return rankingRepo.salvar(ranking);
     }
@@ -73,7 +70,7 @@ public class RankingServico {
     }
 
     // ======== cálculo interno ========
-    private List<RankingRepositorio.ItemRanking> calcularPosicoes(
+    private List<Ranking.Linha> calcularPosicoes(
             List<Aluno> alunos, List<Aluno> todosAlunos, Map<Integer, Double> pesos) {
 
         var ordenados = alunos.stream()
@@ -83,24 +80,23 @@ public class RankingServico {
                     .thenComparing(t -> t.aluno().getDataNascimento()))
             .toList();
 
-        var itens = new ArrayList<RankingRepositorio.ItemRanking>();
+        var linhas = new ArrayList<Ranking.Linha>();
         int pos = 1;
         for (var t : ordenados) {
-            itens.add(new RankingRepositorio.ItemRanking(t.aluno().getId(), t.media(), pos++));
+            linhas.add(new Ranking.Linha(t.aluno().getId(), t.media(), pos++));
         }
-        return itens;
+        return linhas;
     }
 
     private double mediaPonderada(Aluno aluno, List<Aluno> todosAlunos, Map<Integer, Double> pesos) {
         double soma = 0, somaPesos = 0;
-        
-        // Busca todas as notas do aluno nos simulados
+
         for (var notaDoAluno : aluno.getNotas()) {
             double p = pesos.getOrDefault(notaDoAluno.getDisciplinaId().value(), 0.0);
             soma += notaDoAluno.getValor() * p;
             somaPesos += p;
         }
-        
+
         double media = somaPesos == 0 ? 0 : (soma / somaPesos) * 10.0; // pesos somam 10
         return BigDecimal.valueOf(media).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
