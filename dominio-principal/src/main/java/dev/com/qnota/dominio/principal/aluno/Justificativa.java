@@ -24,8 +24,6 @@ public class Justificativa {
         this.texto = Objects.requireNonNull(texto, "'texto' não pode ser nulo");
         this.dataHora = Objects.requireNonNull(dataHora, "'dataHora' não pode ser nula");
         this.professor = Objects.requireNonNull(professor, "'professor' não pode ser nulo");
-        
-        validarTexto(texto);
     }
 
     public double getNotaAnterior() {
@@ -46,12 +44,6 @@ public class Justificativa {
 
     public ProfessorId getProfessor() {
         return professor;
-    }
-
-    private static void validarTexto(String texto) {
-        if (texto.trim().length() < 20) {
-            throw new IllegalArgumentException("RN-37: Justificativa deve conter ao menos 20 caracteres.");
-        }
     }
 
     @Override

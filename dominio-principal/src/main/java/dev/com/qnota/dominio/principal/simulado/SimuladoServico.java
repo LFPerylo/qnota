@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
+import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
 import dev.com.qnota.dominio.principal.disciplina.Disciplina;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaRepositorio;
 import dev.com.qnota.dominio.principal.professor.ProfessorRepositorio;
@@ -17,15 +18,17 @@ public class SimuladoServico {
     private final TurmaRepositorio turmaRepo;
     private final ProfessorRepositorio professorRepo;
     private final DisciplinaRepositorio disciplinaRepo;
+    private final AlunoRepositorio alunoRepo;
 
     public SimuladoServico(SimuladoRepositorio repo, RankingServico rankingServico,
                            TurmaRepositorio turmaRepo, ProfessorRepositorio professorRepo,
-                           DisciplinaRepositorio disciplinaRepo) {
+                           DisciplinaRepositorio disciplinaRepo, AlunoRepositorio alunoRepo) {
         this.repo = Objects.requireNonNull(repo);
         this.rankingServico = Objects.requireNonNull(rankingServico);
         this.turmaRepo = Objects.requireNonNull(turmaRepo);
         this.professorRepo = Objects.requireNonNull(professorRepo);
         this.disciplinaRepo = Objects.requireNonNull(disciplinaRepo);
+        this.alunoRepo = Objects.requireNonNull(alunoRepo);
     }
 
     /** Factory de conveniência para criar EM_EDICAO sem expor ID. */
@@ -34,8 +37,13 @@ public class SimuladoServico {
         return criar(s);
     }
 
-    /** Criação: RN-52 (máx. 2 em edição por turma) + RN-96 + RN-53. */
+    /** Criação: RN-52 (máx. 2 em edição por turma) + RN-96 + RN-12 + RN-53. */
     public SimuladoId criar(Simulado s) {
+        // RN-12: pelo menos duas disciplinas
+        if (s.getDisciplinas().size() < 2) {
+            throw new IllegalArgumentException("RN-12: Pelo menos duas disciplinas.");
+        }
+        
         // RN-96: não pode criar simulado em turma inativa
         var turma = turmaRepo.porId(s.getTurma());
         if (!turma.isAtivo())
@@ -88,7 +96,24 @@ public class SimuladoServico {
             throw new IllegalStateException(
                 "RN-53: Professor não possui especialidade compatível com as disciplinas do simulado.");
 
-        // Agora alterar as disciplinas (RN-12/13/14B na entidade)
+        // RN-12: pelo menos duas disciplinas
+        if (novas.size() < 2) {
+            throw new IllegalArgumentException("RN-12: Pelo menos duas disciplinas.");
+        }
+        
+        // RN-14B: disciplinas distintas
+        long distintos = novas.stream().map(Simulado.DisciplinaPeso::disciplina).distinct().count();
+        if (distintos != novas.size()) {
+            throw new IllegalArgumentException("RN-14B: Disciplina não pode se repetir.");
+        }
+        
+        // RN-13: pesos somam 10
+        double soma = novas.stream().mapToDouble(Simulado.DisciplinaPeso::peso).sum();
+        if (Math.abs(soma - 10.0) > 1e-6) {
+            throw new IllegalArgumentException("RN-13: Pesos devem somar 10.");
+        }
+        
+        // Agora alterar as disciplinas
         s.alterarDisciplinas(novas);
 
         repo.salvar(s);
@@ -111,7 +136,7 @@ public class SimuladoServico {
 
     /** RN-15: excluir simulado só se não houver nota. */
     public void excluir(SimuladoId id) {
-        if (repo.existeNotaParaSimulado(id))
+        if (alunoRepo.existeNotaParaSimulado(id))
             throw new IllegalStateException("RN-15: já existem notas lançadas.");
         repo.remover(id);
     }

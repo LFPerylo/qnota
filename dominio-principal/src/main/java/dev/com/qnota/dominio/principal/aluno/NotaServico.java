@@ -45,6 +45,11 @@ public class NotaServico {
      * - RN-98/RN-99: recalcula ranking após salvar
      */
     public void lancarNota(AlunoId alunoId, SimuladoId simuladoId, DisciplinaId disciplinaId, double valor) {
+        // RN-31: valor da nota deve estar entre 0 e 10
+        if (valor < 0.0 || valor > 10.0) {
+            throw new IllegalArgumentException("RN-31: Valor da nota deve estar entre 0 e 10.");
+        }
+        
         // RN-34: garantir que IDs existem
         var aluno    = alunoRepo.porId(alunoId);
         var simulado = simuladoRepo.porId(simuladoId);
@@ -79,6 +84,11 @@ public class NotaServico {
      */
     public void retificarNota(AlunoId alunoId, SimuladoId simuladoId, DisciplinaId disciplinaId, 
                              double novoValor, String justificativa, ProfessorId professorId) {
+        // RN-31: valor da nota deve estar entre 0 e 10
+        if (novoValor < 0.0 || novoValor > 10.0) {
+            throw new IllegalArgumentException("RN-31: Valor da nota deve estar entre 0 e 10.");
+        }
+        
         var aluno = alunoRepo.porId(alunoId);
         var simulado = simuladoRepo.porId(simuladoId);
 

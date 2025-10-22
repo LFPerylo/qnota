@@ -42,7 +42,7 @@ public class GerenciarProfessoresFeature {
     @Before
     public void reset() {
         repo = new RepositorioEmMemoria();
-        professorSrv = new ProfessorServico(repo);
+        professorSrv = new ProfessorServico(repo, repo);
 
         seq = new AtomicInteger(1);
         aliasProfessor = new HashMap<>();

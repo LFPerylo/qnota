@@ -26,9 +26,6 @@ public interface SimuladoRepositorio {
     /** RN-16: checar se todas as notas da turma foram lançadas */
     boolean todasNotasLancadas(SimuladoId id);
 
-    /** RN-15: verificar se existe nota para o simulado */
-    boolean existeNotaParaSimulado(SimuladoId id);
-
     /** RN-15: remover simulado */
     void remover(SimuladoId id);
 }

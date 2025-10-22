@@ -93,28 +93,19 @@ public class Aluno {
         responsavelPrincipal = novoPrincipal;
     }
 
-    /** Vincular responsável (até 3). Se principal=true, define como principal. */
+    /** Vincular responsável. Operação simples sem validações de negócio. */
     public void adicionarResponsavel(ResponsavelId idResp, boolean principal) {
         Objects.requireNonNull(idResp, "'responsavelId' não pode ser nulo");
-
-        if (responsaveis.size() >= 3)
-            throw new IllegalStateException("o número máximo de responsáveis por aluno é 3");
-
-        if (responsaveis.contains(idResp))
-            throw new IllegalStateException("já existe vínculo entre o responsável e o aluno");
 
         var nova = new ArrayList<>(responsaveis);
         nova.add(idResp);
 
         var novoPrincipal = this.responsavelPrincipal;
         if (principal) {
-            if (novoPrincipal != null)
-                throw new IllegalStateException("deve haver exatamente um responsável principal");
             novoPrincipal = idResp;
         }
         if (novoPrincipal == null) novoPrincipal = idResp; // garante 1 principal
 
-        validarInvariantes(nova, novoPrincipal);
         responsaveis.clear();
         responsaveis.addAll(nova);
         responsavelPrincipal = novoPrincipal;
@@ -150,13 +141,10 @@ public class Aluno {
     // ========= operações de notas =========
     
     /**
-     * Adiciona ou atualiza uma nota do aluno em um simulado/disciplina específica.
+     * Adiciona uma nota do aluno em um simulado/disciplina específica.
+     * Operação simples sem validações de negócio.
      */
     public void adicionarNota(SimuladoId simuladoId, DisciplinaId disciplinaId, double valor) {
-        if (!ativo) {
-            throw new IllegalStateException("RN-31/RN-32/RN-33: aluno inativado não pode receber nota.");
-        }
-        
         String chave = gerarChaveNota(simuladoId, disciplinaId);
         var notaDoAluno = new NotaDoAluno(simuladoId, disciplinaId, valor, LocalDateTime.now(), Collections.emptyList());
         notas.put(chave, notaDoAluno);

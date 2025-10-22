@@ -54,7 +54,7 @@ public class GerenciarSimuladosFeature {
     public void reset() {
         repo = new RepositorioEmMemoria();
         rankingSrv = new RankingServico(repo, repo, repo);
-        simuladoSrv = new SimuladoServico(repo, rankingSrv, repo, repo, repo);
+        simuladoSrv = new SimuladoServico(repo, rankingSrv, repo, repo, repo, repo);
 
         seq = new AtomicInteger(1);
         aliasTurma = new HashMap<>();

@@ -5,9 +5,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 
+import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.responsavel.Responsavel;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelRepositorio;
+import dev.com.qnota.dominio.principal.simulado.SimuladoId;
+import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
+import dev.com.qnota.dominio.principal.simulado.Simulado;
 import dev.com.qnota.dominio.principal.turma.Turma;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 import dev.com.qnota.dominio.principal.turma.TurmaRepositorio;
@@ -18,13 +22,16 @@ public class AlunoServico {
     private final AlunoRepositorio repo;
     private final ResponsavelRepositorio responsavelRepo;
     private final TurmaRepositorio turmaRepo;
+    private final SimuladoRepositorio simuladoRepo;
 
     public AlunoServico(AlunoRepositorio repo,
                         ResponsavelRepositorio responsavelRepo,
-                        TurmaRepositorio turmaRepo) {
+                        TurmaRepositorio turmaRepo,
+                        SimuladoRepositorio simuladoRepo) {
         this.repo = repo;
         this.responsavelRepo = responsavelRepo;
         this.turmaRepo = turmaRepo;
+        this.simuladoRepo = simuladoRepo;
     }
 
     // ---------- CADASTRAR (único — ORM gera o ID) ----------
@@ -82,7 +89,19 @@ public class AlunoServico {
         if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
             throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
 
+        // RN-19: máximo 3 responsáveis por aluno
         var aluno = repo.porId(id);
+        if (aluno.getResponsaveis().size() >= 3)
+            throw new IllegalStateException("o número máximo de responsáveis por aluno é 3");
+
+        // RN-19: não permitir duplicação
+        if (aluno.getResponsaveis().contains(resp))
+            throw new IllegalStateException("já existe vínculo entre o responsável e o aluno");
+
+        // RN-58: deve haver exatamente um responsável principal
+        if (principal && aluno.getResponsavelPrincipal() != null)
+            throw new IllegalStateException("deve haver exatamente um responsável principal");
+
         aluno.adicionarResponsavel(resp, principal);
         repo.salvar(aluno);
     }

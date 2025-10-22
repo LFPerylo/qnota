@@ -55,12 +55,10 @@ public class Simulado {
 
     // ===== operações do agregado (regras locais) =====
 
-    /** RN-14C: não edita disciplinas se FINALIZADO. */
+    /** Altera disciplinas do simulado. */
     public void alterarDisciplinas(List<DisciplinaPeso> novas) {
-        if (this.status == Status.FINALIZADO)
-            throw new IllegalStateException("RN-14C: Não é permitido editar simulado finalizado.");
         var lista = new ArrayList<>(Objects.requireNonNull(novas, "lista de disciplinas não pode ser nula"));
-        validarDisciplinas(lista); // RN-12, RN-13, RN-14B
+        validarDisciplinas(lista);
         this.disciplinas.clear();
         this.disciplinas.addAll(lista);
     }
@@ -82,20 +80,6 @@ public class Simulado {
             if (dp == null) throw new IllegalArgumentException("DisciplinaPeso não pode ser nulo");
             if (dp.disciplina() == null) throw new IllegalArgumentException("DisciplinaId não pode ser nulo");
         }
-
-        // RN-12: >= 2 disciplinas
-        if (lista.size() < 2)
-            throw new IllegalArgumentException("RN-12: Pelo menos duas disciplinas.");
-
-        // RN-14B: disciplinas distintas
-        long distintos = lista.stream().map(DisciplinaPeso::disciplina).distinct().count();
-        if (distintos != lista.size())
-            throw new IllegalArgumentException("RN-14B: Disciplina não pode se repetir.");
-
-        // RN-13: pesos somam 10
-        double soma = lista.stream().mapToDouble(DisciplinaPeso::peso).sum();
-        if (Math.abs(soma - 10.0) > 1e-6)
-            throw new IllegalArgumentException("RN-13: Pesos devem somar 10.");
     }
 
     // Value Object local

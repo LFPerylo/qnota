@@ -28,23 +28,14 @@ public class Professor {
         this.email = requireNonBlank(email, "'email' não pode ser vazio");
 
         Objects.requireNonNull(especialidades, "'especialidades' não pode ser nulo");
-        if (especialidades.isEmpty())
-            throw new IllegalArgumentException("RN-84: Professor deve ter ao menos uma especialidade.");
-
-        // normaliza e garante unicidade (case-insensitive)
+        
+        // normaliza especialidades (sem regras de negócio)
         List<String> normalizada = new ArrayList<>(especialidades.size());
-        Set<String> vistos = new LinkedHashSet<>();
         for (String e : especialidades) {
             String v = requireNonBlank(e, "especialidade não pode ser vazia").trim();
-            String key = v.toLowerCase();
-            if (!vistos.add(key)) {
-                throw new IllegalArgumentException("RN-84: Especialidades duplicadas não são permitidas: " + e);
-            }
             normalizada.add(v);
         }
-        if (normalizada.isEmpty())
-            throw new IllegalArgumentException("RN-84: Professor deve ter ao menos uma especialidade.");
-
+        
         this.especialidades = new ArrayList<>(normalizada);
     }
 

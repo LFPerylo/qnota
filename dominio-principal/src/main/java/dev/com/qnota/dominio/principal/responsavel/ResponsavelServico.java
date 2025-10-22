@@ -3,15 +3,16 @@ package dev.com.qnota.dominio.principal.responsavel;
 import java.util.Objects;
 import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
+import dev.com.qnota.dominio.principal.aluno.AlunoServico;
 
 public class ResponsavelServico {
 
     private final ResponsavelRepositorio responsavelRepo;
-    private final AlunoRepositorio alunoRepo;
+    private final AlunoServico alunoServico;
 
-    public ResponsavelServico(ResponsavelRepositorio responsavelRepo, AlunoRepositorio alunoRepo) {
+    public ResponsavelServico(ResponsavelRepositorio responsavelRepo, AlunoServico alunoServico) {
         this.responsavelRepo = Objects.requireNonNull(responsavelRepo);
-        this.alunoRepo = Objects.requireNonNull(alunoRepo);
+        this.alunoServico = Objects.requireNonNull(alunoServico);
     }
 
     /** Cadastro com checagem de unicidade de CPF. ORM atribui o ID e o repositório o retorna. */
@@ -57,22 +58,11 @@ public class ResponsavelServico {
 
     /** Vincula responsável a um aluno. */
     public void vincularAoAluno(ResponsavelId responsavelId, AlunoId alunoId, boolean principal) {
-        var aluno = alunoRepo.porId(alunoId);
-        var responsavel = responsavelRepo.porId(responsavelId);
-        
-        // RN-136: impedir vínculo com inadimplente
-        if (responsavel.getStatus() == Responsavel.Status.INADIMPLENTE)
-            throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
-        
-        aluno.adicionarResponsavel(responsavelId, principal);
-        alunoRepo.salvar(aluno);
+        alunoServico.vincularResponsavel(alunoId, responsavelId, principal);
     }
 
     /** Desvincula responsável de um aluno. */
     public void desvincularDoAluno(ResponsavelId responsavelId, AlunoId alunoId) {
-        var aluno = alunoRepo.porId(alunoId);
-        
-        aluno.removerResponsavel(responsavelId);
-        alunoRepo.salvar(aluno);
+        alunoServico.desvincularResponsavel(alunoId, responsavelId);
     }
 }

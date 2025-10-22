@@ -54,8 +54,8 @@ public class GerenciarAlunosFeature {
     @Before
     public void reset() {
         repo = new RepositorioEmMemoria();
-        alunoSrv = new AlunoServico(repo, repo, repo);
-        responsavelSrv = new ResponsavelServico(repo, repo); // usaremos serviço para cadastrar responsáveis-fixture
+        alunoSrv = new AlunoServico(repo, repo, repo, repo);
+        responsavelSrv = new ResponsavelServico(repo, alunoSrv); // usaremos serviço para cadastrar responsáveis-fixture
 
         seq = new AtomicInteger(1);
         aliasTurma = new HashMap<>();

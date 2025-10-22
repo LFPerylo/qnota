@@ -35,7 +35,6 @@ public class NotaDoAluno {
         this.disciplinaId = Objects.requireNonNull(disciplinaId, "'disciplinaId' não pode ser nulo");
         this.dataLancamento = Objects.requireNonNull(dataLancamento, "'dataLancamento' não pode ser nulo");
         
-        validarFaixa(valor);
         this.valor = valor;
         
         this.justificativas = justificativas != null ? 
@@ -86,8 +85,6 @@ public class NotaDoAluno {
      * Retorna uma nova instância para manter a imutabilidade.
      */
     public NotaDoAluno alterarValor(double novoValor) {
-        validarFaixa(novoValor);
-        
         var novaNota = new NotaDoAluno(this.simuladoId, this.disciplinaId, novoValor, 
                                       this.dataLancamento, this.justificativas);
         
@@ -111,11 +108,6 @@ public class NotaDoAluno {
      */
     public int quantidadeJustificativas() {
         return justificativas.size();
-    }
-
-    private static void validarFaixa(double v) {
-        if (v < 0.0 || v > 10.0)
-            throw new IllegalArgumentException("RN-31: Valor da nota deve estar entre 0 e 10.");
     }
 
     @Override

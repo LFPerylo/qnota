@@ -91,6 +91,17 @@ public class RepositorioEmMemoria implements
     }
 
     @Override
+    public void alterarTurma(AlunoId alunoId, TurmaId novaTurmaId) {
+        var a = alunos.get(alunoId.value());
+        if (a != null) {
+            a.mudarTurma(novaTurmaId);
+            alunos.put(a.getId().value(), a);
+        }
+    }
+
+    // ===== operações de nota (agora parte do agregado Aluno) =====
+    
+    @Override
     public boolean temNotasPendentesEmSimuladosEmEdicao(AlunoId alunoId) {
         var a = alunos.get(alunoId.value());
         if (a == null) return false;
@@ -100,7 +111,8 @@ public class RepositorioEmMemoria implements
                         && !simuladoComTodasNotasLancadas.contains(s.getId().value()));
     }
 
-    @Override public boolean temNotas(AlunoId alunoId) {
+    @Override 
+    public boolean temNotas(AlunoId alunoId) {
         var aluno = alunos.get(alunoId.value());
         return aluno != null && !aluno.getNotas().isEmpty();
     }
@@ -116,12 +128,21 @@ public class RepositorioEmMemoria implements
     }
 
     @Override
-    public void alterarTurma(AlunoId alunoId, TurmaId novaTurmaId) {
-        var a = alunos.get(alunoId.value());
-        if (a != null) {
-            a.mudarTurma(novaTurmaId);
-            alunos.put(a.getId().value(), a);
-        }
+    public boolean existeNotaParaSimulado(SimuladoId id) {
+        return alunos.values().stream()
+                .anyMatch(aluno -> aluno.getNotas().stream()
+                        .anyMatch(nota -> nota.getSimuladoId().equals(id)));
+    }
+
+    @Override
+    public boolean possuiSimuladoFinalizadoParaProfessor(ProfessorId professorId) {
+        var turmasDoProfessor = turmas.values().stream()
+                .filter(t -> t.getProfessor().equals(professorId))
+                .map(Turma::getId)
+                .toList();
+        return simulados.values().stream()
+                .anyMatch(s -> turmasDoProfessor.contains(s.getTurma())
+                        && s.getStatus() == Simulado.Status.FINALIZADO);
     }
 
     // =========================================================
@@ -204,17 +225,6 @@ public class RepositorioEmMemoria implements
     public List<String> nomesDeAreasDoProfessor(ProfessorId id) {
         var p = professores.get(id.value());
         return (p == null) ? List.of() : p.getEspecialidades();
-    }
-
-    @Override
-    public boolean possuiSimuladoFinalizado(ProfessorId id) {
-        var turmasDoProfessor = turmas.values().stream()
-                .filter(t -> t.getProfessor().equals(id))
-                .map(Turma::getId)
-                .toList();
-        return simulados.values().stream()
-                .anyMatch(s -> turmasDoProfessor.contains(s.getTurma())
-                        && s.getStatus() == Simulado.Status.FINALIZADO);
     }
 
     @Override
@@ -359,13 +369,6 @@ public class RepositorioEmMemoria implements
 
     @Override public Map<Integer, Double> pesosDoSimulado(SimuladoId id) { return pesosPorSimulado.getOrDefault(id.value(), Map.of()); }
     @Override public boolean todasNotasLancadas(SimuladoId id) { return simuladoComTodasNotasLancadas.contains(id.value()); }
-
-    @Override
-    public boolean existeNotaParaSimulado(SimuladoId id) {
-        return alunos.values().stream()
-                .anyMatch(aluno -> aluno.getNotas().stream()
-                        .anyMatch(nota -> nota.getSimuladoId().equals(id)));
-    }
 
     @Override
     public void remover(SimuladoId id) {

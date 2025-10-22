@@ -19,11 +19,13 @@ import dev.com.qnota.dominio.principal.responsavel.Responsavel;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelServico;
+import dev.com.qnota.dominio.principal.aluno.AlunoServico;
 
 public class GerenciarResponsaveisFeature {
 
     private RepositorioEmMemoria repo;
     private ResponsavelServico servico;
+    private AlunoServico alunoSrv;
 
     private AtomicInteger seq;
     private Map<String, ResponsavelId> aliasResp;
@@ -43,7 +45,8 @@ public class GerenciarResponsaveisFeature {
     @Before
     public void setup() {
         repo = new RepositorioEmMemoria();
-        servico = new ResponsavelServico(repo, repo); // (responsavelRepo, alunoRepo)
+        alunoSrv = new AlunoServico(repo, repo, repo, repo);
+        servico = new ResponsavelServico(repo, alunoSrv); // (responsavelRepo, alunoServico)
 
         seq        = new AtomicInteger(1);
         aliasResp  = new HashMap<>();
