@@ -12,19 +12,18 @@ import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 /**
  * Entidade que representa a nota de um aluno em uma disciplina específica de um simulado,
  * incluindo todas as justificativas relacionadas a essa nota.
+ * 
+ * Chave primária composta: (SimuladoId, DisciplinaId)
  */
 public class NotaDoAluno {
 
-    // ID gerado na infraestrutura; atribuído pelo repositório após persistir
-    private NotaId id;
-    
     private final SimuladoId simuladoId;
     private final DisciplinaId disciplinaId;
     private double valor;
     private final LocalDateTime dataLancamento;
     private final List<Justificativa> justificativas;
 
-    /** Constrói sem ID; o repositório chamará atribuirIdSeAusente(...) após salvar. */
+    /** Constrói a nota com chave primária composta. */
     public NotaDoAluno(SimuladoId simuladoId,
                       DisciplinaId disciplinaId,
                       double valor,
@@ -42,17 +41,7 @@ public class NotaDoAluno {
             Collections.emptyList();
     }
 
-    /** Infra chama para fixar o ID gerado. Não permite reatribuição divergente. */
-    public void atribuirIdSeAusente(NotaId novoId) {
-        Objects.requireNonNull(novoId, "'id' não pode ser nulo");
-        if (this.id != null && !this.id.equals(novoId)) {
-            throw new IllegalStateException("ID já atribuído para esta nota");
-        }
-        this.id = novoId;
-    }
-
     // Getters
-    public NotaId getId() { return id; }
     public SimuladoId getSimuladoId() { return simuladoId; }
     public DisciplinaId getDisciplinaId() { return disciplinaId; }
     public double getValor() { return valor; }
@@ -69,15 +58,8 @@ public class NotaDoAluno {
         var novasJustificativas = new java.util.ArrayList<>(this.justificativas);
         novasJustificativas.add(novaJustificativa);
         
-        var novaNota = new NotaDoAluno(this.simuladoId, this.disciplinaId, this.valor, 
-                                      this.dataLancamento, novasJustificativas);
-        
-        // Preserva o ID se existir
-        if (this.id != null) {
-            novaNota.atribuirIdSeAusente(this.id);
-        }
-        
-        return novaNota;
+        return new NotaDoAluno(this.simuladoId, this.disciplinaId, this.valor, 
+                              this.dataLancamento, novasJustificativas);
     }
 
     /**
@@ -85,15 +67,8 @@ public class NotaDoAluno {
      * Retorna uma nova instância para manter a imutabilidade.
      */
     public NotaDoAluno alterarValor(double novoValor) {
-        var novaNota = new NotaDoAluno(this.simuladoId, this.disciplinaId, novoValor, 
-                                      this.dataLancamento, this.justificativas);
-        
-        // Preserva o ID se existir
-        if (this.id != null) {
-            novaNota.atribuirIdSeAusente(this.id);
-        }
-        
-        return novaNota;
+        return new NotaDoAluno(this.simuladoId, this.disciplinaId, novoValor, 
+                              this.dataLancamento, this.justificativas);
     }
 
     /**
@@ -115,17 +90,18 @@ public class NotaDoAluno {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         NotaDoAluno that = (NotaDoAluno) o;
-        return Objects.equals(id, that.id);
+        return Objects.equals(simuladoId, that.simuladoId) &&
+               Objects.equals(disciplinaId, that.disciplinaId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(simuladoId, disciplinaId);
     }
 
     @Override
     public String toString() {
-        return String.format("NotaDoAluno{id=%s, simuladoId=%s, disciplinaId=%s, valor=%.2f, dataLancamento=%s, justificativas=%d}",
-                id, simuladoId, disciplinaId, valor, dataLancamento, justificativas.size());
+        return String.format("NotaDoAluno{simuladoId=%s, disciplinaId=%s, valor=%.2f, dataLancamento=%s, justificativas=%d}",
+                simuladoId, disciplinaId, valor, dataLancamento, justificativas.size());
     }
 }

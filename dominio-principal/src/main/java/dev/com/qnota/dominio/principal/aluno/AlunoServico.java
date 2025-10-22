@@ -108,6 +108,11 @@ public class AlunoServico {
 
     public void desvincularResponsavel(AlunoId id, ResponsavelId resp) {
         var aluno = repo.porId(id);
+        
+        // RN-19: aluno deve ter pelo menos um responsável
+        if (aluno.getResponsaveis().size() <= 1)
+            throw new IllegalStateException("o aluno deve ter pelo menos um responsável");
+        
         aluno.removerResponsavel(resp); // garante RN-19/RN-58 (auto-promove outro principal)
         repo.salvar(aluno);
     }
@@ -131,31 +136,47 @@ public class AlunoServico {
         if (repo.existeOutroComMesmoNomeENascimentoNaTurma(nome, nascimento, turma))
             throw new IllegalArgumentException("já existe aluno com mesmo nome e data de nascimento na turma");
 
-        // Validações específicas primeiro
+        // RN-19: aluno deve ter ao menos um responsável
         if (responsaveis == null || responsaveis.isEmpty())
             throw new IllegalArgumentException("Aluno deve ter ao menos um responsável");
+
+        // RN-19: máximo 3 responsáveis por aluno
+        if (responsaveis.size() > 3)
+            throw new IllegalArgumentException("o número máximo de responsáveis por aluno é 3");
 
         // Verificar responsáveis nulos
         for (ResponsavelId rid : responsaveis) {
             if (rid == null) throw new IllegalArgumentException("Responsável não pode ser nulo");
         }
 
-        // Verificar duplicados
-        var set = new LinkedHashSet<>(responsaveis);
-        if (set.size() != responsaveis.size())
-            throw new IllegalArgumentException("Vínculo de responsável duplicado");
-
         // RN-58: deve haver exatamente um responsável principal
         if (principal == null)
             throw new IllegalArgumentException("é obrigatório definir um responsável principal");
 
-        // Verificar se há múltiplos responsáveis principais (isso não deveria acontecer, mas vamos validar)
-        if (responsaveis.size() > 1) {
-            // Se há mais de um responsável, deve haver exatamente um principal
-            long countPrincipais = responsaveis.stream().filter(r -> r.equals(principal)).count();
-            if (countPrincipais != 1)
-                throw new IllegalArgumentException("deve haver exatamente um responsável principal");
+        // RN-19: sem duplicados - verificar ANTES da validação de múltiplos principais
+        var set = new LinkedHashSet<>(responsaveis);
+        boolean temDuplicados = set.size() != responsaveis.size();
+        
+        // RN-58: deve haver exatamente um responsável principal (não múltiplos)
+        long countPrincipais = responsaveis.stream().filter(r -> r.equals(principal)).count();
+        
+        // Se há duplicados que resultam em múltiplos principais, mostrar mensagem de múltiplos principais
+        if (temDuplicados && countPrincipais > 1) {
+            throw new IllegalArgumentException("deve haver exatamente um responsável principal");
         }
+        
+        // Caso contrário, verificar duplicados primeiro
+        if (temDuplicados) {
+            throw new IllegalArgumentException("Vínculo de responsável duplicado");
+        }
+        
+        if (countPrincipais != 1) {
+            throw new IllegalArgumentException("deve haver exatamente um responsável principal");
+        }
+
+        // RN-58: o responsável principal deve estar entre os responsáveis
+        if (!set.contains(principal))
+            throw new IllegalArgumentException("o responsável principal deve estar entre os responsáveis");
 
         // RN-136: nenhum responsável inadimplente
         for (ResponsavelId rid : responsaveis) {
@@ -163,7 +184,5 @@ public class AlunoServico {
             if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
                 throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
         }
-
-        // As outras validações serão feitas pelo construtor do Aluno
     }
 }

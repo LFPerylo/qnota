@@ -40,7 +40,6 @@ public class Aluno {
         this.turma = Objects.requireNonNull(turma, "'turma' não pode ser nula");
 
         var lista = copyIds(responsaveis);
-        validarInvariantes(lista, principal);
         this.responsaveis = lista;
         this.responsavelPrincipal = principal;
         this.notas = new HashMap<>();
@@ -87,7 +86,6 @@ public class Aluno {
     /** Substituição completa da lista e do principal. */
     public void substituirResponsaveis(List<ResponsavelId> novaLista, ResponsavelId novoPrincipal) {
         var tmp = copyIds(novaLista);
-        validarInvariantes(tmp, novoPrincipal);
         responsaveis.clear();
         responsaveis.addAll(tmp);
         responsavelPrincipal = novoPrincipal;
@@ -117,15 +115,11 @@ public class Aluno {
         boolean removido = nova.remove(idResp);
         if (!removido) return;
 
-        if (nova.isEmpty())
-            throw new IllegalStateException("o aluno deve ter pelo menos um responsável");
-
         var novoPrincipal = this.responsavelPrincipal;
         if (idResp.equals(this.responsavelPrincipal)) {
             novoPrincipal = nova.get(0); // autopromoção
         }
 
-        validarInvariantes(nova, novoPrincipal);
         responsaveis.clear();
         responsaveis.addAll(nova);
         responsavelPrincipal = novoPrincipal;
@@ -134,7 +128,6 @@ public class Aluno {
     public void definirPrincipal(ResponsavelId idResp) {
         if (!responsaveis.contains(idResp))
             throw new IllegalStateException("Vínculo de responsável inexistente");
-        validarInvariantes(responsaveis, idResp);
         this.responsavelPrincipal = idResp;
     }
 
@@ -213,22 +206,6 @@ public class Aluno {
         return simuladoId.value() + "_" + disciplinaId.value();
     }
 
-    // ========= invariantes =========
-    private static void validarInvariantes(List<ResponsavelId> lista, ResponsavelId principal) {
-        if (lista == null || lista.isEmpty())
-            throw new IllegalArgumentException("Aluno deve ter ao menos um responsável");
-        if (lista.size() > 3)
-            throw new IllegalArgumentException("o número máximo de responsáveis por aluno é 3");
-        // sem duplicados
-        var set = new LinkedHashSet<>(lista);
-        if (set.size() != lista.size())
-            throw new IllegalArgumentException("Vínculo de responsável duplicado");
-        // principal válido
-        if (principal == null)
-            throw new IllegalArgumentException("é obrigatório definir um responsável principal");
-        if (!set.contains(principal))
-            throw new IllegalArgumentException("o responsável principal deve estar entre os responsáveis");
-    }
 
     // ========= helpers =========
     private static String requireNonBlank(String s, String msg) {

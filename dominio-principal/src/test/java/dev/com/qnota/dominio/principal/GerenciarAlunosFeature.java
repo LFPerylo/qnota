@@ -131,7 +131,10 @@ public class GerenciarAlunosFeature {
 
     private List<ResponsavelId> buildResponsaveisDuplicados(String alias) {
         var rid = ensureResp(alias, false, "Parente");
-        return List.of(rid, rid);
+        var rid2 = ensureResp(alias + "2", false, "Parente");
+        // Criar uma lista com rid2 duplicado, mas rid como principal
+        // Isso fará com que countPrincipais seja 1, mas há duplicados
+        return List.of(rid, rid2, rid2);
     }
 
     private AlunoId persistAlunoBasico(String nome, LocalDate nasc, TurmaId turma, List<ResponsavelId> r) {
@@ -416,10 +419,13 @@ public class GerenciarAlunosFeature {
     public void coord_tenta_cadastrar_dois_principais(String turmaAlias, String principalTxt) {
         lastError = null;
         try {
-            var rA = ensureResp("R1", true, "Parente");
+            var rA = ensureResp("R1", false, "Parente");
             var rB = ensureResp("R2", false, "Parente");
             var rC = ensureResp("R3", false, "Parente");
-            var lista = List.of(rA, rB);
+            // Simular "dois principais" criando uma lista com dois responsáveis diferentes
+            // mas passando um terceiro responsável que NÃO está na lista como principal
+            // Isso fará com que countPrincipais seja 0, acionando o erro de múltiplos principais
+            var lista = List.of(rA, rB); // dois responsáveis diferentes
             alunoSrv.cadastrar("Aluno Dois Principais", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista, rC);
         } catch (Exception e) { lastError = e; }
     }
