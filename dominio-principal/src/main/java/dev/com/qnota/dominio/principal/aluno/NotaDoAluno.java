@@ -13,7 +13,9 @@ import dev.com.qnota.dominio.principal.simulado.SimuladoId;
  * Entidade que representa a nota de um aluno em uma disciplina específica de um simulado,
  * incluindo todas as justificativas relacionadas a essa nota.
  * 
- * Chave primária composta: (SimuladoId, DisciplinaId)
+ * Chave primária composta: (AlunoId, SimuladoId, DisciplinaId)
+ * - AlunoId está implícito pelo contexto do agregado Aluno
+ * - SimuladoId e DisciplinaId são explícitos na entidade
  */
 public class NotaDoAluno {
 
