@@ -72,12 +72,11 @@ public class Professor {
         if (!existe) especialidades.add(v);
     }
 
-    /** Remove especialidade, sem deixar a lista vazia (RN-84). */
+    /** Remove especialidade. Validação RN-84 fica no ProfessorServico. */
     public void removerEspecialidade(String nomeArea) {
         String v = requireNonBlank(nomeArea, "especialidade não pode ser vazia");
         especialidades.removeIf(e -> e.equalsIgnoreCase(v));
-        if (especialidades.isEmpty())
-            throw new IllegalStateException("RN-84: Professor deve ter ao menos uma especialidade.");
+        // Validação RN-84 removida - fica no ProfessorServico
     }
 
     public boolean possuiEspecialidade(String nomeArea) {

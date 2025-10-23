@@ -34,7 +34,11 @@ public class AlunoServico {
                              List<ResponsavelId> responsaveis,
                              ResponsavelId principal) {
         validarCadastro(nome, nascimento, turma, responsaveis, principal);
-        var aluno = new Aluno(nome, nascimento, true, turma, responsaveis, principal); // invariantes no agregado
+        
+        // Validações de negócio para cadastro
+        validarCadastroResponsaveis(responsaveis, principal);
+        
+        var aluno = new Aluno(nome, nascimento, true, turma, responsaveis, principal);
         return repo.salvar(aluno);
     }
 
@@ -77,18 +81,30 @@ public class AlunoServico {
             throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
 
         var aluno = repo.porId(id);
-        aluno.adicionarResponsavel(resp, principal); // regras de cardinalidade no agregado
+        
+        // Validações de negócio (RN)
+        validarAdicionarResponsavel(aluno, resp, principal);
+        
+        aluno.adicionarResponsavel(resp, principal);
         repo.salvar(aluno);
     }
 
     public void desvincularResponsavel(AlunoId id, ResponsavelId resp) {
         var aluno = repo.porId(id);
+        
+        // Validações de negócio (RN)
+        validarRemoverResponsavel(aluno, resp);
+        
         aluno.removerResponsavel(resp);
         repo.salvar(aluno);
     }
 
     public void definirPrincipal(AlunoId id, ResponsavelId resp) {
         var aluno = repo.porId(id);
+        
+        // Validações de negócio (RN)
+        validarDefinirPrincipal(aluno, resp);
+        
         aluno.definirPrincipal(resp);
         repo.salvar(aluno);
     }
@@ -110,11 +126,20 @@ public class AlunoServico {
                 throw new IllegalArgumentException("Responsável não pode ser nulo");
         }
         
-        if (new LinkedHashSet<>(responsaveis).size() != responsaveis.size())
-            throw new IllegalArgumentException("Vínculo de responsável duplicado"); // sanity check leve
-
         if (principal == null)
             throw new IllegalArgumentException("é obrigatório definir um responsável principal");
+            
+        // Verificar se o principal está na lista de responsáveis
+        if (!responsaveis.contains(principal))
+            throw new IllegalArgumentException("o responsável principal deve estar na lista de responsáveis");
+            
+        // RN-58: Deve haver exatamente um responsável principal
+        long countPrincipais = responsaveis.stream().filter(r -> r.equals(principal)).count();
+        if (countPrincipais != 1)
+            throw new IllegalArgumentException("deve haver exatamente um responsável principal");
+        
+        if (new LinkedHashSet<>(responsaveis).size() != responsaveis.size())
+            throw new IllegalArgumentException("Vínculo de responsável duplicado"); // sanity check leve
 
         for (ResponsavelId rid : responsaveis) {
             var r = responsavelRepo.porId(rid);
@@ -122,5 +147,69 @@ public class AlunoServico {
                 throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
         }
         // Todas as demais invariantes ficam no próprio Aluno
+    }
+    
+    // ---------- VALIDAÇÕES DE NEGÓCIO (RN) ----------
+    
+    /** RN-19/20/58: Validações para adicionar responsável */
+    private void validarAdicionarResponsavel(Aluno aluno, ResponsavelId responsavelId, boolean principal) {
+        // RN-20: Verificar duplicação
+        if (aluno.getResponsaveis().contains(responsavelId)) {
+            throw new IllegalStateException("já existe vínculo entre o responsável e o aluno");
+        }
+        
+        // RN-58: Verificar principal único
+        if (principal && aluno.getResponsavelPrincipal() != null) {
+            throw new IllegalStateException("deve haver exatamente um responsável principal");
+        }
+        
+        // RN-XX: Máximo 3 responsáveis
+        if (aluno.getResponsaveis().size() >= 3) {
+            throw new IllegalStateException("o número máximo de responsáveis por aluno é 3");
+        }
+    }
+    
+    /** RN-19: Validações para remover responsável */
+    private void validarRemoverResponsavel(Aluno aluno, ResponsavelId responsavelId) {
+        // RN-19: Deve ter pelo menos um responsável
+        if (aluno.getResponsaveis().size() <= 1) {
+            throw new IllegalStateException("o aluno deve ter pelo menos um responsável");
+        }
+    }
+    
+    /** RN-XX: Validações para definir principal */
+    private void validarDefinirPrincipal(Aluno aluno, ResponsavelId responsavelId) {
+        // Verificar se o responsável está vinculado
+        if (!aluno.getResponsaveis().contains(responsavelId)) {
+            throw new IllegalStateException("Vínculo de responsável inexistente");
+        }
+    }
+    
+    /** RN-19/20/58: Validações para cadastro de responsáveis */
+    private void validarCadastroResponsaveis(List<ResponsavelId> responsaveis, ResponsavelId principal) {
+        // RN-19: Deve ter pelo menos um responsável
+        if (responsaveis == null || responsaveis.isEmpty()) {
+            throw new IllegalArgumentException("Aluno deve ter ao menos um responsável");
+        }
+        
+        // RN-XX: Máximo 3 responsáveis
+        if (responsaveis.size() > 3) {
+            throw new IllegalArgumentException("o número máximo de responsáveis por aluno é 3");
+        }
+        
+        // RN-20: Verificar duplicação
+        if (new LinkedHashSet<>(responsaveis).size() != responsaveis.size()) {
+            throw new IllegalArgumentException("Vínculo de responsável duplicado");
+        }
+        
+        // RN-58: Deve haver exatamente um responsável principal
+        if (principal == null) {
+            throw new IllegalArgumentException("é obrigatório definir um responsável principal");
+        }
+        
+        // Verificar se o principal está na lista (após verificar se não é nulo)
+        if (!responsaveis.contains(principal)) {
+            throw new IllegalArgumentException("o responsável principal deve estar na lista de responsáveis");
+        }
     }
 }

@@ -33,7 +33,7 @@ public class Simulado {
         this.turma         = Objects.requireNonNull(turma,         "turma não pode ser nula");
 
         var lista = new ArrayList<>(Objects.requireNonNull(disciplinas, "lista de disciplinas não pode ser nula"));
-        validarDisciplinas(lista); // RN-12, RN-13, RN-14B + null-safety
+        // Validações RN-12, RN-13, RN-14B removidas - ficam no SimuladoServico
         this.disciplinas = new ArrayList<>(lista); // cópia defensiva
     }
 
@@ -58,7 +58,7 @@ public class Simulado {
     /** Altera disciplinas do simulado. */
     public void alterarDisciplinas(List<DisciplinaPeso> novas) {
         var lista = new ArrayList<>(Objects.requireNonNull(novas, "lista de disciplinas não pode ser nula"));
-        validarDisciplinas(lista);
+        // Validações removidas - ficam no SimuladoServico
         this.disciplinas.clear();
         this.disciplinas.addAll(lista);
     }
@@ -73,14 +73,7 @@ public class Simulado {
         this.status = Status.FINALIZADO;
     }
 
-    // ===== validações internas =====
-    private static void validarDisciplinas(List<DisciplinaPeso> lista) {
-        // null-safety
-        for (DisciplinaPeso dp : lista) {
-            if (dp == null) throw new IllegalArgumentException("DisciplinaPeso não pode ser nulo");
-            if (dp.disciplina() == null) throw new IllegalArgumentException("DisciplinaId não pode ser nulo");
-        }
-    }
+    // Validações de negócio movidas para SimuladoServico
 
     // Value Object local
     public record DisciplinaPeso(DisciplinaId disciplina, double peso) {}

@@ -71,7 +71,13 @@ public class ProfessorServico {
 
     public void removerEspecialidade(ProfessorId id, String area) {
         var p = repo.porId(id);
-        p.removerEspecialidade(area); // não deixa zerar (RN-84)
+        
+        // RN-84: Verificar se ficará com pelo menos uma especialidade após remoção
+        if (p.getEspecialidades().size() <= 1) {
+            throw new IllegalStateException("Professor deve ter ao menos uma especialidade");
+        }
+        
+        p.removerEspecialidade(area);
         repo.salvar(p);
     }
 
