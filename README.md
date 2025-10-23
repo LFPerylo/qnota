@@ -28,6 +28,17 @@ O repositório é **multi-módulo Maven** e usa **BDD (Cucumber)** como document
 
 ---
 
+> - **Cenários Gherkin (Living Documentation):**  
+>   `./dominio-principal/src/test/resources/dev/com/qnota/dominio/principal/*.feature`
+> - **StoryMap e Descrição detalhada do domínio (versão "em texto" logo abaixo):**  
+>   `./Documentação/StoryMap-Qnota.pdf` e `./Documentação/Descricao-Detalhada-Qnota.pdf`
+=======
+> - **StoryMap e Descrição detalhada do domínio (versão “em texto” logo abaixo):**
+>   `Eles estão também no diretório "Documentacao" do projeto
+>   `[Descricao-Detalhada-Qnota.pdf](https://github.com/user-attachments/files/23062028/Descricao-Detalhada-Qnota.pdf)` e `Storymap aqui!.pdf`
+> - **Context Mapper (limites/contextos):**  
+>   `./qnota.cml`
+
 ## Arquitetura geral
 
 - **DDD** no módulo de domínio:
