@@ -157,27 +157,29 @@ BoundedContext QNota implements QNota {
                 @Aluno porId(@AlunoId id);
                 void remover(@AlunoId id);
 
-                boolean existeOutroComMesmoNomeENascimentoNaTurma(String nome, LocalDate data, TurmaId turmaId);
+                boolean existeOutroComMesmoNomeENascimentoNaTurma(String nome, LocalDate data, @TurmaId turmaId);
                 int contarResponsaveis(@AlunoId id);
                 boolean existeVinculo(@AlunoId id);
 
-                List<@Aluno> porTurma(TurmaId turmaId);
+                List<@Aluno> porTurma(@TurmaId turmaId);
 
                 boolean temNotasPendentesEmSimuladosEmEdicao(@AlunoId alunoId);
                 boolean temNotas(@AlunoId alunoId);
 
+                boolean existeNotaParaSimulado(@SimuladoId simuladoId);
+
                 boolean possuiSimuladoFinalizado(@AlunoId alunoId);
 
-                void alterarTurma(@AlunoId alunoId, TurmaId novaTurmaId);
+                void alterarTurma(@AlunoId alunoId, @TurmaId novaTurmaId);
             }
         }
         
         Entity NotaDoAluno {
-        	SimuladoId simuladoId
-        	DisciplinaId disciplinaId
+        	-SimuladoId simuladoId
+        	-DisciplinaId disciplinaId
         	double valor
         	LocalDateTime dataLancamento
-        	List<Justificativa> justificativas
+        	-List<Justificativa> justificativas
         	
         	def @NotaDoAluno adicionarJustificativa(@Justificativa novaJustificativa);
         	def @NotaDoAluno alterarValor(double novoValor);
@@ -194,15 +196,15 @@ BoundedContext QNota implements QNota {
         	double notaCorrigida
         	String texto
         	LocalDateTime dataHora
-        	ProfessorId professor
+        	-ProfessorId professor
         	
         }
 
         Service AlunoService {
             
-            @AlunoId cadastrar(String nome, LocalDate nascimento, TurmaId turma, List<@ResponsavelId> responsaveis,@ResponsavelId principal);
+            @AlunoId cadastrar(String nome, LocalDate nascimento, @TurmaId turma, List<@ResponsavelId> responsaveis,@ResponsavelId principal);
 
-            void transferir(@AlunoId id, TurmaId novaTurma);
+            void transferir(@AlunoId id, @TurmaId novaTurma);
 
             void inativar(@AlunoId id);
 
@@ -214,7 +216,7 @@ BoundedContext QNota implements QNota {
 
             void editar(@Aluno alunoEditado);
 
-            void validarCadastro(String nome, LocalDate nascimento, TurmaId turma, List<@ResponsavelId> responsaveis);
+            void validarCadastro(String nome, LocalDate nascimento, @TurmaId turma, List<@ResponsavelId> responsaveis);
         }
 
     }
@@ -290,7 +292,7 @@ BoundedContext QNota implements QNota {
             def void alterarAnoLetivo(int novoAno);
 
             Repository TurmaRepository {
-                TurmaId salvar(Turma t);
+                @TurmaId salvar(@Turma t);
 
                 @Turma porId(@TurmaId id);
                 void remover(@TurmaId id);
@@ -320,20 +322,20 @@ BoundedContext QNota implements QNota {
         Entity Disciplina {
             aggregateRoot
 
-            DisciplinaId id
+            -DisciplinaId id
             String nome
             int versao             
             Integer idVersaoOrigem  
             boolean ativo
-            AreaConhecimento area
+            -AreaConhecimento area
 
-            def void atribuirIdSeAusente(DisciplinaId novoId);
+            def void atribuirIdSeAusente(@DisciplinaId novoId);
             def void renomear(String novoNome);
-            def void mudarArea(AreaConhecimento novaArea);
+            def void mudarArea(@AreaConhecimento novaArea);
             def void ativar();
             def void inativar();
 
-            def @Disciplina novaVersao(String novoNome, AreaConhecimento novaArea);
+            def @Disciplina novaVersao(String novoNome, @AreaConhecimento novaArea);
 
             Repository DisciplinaRepository {
                 @DisciplinaId salvar(@Disciplina d);
@@ -369,17 +371,17 @@ BoundedContext QNota implements QNota {
         Entity Simulado {
             aggregateRoot
 
-            SimuladoId id
+            -SimuladoId id
             LocalDate dataAplicacao
             -Status status      
             -TurmaId turma
-            List<DisciplinaPeso> disciplinas
+            -List<DisciplinaPeso> disciplinas
 
-            def void atribuirIdSeAusente(SimuladoId novoId);
-            def void alterarDisciplinas(List<DisciplinaPeso> novas);
+            def void atribuirIdSeAusente(@SimuladoId novoId);
+            def void alterarDisciplinas(List<@DisciplinaPeso> novas);
             def void alterarData(LocalDate novaData);
             def void finalizar();
-            def void validarDisciplinas(List<DisciplinaPeso> lista);
+            def void validarDisciplinas(List<@DisciplinaPeso> lista);
 
             Repository SimuladoRepository {
                 @SimuladoId salvar(@Simulado s);
@@ -387,13 +389,11 @@ BoundedContext QNota implements QNota {
                 @Simulado porId(@SimuladoId id);
 
                 int contarEmEdicaoPorTurma(@TurmaId turmaId);
-                List<Simulado> listarPorTurma(@TurmaId turmaId);
+                List<@Simulado> listarPorTurma(@TurmaId turmaId);
 
                 Map<Integer, Double> pesosDoSimulado(@SimuladoId id);
 
                 boolean todasNotasLancadas(@SimuladoId id);
-                
-                boolean existeNotaParaSimulado(@SimuladoId id);
                 
                 void remover(@SimuladoId id);
             }
@@ -428,19 +428,19 @@ BoundedContext QNota implements QNota {
         Entity Ranking {
             aggregateRoot
 
-            RankingId id
+            -RankingId id
             -SimuladoId simulado
             boolean congelado
-            List<Linha> linhas;
+            -List<Linha> linhas;
 
-            def void atribuirIdSeAusente(RankingId id);
-            def void substituirLinhas(List<Linha> novas);
+            def void atribuirIdSeAusente(@RankingId id);
+            def void substituirLinhas(List<@Linha> novas);
             def void congelar();
 
             Repository RankingRepository {
                 void limpar(@SimuladoId simulado);
 
-                void salvarPosicoes(@SimuladoId simulado, List<Linha> linhas);
+                void salvarPosicoes(@SimuladoId simulado, List<@Linha> linhas);
 
                 void congelar(@SimuladoId simulado);
 
