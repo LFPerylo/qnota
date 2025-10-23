@@ -59,9 +59,59 @@ public final class Responsavel {
     }
 
     private static String requireCpfValido(String cpf) {
-        if (!CpfValidator.valido(cpf)) {
+        if (!validarCpf(cpf)) {
             throw new IllegalArgumentException("o CPF está em formato inválido");
         }
         return cpf;
+    }
+
+    /**
+     * Valida se o CPF está em formato válido e possui dígitos verificadores corretos.
+     * 
+     * @param cpf CPF a ser validado (pode conter formatação)
+     * @return true se o CPF é válido, false caso contrário
+     */
+    private static boolean validarCpf(String cpf) {
+        if (!formatoCpfValido(cpf)) return false;
+        
+        String cpfLimpo = cpf.replaceAll("\\D", "");
+        
+        // Verifica se todos os dígitos são iguais (CPF inválido)
+        if (cpfLimpo.chars().distinct().count() == 1) return false;
+        
+        // Valida os dígitos verificadores
+        return calcularDigitoVerificador(cpfLimpo, 9) == (cpfLimpo.charAt(9) - '0') && 
+               calcularDigitoVerificador(cpfLimpo, 10) == (cpfLimpo.charAt(10) - '0');
+    }
+
+    /**
+     * Verifica se o CPF está em formato válido (11 dígitos numéricos).
+     * 
+     * @param cpf CPF a ser verificado
+     * @return true se o formato é válido, false caso contrário
+     */
+    private static boolean formatoCpfValido(String cpf) {
+        return cpf != null && cpf.replaceAll("\\D", "").matches("\\d{11}");
+    }
+
+    /**
+     * Calcula o dígito verificador do CPF na posição especificada.
+     * 
+     * @param cpf CPF sem formatação (apenas dígitos)
+     * @param posicao Posição do dígito verificador (9 ou 10)
+     * @return dígito verificador calculado
+     */
+    private static int calcularDigitoVerificador(String cpf, int posicao) {
+        int soma = 0;
+        int peso = posicao + 1;
+        
+        for (int i = 0; i < posicao; i++) {
+            soma += (cpf.charAt(i) - '0') * (peso--);
+        }
+        
+        int resto = soma % 11;
+        int digito = 11 - resto;
+        
+        return (digito >= 10) ? 0 : digito;
     }
 }

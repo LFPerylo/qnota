@@ -32,7 +32,7 @@ public class CoordenadorServico {
 
     /** Troca de senha: exige senha atual válida. */
     public void alterarSenha(CoordenadorId id, String senhaAtual, String novaSenha) {
-        var c = repo.porId(id).orElseThrow(() -> new IllegalStateException("coordenador não encontrado"));
+        var c = repo.porId(id);
         if (!hash.matches(senhaAtual, c.getSenhaHash()))
             throw new IllegalArgumentException("senha atual inválida");
         c.alterarSenhaHash(hash.hash(novaSenha));
@@ -41,7 +41,7 @@ public class CoordenadorServico {
 
     /** Atualiza nome e/ou e-mail (checando unicidade do e-mail). */
     public void atualizarContato(CoordenadorId id, String novoNome, String novoEmail) {
-        var c = repo.porId(id).orElseThrow(() -> new IllegalStateException("coordenador não encontrado"));
+        var c = repo.porId(id);
         if (!c.getEmail().equalsIgnoreCase(novoEmail) && repo.emailExiste(novoEmail))
             throw new IllegalArgumentException("já existe coordenador com esse e-mail");
         c.renomear(novoNome);
@@ -49,7 +49,7 @@ public class CoordenadorServico {
         repo.salvar(c);
     }
 
-    public void inativar(CoordenadorId id)  { var c = repo.porId(id).orElseThrow(); c.inativar(); repo.salvar(c); }
-    public void ativar(CoordenadorId id)    { var c = repo.porId(id).orElseThrow(); c.ativar();   repo.salvar(c); }
+    public void inativar(CoordenadorId id)  { var c = repo.porId(id); c.inativar(); repo.salvar(c); }
+    public void ativar(CoordenadorId id)    { var c = repo.porId(id); c.ativar();   repo.salvar(c); }
     public void excluir(CoordenadorId id)   { repo.excluir(id); }
 }

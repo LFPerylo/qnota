@@ -12,12 +12,11 @@ public interface ProfessorRepositorio {
      */
     ProfessorId salvar(Professor p);
 
-    Optional<Professor> porId(ProfessorId id);
+    Professor porId(ProfessorId id);
 
     // Regras que dependem de Turma/Simulado:
     int contarTurmasAtivas(ProfessorId id);                // RN-07
     List<String> nomesDeAreasDoProfessor(ProfessorId id);  // apoio/compat
-    boolean possuiSimuladoFinalizado(ProfessorId id);      // RN-26A
 
     void substituirProfessor(ProfessorId antigo, ProfessorId substituto); // RN-125
 }

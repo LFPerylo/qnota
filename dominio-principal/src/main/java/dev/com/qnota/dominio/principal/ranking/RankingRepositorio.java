@@ -2,20 +2,18 @@ package dev.com.qnota.dominio.principal.ranking;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
-import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 
 public interface RankingRepositorio {
 
-    // ===== contrato legado (linhas por simulado) =====
+    // ===== contrato em termos do VO do domínio =====
 
     /** remove todas as linhas de ranking do simulado */
     void limpar(SimuladoId simulado);
 
     /** insere as posições calculadas (congelado=false) */
-    void salvarPosicoes(SimuladoId simulado, List<ItemRanking> itens);
+    void salvarPosicoes(SimuladoId simulado, List<Ranking.Linha> linhas);
 
     /** marca todas as linhas do simulado como congeladas (congelado=true) */
     void congelar(SimuladoId simulado);
@@ -24,39 +22,29 @@ public interface RankingRepositorio {
     boolean estaCongelado(SimuladoId simulado);
 
     /** carrega as posições atuais (ordenadas por posicao) */
-    List<ItemRanking> carregar(SimuladoId simulado);
+    List<Ranking.Linha> carregar(SimuladoId simulado);
 
-    record ItemRanking(AlunoId aluno, double media, int posicao) {}
+    // ===== agregado =====
 
-    // ===== novo contrato (agregado) =====
     /**
-     * Persiste o agregado. Implementações com auto-increment devem:
-     * - gerar um novo RankingId ao inserir (se getId()==null) e invocar ranking.atribuirIdSeAusente(...)
-     * - atualizar linhas e flag de congelamento ao atualizar.
-     * Implementação default: reutiliza o contrato legado (sem id).
+     * Persiste o agregado. Implementações com auto-incremento podem:
+     * - gerar um RankingId se getId()==null e chamar ranking.atribuirIdSeAusente(...)
+     * - atualizar linhas e flag congelado.
+     * Implementação default: reusa o contrato em linhas (sem id).
      */
     default Ranking salvar(Ranking ranking) {
         var simId = ranking.getSimulado();
         limpar(simId);
-        var itens = ranking.getLinhas().stream()
-                .map(l -> new ItemRanking(l.aluno(), l.media(), l.posicao()))
-                .collect(Collectors.toList());
-        salvarPosicoes(simId, itens);
+        salvarPosicoes(simId, ranking.getLinhas());
         if (ranking.isCongelado()) {
             congelar(simId);
         }
-        return ranking; // para implementações em memória pode continuar sem id
+        return ranking;
     }
 
-    /**
-     * Carrega o agregado pelo simulado, montando a partir do contrato legado.
-     * (Nome diferente para não colidir com NotaRepositorio.porSimulado(...)).
-     */
+    /** Carrega o agregado a partir das linhas e do estado de congelamento. */
     default Optional<Ranking> carregarAgregado(SimuladoId simulado) {
-        var itens = carregar(simulado);
-        var linhas = itens.stream()
-                .map(i -> new Ranking.Linha(i.aluno(), i.media(), i.posicao()))
-                .collect(Collectors.toList());
+        var linhas = carregar(simulado);
         var r = new Ranking(simulado, linhas);
         if (estaCongelado(simulado)) {
             r.congelar();

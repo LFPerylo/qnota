@@ -11,7 +11,7 @@ public interface CoordenadorRepositorio {
      */
     CoordenadorId salvar(Coordenador c);
 
-    Optional<Coordenador> porId(CoordenadorId id);
+    Coordenador porId(CoordenadorId id);
     Optional<Coordenador> porEmail(String email);
 
     boolean emailExiste(String email);

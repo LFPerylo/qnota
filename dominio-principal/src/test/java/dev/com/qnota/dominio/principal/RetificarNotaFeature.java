@@ -13,11 +13,8 @@ import dev.com.qnota.infraestrutura.persistencia.memoria.RepositorioEmMemoria;
 
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
-import dev.com.qnota.dominio.principal.justificativa.Justificativa;
-import dev.com.qnota.dominio.principal.justificativa.JustificativaId;
-import dev.com.qnota.dominio.principal.nota.Nota;
-import dev.com.qnota.dominio.principal.nota.NotaId;
-import dev.com.qnota.dominio.principal.nota.NotaServico;
+import dev.com.qnota.dominio.principal.aluno.Justificativa;
+import dev.com.qnota.dominio.principal.aluno.NotaServico;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
 import dev.com.qnota.dominio.principal.simulado.Simulado;
@@ -38,7 +35,6 @@ public class RetificarNotaFeature {
     private AlunoId alunoId;
     private DisciplinaId disciplinaId;
 
-    private NotaId notaOriginalId;
     private double valorOriginal;
     private Double valorRetificado;
 
@@ -64,13 +60,13 @@ public class RetificarNotaFeature {
         return s;
     }
 
-    /** Localiza a nota do par (aluno, disciplina) neste simulado e guarda o id. */
+    /** Localiza a nota do par (aluno, disciplina) neste simulado e guarda o valor. */
     private void capturarNotaOriginalId() {
-        var lista = repo.porSimulado(simuladoId);
-        var opt = lista.stream()
-                .filter(n -> n.getAluno().equals(alunoId) && n.getDisciplina().equals(disciplinaId))
-                .findFirst();
-        notaOriginalId = opt.map(Nota::getId).orElseThrow();
+        var aluno = repo.porId(alunoId);
+        var notaDoAluno = aluno.obterNota(simuladoId, disciplinaId);
+        if (notaDoAluno.isPresent()) {
+            valorOriginal = notaDoAluno.get().getValor();
+        }
     }
 
     // ===== Given =====
@@ -80,9 +76,9 @@ public class RetificarNotaFeature {
         lastError = null;
 
         repo = new RepositorioEmMemoria();
-        ranking = new RankingServico(repo, repo, repo, repo);
+        ranking = new RankingServico(repo, repo, repo);
         // registra justificativas no próprio 'repo'
-        notaSrv = new NotaServico(repo, ranking, repo, repo, repo, repo, repo);
+        notaSrv = new NotaServico(ranking, repo, repo, repo, repo);
 
         // IDs padrão para este cenário
         alunoId = new AlunoId(seq.getAndIncrement());
@@ -123,12 +119,12 @@ public class RetificarNotaFeature {
 
         // Se o cenário pede "finalizado", finaliza depois de lançar
         if ("finalizado".equalsIgnoreCase(estado)) {
-            var s = repo.porId(simuladoId).orElseThrow();
+            var s = repo.porId(simuladoId);
             s.finalizar();
             repo.salvar(s);
         } else {
             // qualquer outra coisa tratamos como "em edição"
-            var s = repo.porId(simuladoId).orElseThrow();
+            var s = repo.porId(simuladoId);
             assertEquals(Simulado.Status.EM_EDICAO, s.getStatus());
         }
     }
@@ -140,7 +136,7 @@ public class RetificarNotaFeature {
         lastError = null;
         valorRetificado = novoValor;
         try {
-            notaSrv.retificarComJustificativa(notaOriginalId, novoValor, justificativa, new ProfessorId(999));
+            notaSrv.retificarNota(alunoId, simuladoId, disciplinaId, novoValor, justificativa, new ProfessorId(999));
         } catch (Exception e) {
             lastError = e;
         }
@@ -158,34 +154,37 @@ public class RetificarNotaFeature {
         assertNull(lastError, "Esperava sucesso na retificação: " + lastError);
 
         // Deve haver duas notas para o mesmo (aluno, simulado, disciplina): original e nova
-        var notas = repo.porSimulado(simuladoId).stream()
-                .filter(n -> n.getAluno().equals(alunoId) && n.getDisciplina().equals(disciplinaId))
-                .toList();
+        // Com a nova estrutura, verificamos diretamente no agregado Aluno
 
-        assertEquals(2, notas.size(), "RN-38: esperado manter original e criar nova versão");
-
-        var idsDistintos = notas.stream().map(n -> n.getId().value()).distinct().count();
-        assertEquals(2, idsDistintos, "As duas versões devem ter IDs distintos");
-
-        // Confere que uma delas mantém o valor original e a outra tem o valor retificado
-        boolean achouOriginal = notas.stream().anyMatch(n -> Math.abs(n.getValor() - valorOriginal) < 1e-9);
-        boolean achouNova     = notas.stream().anyMatch(n -> Math.abs(n.getValor() - valorRetificado) < 1e-9);
-        assertTrue(achouOriginal && achouNova, "Deve existir uma nota com valor original e outra com o valor retificado");
+        // Verificar se a nota foi retificada no agregado Aluno
+        var aluno = repo.porId(alunoId);
+        var notaDoAluno = aluno.obterNota(simuladoId, disciplinaId);
+        assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
+        
+        // Verificar se tem justificativas
+        assertFalse(notaDoAluno.get().getJustificativas().isEmpty(), "Deveria ter justificativas");
+        
+        // Verificar se o valor foi atualizado
+        assertEquals(valorRetificado, notaDoAluno.get().getValor(), 1e-9, "Valor deveria ter sido atualizado");
     }
 
     @Then("a justificativa registra valores {double} -> {double}")
     public void justificativa_registra_valores(double anterior, double corrigida) {
-        // A justificativa é salva amarrada ao ID da NOTA ORIGINAL
-        var js = repo.porNota(notaOriginalId);
-        assertTrue(!js.isEmpty(), "RN-37/38: era esperado registro de justificativa");
-        Justificativa j = js.get(js.size() - 1); // pega a última registrada
+        // A justificativa está salva no agregado Aluno
+        var aluno = repo.porId(alunoId);
+        var notaDoAluno = aluno.obterNota(simuladoId, disciplinaId);
+        assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
+        
+        var justificativas = notaDoAluno.get().getJustificativas();
+        assertFalse(justificativas.isEmpty(), "RN-37/38: era esperado registro de justificativa");
+        
+        Justificativa j = justificativas.get(justificativas.size() - 1); // pega a última registrada
 
-        assertEquals(notaOriginalId, j.getNota(), "Justificativa deve apontar para a nota original");
         assertEquals(anterior, j.getNotaAnterior(), 1e-9, "Valor anterior divergente");
         assertEquals(corrigida, j.getNotaCorrigida(), 1e-9, "Valor corrigido divergente");
         assertNotNull(j.getProfessor(), "Professor deve estar informado");
         assertNotNull(j.getDataHora(), "Data/hora deve estar informada");
-        assertTrue(j.getJustificativa().trim().length() >= 20, "Texto de justificativa deve ter pelo menos 20 caracteres");
+        assertTrue(j.getTexto().trim().length() >= 20, "Texto de justificativa deve ter pelo menos 20 caracteres");
     }
 
     @Then("o sistema rejeita a retificação e informa {string}")

@@ -70,7 +70,13 @@ public class GerenciarDisciplinasFeature {
         });
     }
 
-    private Optional<Disciplina> byId(DisciplinaId id) { return repo.porId(id); }
+    private Disciplina byId(DisciplinaId id) { 
+        try {
+            return repo.porId(id);
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     private static Simulado.DisciplinaPeso dp(int did, double peso) {
         return new Simulado.DisciplinaPeso(new DisciplinaId(did), peso);
@@ -232,7 +238,7 @@ public class GerenciarDisciplinasFeature {
     public void coord_edita_disciplina(String novoNome, String novaAreaNome) {
         lastError = null;
         try {
-            var before = repo.porId(currentDisciplinaId).orElseThrow();
+            var before = repo.porId(currentDisciplinaId);
             boolean mudouNome = !before.getNome().equalsIgnoreCase(novoNome);
             boolean mudouArea = !before.getArea().nome().equalsIgnoreCase(novaAreaNome);
             
@@ -309,8 +315,8 @@ public class GerenciarDisciplinasFeature {
 
     @Then("a nova versão está ativa com versao original + 1 e idVersaoOrigem preenchido")
     public void nova_versao_ativa_e_origem_preenchida() {
-        var original = repo.porId(currentDisciplinaId).orElseThrow();
-        var nova = repo.porId(novaVersaoIdCriada).orElseThrow();
+        var original = repo.porId(currentDisciplinaId);
+        var nova = repo.porId(novaVersaoIdCriada);
         assertEquals(original.getVersao() + 1, nova.getVersao(), "Versão não incrementou");
         assertTrue(nova.isAtivo(), "Nova versão deve nascer ativa");
         Integer origem = nova.getIdVersaoOrigem();
@@ -320,7 +326,7 @@ public class GerenciarDisciplinasFeature {
 
     @Then("a versão original permanece preservada")
     public void original_preservada() {
-        var original = repo.porId(currentDisciplinaId).orElseThrow();
+        var original = repo.porId(currentDisciplinaId);
         assertEquals(currentNome, original.getNome(), "Original não deve ser renomeada");
         assertEquals(currentArea.nome(), original.getArea().nome(), "Área da original não deve mudar");
     }
@@ -331,8 +337,12 @@ public class GerenciarDisciplinasFeature {
     @Then("o sistema confirma a exclusão da \"disciplina\"")
     public void confirma_exclusao_disciplina() {
         assertNull(lastError, "Esperava sucesso na exclusão: " + lastError);
-        var d = repo.porId(currentDisciplinaId);
-        assertTrue(d.isEmpty(), "Disciplina ainda presente após exclusão");
+        try {
+            repo.porId(currentDisciplinaId);
+            fail("Disciplina ainda presente após exclusão");
+        } catch (Exception e) {
+            // Esperado - disciplina deve ter sido removida
+        }
     }
 
     @Then("o sistema rejeita a exclusão em disciplinas")

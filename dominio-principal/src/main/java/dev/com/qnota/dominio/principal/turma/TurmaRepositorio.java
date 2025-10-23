@@ -11,7 +11,7 @@ public interface TurmaRepositorio {
      */
     TurmaId salvar(Turma t);
 
-    Optional<Turma> porId(TurmaId id);
+    Turma porId(TurmaId id);
     void remover(TurmaId id);
 
     boolean existeNomeNoAno(String nome, int anoLetivo);
