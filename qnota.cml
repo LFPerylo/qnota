@@ -148,8 +148,8 @@ BoundedContext QNota implements QNota {
             def void substituirResponsaveis(List<@ResponsavelId> novaLista, @ResponsavelId novoPrincipal);
             def void adicionarResponsavel(@ResponsavelId idResp, boolean principal);
             def void removerResponsavel(@ResponsavelId idResp);
-            def void definirPrincipal(@ResponsavelId idResp);
-            def void validarInvariantesResponsaveis(List<@ResponsavelId> lista, @ResponsavelId principal);
+            def void adicionarNota(@SimuladoId simuladoId, @DisciplinaId disciplinaId, double valor);
+            
 
             Repository AlunoRepository {
                 @AlunoId salvar(@Aluno aluno);
@@ -188,8 +188,6 @@ BoundedContext QNota implements QNota {
         	def void validarFaixa(double v);
         }
 
-        
-        
         ValueObject Justificativa {
         	String notaId
         	double notaAnterior
@@ -216,7 +214,15 @@ BoundedContext QNota implements QNota {
 
             void editar(@Aluno alunoEditado);
 
+            void validarAdicionarResponsavel(@Aluno aluno, @ResponsavelId responsavelId, boolean principal);
+
             void validarCadastro(String nome, LocalDate nascimento, @TurmaId turma, List<@ResponsavelId> responsaveis);
+
+            void validarRemoverResponsavel(@Aluno aluno, @ResponsavelId responsavelId);
+
+            void validarDefinirPrincipal(@Aluno aluno, @ResponsavelId responsavelId);
+
+            void validarCadastroResponsaveis(List<@ResponsavelId> responsaveis, @ResponsavelId principal);
         }
 
     }
