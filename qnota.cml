@@ -185,7 +185,7 @@ BoundedContext QNota implements QNota {
         	def @NotaDoAluno alterarValor(double novoValor);
         	def boolean temJustificativas();
         	def int quantidadeJustificativas();
-        	def void validarFaixa(double v);
+        	
         }
 
         ValueObject Justificativa {
@@ -223,6 +223,16 @@ BoundedContext QNota implements QNota {
             void validarDefinirPrincipal(@Aluno aluno, @ResponsavelId responsavelId);
 
             void validarCadastroResponsaveis(List<@ResponsavelId> responsaveis, @ResponsavelId principal);
+        }
+
+        Service NotaService {
+            void lancar(@AlunoId aluno, @SimuladoId simulado, @DisciplinaId disciplina, double valor);
+
+            void lancarNota(@AlunoId alunoId, @SimuladoId simuladoId, @DisciplinaId disciplinaId, double valor);
+
+            void retificarNota(@AlunoId alunoId, @SimuladoId simuladoId, @DisciplinaId disciplinaId, double novoValor, String justificativa, @ProfessorId professorId);
+
+            void adicionarJustificativa(@AlunoId alunoId, @SimuladoId simuladoId, @DisciplinaId disciplinaId, String justificativa, @ProfessorId professorId);
         }
 
     }
