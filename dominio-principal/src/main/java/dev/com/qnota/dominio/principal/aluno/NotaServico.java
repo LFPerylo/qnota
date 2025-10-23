@@ -120,4 +120,39 @@ public class NotaServico {
 
         rankingServico.recalcular(simuladoId);
     }
+
+    /**
+     * RN-38: Adicionar justificativa a uma nota existente.
+     */
+    public void adicionarJustificativa(AlunoId alunoId, SimuladoId simuladoId, DisciplinaId disciplinaId, 
+                                     String justificativa, ProfessorId professorId) {
+        var aluno = alunoRepo.porId(alunoId);
+        var simulado = simuladoRepo.porId(simuladoId);
+
+        // RN-39: simulado precisa estar EM_EDICAO
+        if (simulado.getStatus() != Simulado.Status.EM_EDICAO)
+            throw new IllegalStateException("RN-39: Adição de justificativa só permitida em simulado EM_EDICAO.");
+
+        // RN-37: justificativa mínima
+        String txt = justificativa == null ? "" : justificativa.trim();
+        if (txt.length() < 20)
+            throw new IllegalArgumentException("RN-37: Justificativa deve conter ao menos 20 caracteres.");
+
+        // Verifica se a nota existe
+        var notaExistente = aluno.obterNota(simuladoId, disciplinaId);
+        if (notaExistente.isEmpty())
+            throw new IllegalStateException("Nota não encontrada para adicionar justificativa");
+
+        // RN-38: cria nova justificativa
+        var novaJustificativa = new Justificativa(
+                notaExistente.get().getValor(),
+                notaExistente.get().getValor(), // mesma nota
+                txt,
+                LocalDateTime.now(),
+                professorId
+        );
+
+        aluno.adicionarJustificativa(simuladoId, disciplinaId, novaJustificativa);
+        alunoRepo.salvar(aluno);
+    }
 }

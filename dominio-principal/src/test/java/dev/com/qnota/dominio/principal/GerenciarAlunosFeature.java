@@ -421,12 +421,10 @@ public class GerenciarAlunosFeature {
         try {
             var rA = ensureResp("R1", false, "Parente");
             var rB = ensureResp("R2", false, "Parente");
-            var rC = ensureResp("R3", false, "Parente");
-            // Simular "dois principais" criando uma lista com dois responsáveis diferentes
-            // mas passando um terceiro responsável que NÃO está na lista como principal
-            // Isso fará com que countPrincipais seja 0, acionando o erro de múltiplos principais
-            var lista = List.of(rA, rB); // dois responsáveis diferentes
-            alunoSrv.cadastrar("Aluno Dois Principais", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista, rC);
+            // Simular "dois principais" criando uma lista onde o mesmo responsável aparece duas vezes
+            // Isso deveria gerar o erro "deve haver exatamente um responsável principal"
+            var lista = List.of(rA, rA); // mesmo responsável duas vezes
+            alunoSrv.cadastrar("Aluno Dois Principais", LocalDate.of(2012,1,1), ensureTurmaDefault(turmaAlias), lista, rA);
         } catch (Exception e) { lastError = e; }
     }
 

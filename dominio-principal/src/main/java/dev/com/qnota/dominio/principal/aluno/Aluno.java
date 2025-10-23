@@ -40,7 +40,6 @@ public class Aluno {
         this.turma = Objects.requireNonNull(turma, "'turma' não pode ser nula");
 
         var lista = montarVinculos(responsaveis, principal);
-        validarInvariantesVinculos(lista);
         this.vinculos = new ArrayList<>(lista);
         this.notas = new HashMap<>();
     }
@@ -96,23 +95,16 @@ public class Aluno {
         this.turma = Objects.requireNonNull(novaTurma, "'novaTurma' não pode ser nula");
     }
 
-    /** Substituição completa dos vínculos. */
+    /** Substituição completa dos vínculos sem validações de negócio. */
     public void substituirResponsaveis(List<ResponsavelId> novaLista, ResponsavelId novoPrincipal) {
         var novos = montarVinculos(novaLista, novoPrincipal);
-        validarInvariantesVinculos(novos);
         vinculos.clear();
         vinculos.addAll(novos);
     }
 
-    /** RN-19/58: adiciona vínculo. Se principal=true e já existir principal, lança exceção. */
+    /** Adiciona vínculo sem validações de negócio (validações ficam no serviço). */
     public void adicionarResponsavel(ResponsavelId idResp, boolean principal) {
         Objects.requireNonNull(idResp, "'responsavelId' não pode ser nulo");
-
-        if (contem(idResp)) throw new IllegalStateException("já existe vínculo entre o responsável e o aluno");
-        if (principal && getResponsavelPrincipal() != null)
-            throw new IllegalStateException("deve haver exatamente um responsável principal");
-
-        if (vinculos.size() >= 3) throw new IllegalStateException("o número máximo de responsáveis por aluno é 3");
 
         var novo = new AlunoResponsavel(idResp, principal);
         vinculos.add(novo);
@@ -121,28 +113,21 @@ public class Aluno {
         if (getResponsavelPrincipal() == null) {
             promover(vinculos.get(0).responsavel());
         }
-
-        validarInvariantesVinculos(vinculos);
     }
 
-    /** Desvincula; se remover o principal, promove o primeiro restante. */
+    /** Desvincula responsável sem validações de negócio (validações ficam no serviço). */
     public void removerResponsavel(ResponsavelId idResp) {
         boolean removido = vinculos.removeIf(v -> v.responsavel().equals(idResp));
         if (!removido) return;
 
-        if (vinculos.isEmpty()) throw new IllegalStateException("o aluno deve ter pelo menos um responsável");
-
-        if (getResponsavelPrincipal() == null) {
+        if (getResponsavelPrincipal() == null && !vinculos.isEmpty()) {
             promover(vinculos.get(0).responsavel());
         }
-        validarInvariantesVinculos(vinculos);
     }
 
-    /** Define um dos já vinculados como principal. */
+    /** Define um dos já vinculados como principal sem validações de negócio. */
     public void definirPrincipal(ResponsavelId idResp) {
-        if (!contem(idResp)) throw new IllegalStateException("Vínculo de responsável inexistente");
         promover(idResp);
-        validarInvariantesVinculos(vinculos);
     }
 
     // ========= operações de notas (mantidas) =========
@@ -160,14 +145,14 @@ public class Aluno {
     public void adicionarJustificativa(SimuladoId simuladoId, DisciplinaId disciplinaId, Justificativa justificativa) {
         String chave = gerarChaveNota(simuladoId, disciplinaId);
         var notaExistente = notas.get(chave);
-        if (notaExistente == null) throw new IllegalStateException("Nota não encontrada");
+        // Validação movida para NotaServico - aqui apenas executa a operação
         notas.put(chave, notaExistente.adicionarJustificativa(justificativa));
     }
 
     public void retificarNota(SimuladoId simuladoId, DisciplinaId disciplinaId, double novoValor, Justificativa justificativa) {
         String chave = gerarChaveNota(simuladoId, disciplinaId);
         var notaExistente = notas.get(chave);
-        if (notaExistente == null) throw new IllegalStateException("Nota não encontrada");
+        // Validação movida para NotaServico - aqui apenas executa a operação
         notas.put(chave, notaExistente.alterarValor(novoValor).adicionarJustificativa(justificativa));
     }
 
@@ -183,23 +168,6 @@ public class Aluno {
         return simuladoId.value() + "_" + disciplinaId.value();
     }
 
-    // ========= invariantes (somente para vínculos) =========
-    private static void validarInvariantesVinculos(List<AlunoResponsavel> lista) {
-        if (lista == null || lista.isEmpty())
-            throw new IllegalArgumentException("Aluno deve ter ao menos um responsável");
-        if (lista.size() > 3)
-            throw new IllegalArgumentException("o número máximo de responsáveis por aluno é 3");
-
-        // sem duplicados
-        var ids = lista.stream().map(AlunoResponsavel::responsavel).toList();
-        if (new LinkedHashSet<>(ids).size() != ids.size())
-            throw new IllegalArgumentException("Vínculo de responsável duplicado");
-
-        long principais = lista.stream().filter(AlunoResponsavel::principal).count();
-        if (principais != 1)
-            throw new IllegalArgumentException("deve haver exatamente um responsável principal");
-    }
-
     // ========= helpers =========
     private static String requireNonBlank(String s, String msg) {
         if (s == null || s.trim().isEmpty()) throw new IllegalArgumentException(msg);
@@ -208,10 +176,9 @@ public class Aluno {
 
     private static List<AlunoResponsavel> montarVinculos(List<ResponsavelId> ids, ResponsavelId principal) {
         if (ids == null) ids = List.of();
-        if (principal == null) throw new IllegalArgumentException("é obrigatório definir um responsável principal");
+        // Validações de negócio removidas - ficam no AlunoServico
         var lista = new ArrayList<AlunoResponsavel>(ids.size());
         for (var id : ids) {
-            if (id == null) throw new IllegalArgumentException("Responsável não pode ser nulo");
             lista.add(new AlunoResponsavel(id, id.equals(principal)));
         }
         return lista;
