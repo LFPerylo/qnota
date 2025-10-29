@@ -101,16 +101,6 @@ public class RepositorioEmMemoria implements
 
     // ===== operações de nota (agora parte do agregado Aluno) =====
     
-    @Override
-    public boolean temNotasPendentesEmSimuladosEmEdicao(AlunoId alunoId) {
-        var a = alunos.get(alunoId.value());
-        if (a == null) return false;
-        return simulados.values().stream()
-                .filter(s -> s.getTurma().equals(a.getTurma()))
-                .anyMatch(s -> s.getStatus() == Simulado.Status.EM_EDICAO
-                        && !simuladoComTodasNotasLancadas.contains(s.getId().value()));
-    }
-
     @Override 
     public boolean temNotas(AlunoId alunoId) {
         var aluno = alunos.get(alunoId.value());
@@ -118,13 +108,25 @@ public class RepositorioEmMemoria implements
     }
 
     @Override
-    public boolean possuiSimuladoFinalizado(AlunoId alunoId) {
+    public boolean possuiSimuladoFinalizadoParaAluno(AlunoId alunoId) {
         var a = alunos.get(alunoId.value());
         if (a == null) return false;
         var turmaDoAluno = a.getTurma();
         return simulados.values().stream()
                 .anyMatch(s -> s.getTurma().equals(turmaDoAluno)
                         && s.getStatus() == Simulado.Status.FINALIZADO);
+    }
+
+    @Override
+    public boolean temNotasPendentesEmSimuladosEmEdicao(AlunoId alunoId) {
+        var a = alunos.get(alunoId.value());
+        if (a == null) return false;
+        var turmaDoAluno = a.getTurma();
+        return simulados.values().stream()
+                .anyMatch(s -> s.getTurma().equals(turmaDoAluno)
+                        && s.getStatus() == Simulado.Status.EM_EDICAO
+                        && !a.getNotas().stream()
+                        .anyMatch(nota -> nota.getSimuladoId().equals(s.getId())));
     }
 
     @Override

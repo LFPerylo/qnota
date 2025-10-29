@@ -27,8 +27,8 @@ import io.cucumber.java.en.*;
 public class GerenciarNotasFeature {
 
     private final RepositorioEmMemoria repo = new RepositorioEmMemoria();
-    private final RankingServico rankingServico = new RankingServico(repo, repo, repo);
-    private final NotaServico notaServico = new NotaServico(rankingServico, repo, repo, repo, repo);
+    private final NotaServico notaServico = new NotaServico(repo, repo, repo, repo);
+    private final RankingServico rankingServico = new RankingServico(repo, repo, repo, notaServico);
     
     private final AtomicInteger seq = new AtomicInteger(1);
     
@@ -70,10 +70,8 @@ public class GerenciarNotasFeature {
 
     @Given("já existe nota para o \"aluno\" {string} no \"simulado\" {string} na \"disciplina\" {string}")
     public void ja_existe_nota_para_aluno_simulado_disciplina(String alunoAlias, String simuladoAlias, String disciplinaNome) {
-        // Adiciona nota diretamente ao agregado Aluno
-        var aluno = repo.porId(currentAlunoId);
-        aluno.adicionarNota(currentSimuladoId, currentDisciplinaId, 6.0);
-        repo.salvar(aluno);
+        // Adiciona nota usando NotaServico
+        notaServico.lancarNota(currentAlunoId, currentSimuladoId, currentDisciplinaId, 6.0);
     }
 
     @Given("o \"aluno\" {string} \"está\" inativo")
@@ -98,10 +96,8 @@ public class GerenciarNotasFeature {
 
     @Given("já existe nota {double} para o \"aluno\" {string} no \"simulado\" {string} na \"disciplina\" {string}")
     public void ja_existe_nota_valor_para_aluno_simulado_disciplina(double valor, String alunoAlias, String simuladoAlias, String disciplinaNome) {
-        // Adiciona nota diretamente ao agregado Aluno
-        var aluno = repo.porId(currentAlunoId);
-        aluno.adicionarNota(currentSimuladoId, currentDisciplinaId, valor);
-        repo.salvar(aluno);
+        // Adiciona nota usando NotaServico
+        notaServico.lancarNota(currentAlunoId, currentSimuladoId, currentDisciplinaId, valor);
     }
 
     @When("um coordenador lança nota {double} para o \"aluno\" {string} no \"simulado\" {string} na \"disciplina\" {string}")
@@ -233,7 +229,7 @@ public class GerenciarNotasFeature {
     public void nova_versao_nota_criada() {
         // Verificar se a nota foi atualizada no agregado Aluno
         var aluno = repo.porId(currentAlunoId);
-        var notaDoAluno = aluno.obterNota(currentSimuladoId, currentDisciplinaId);
+        var notaDoAluno = aluno.obterNotaParaTeste(currentSimuladoId, currentDisciplinaId);
         assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
         assertFalse(notaDoAluno.get().getJustificativas().isEmpty(), "Deveria ter justificativas");
     }
@@ -241,7 +237,7 @@ public class GerenciarNotasFeature {
     @Then("a justificativa é registrada no histórico")
     public void justificativa_registrada_historico() {
         var aluno = repo.porId(currentAlunoId);
-        var notaDoAluno = aluno.obterNota(currentSimuladoId, currentDisciplinaId);
+        var notaDoAluno = aluno.obterNotaParaTeste(currentSimuladoId, currentDisciplinaId);
         assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
         assertFalse(notaDoAluno.get().getJustificativas().isEmpty(), "Justificativa deveria ter sido registrada");
     }

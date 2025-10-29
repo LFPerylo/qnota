@@ -25,6 +25,7 @@ import dev.com.qnota.dominio.principal.disciplina.Disciplina;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.disciplina.Disciplina.AreaConhecimento;
 
+import dev.com.qnota.dominio.principal.aluno.NotaServico;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
 
 import dev.com.qnota.dominio.principal.aluno.Aluno;
@@ -36,6 +37,7 @@ public class GerenciarSimuladosFeature {
     private RepositorioEmMemoria repo;
     private SimuladoServico simuladoSrv;
     private RankingServico rankingSrv;
+    private NotaServico notaSrv;
 
     private AtomicInteger seq;
     private Map<String, TurmaId> aliasTurma;
@@ -53,7 +55,8 @@ public class GerenciarSimuladosFeature {
     @Before
     public void reset() {
         repo = new RepositorioEmMemoria();
-        rankingSrv = new RankingServico(repo, repo, repo);
+        notaSrv = new NotaServico(repo, repo, repo, repo);
+        rankingSrv = new RankingServico(repo, repo, repo, notaSrv);
         simuladoSrv = new SimuladoServico(repo, rankingSrv, repo, repo, repo, repo);
 
         seq = new AtomicInteger(1);
@@ -203,8 +206,8 @@ public class GerenciarSimuladosFeature {
         repo.salvar(aluno);
         
         // Adiciona notas diretamente ao agregado Aluno
-        aluno.adicionarNota(currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0);
-        aluno.adicionarNota(currentSimuladoId, ensureDisciplina("Física", "Exatas"), 7.5);
+        aluno.adicionarNotaParaTeste(currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0);
+        aluno.adicionarNotaParaTeste(currentSimuladoId, ensureDisciplina("Física", "Exatas"), 7.5);
         repo.salvar(aluno);
         
         // Marcar que todas as notas foram lançadas para este simulado
@@ -232,7 +235,7 @@ public class GerenciarSimuladosFeature {
         repo.salvar(aluno);
         
         // Adiciona nota diretamente ao agregado Aluno
-        aluno.adicionarNota(currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0);
+        aluno.adicionarNotaParaTeste(currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0);
         repo.salvar(aluno);
     }
 

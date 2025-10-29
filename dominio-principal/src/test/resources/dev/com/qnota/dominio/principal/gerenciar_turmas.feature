@@ -3,19 +3,19 @@ Feature: Gerenciar turmas
   # ========= H2.1 CADASTRAR TURMA =========
 
   Scenario: Cadastrar turma válida (sucesso - RN-06)
-    Given uma "turma" com nome "7A" e ano letivo "2025" "não está" registrada
+    Given uma "turma" com nome "7A" e ano letivo "2024" "não está" registrada
     When um coordenador cadastra a "turma" com professor válido
     Then o sistema confirma o cadastro da "turma"
 
   Scenario: Impedir cadastro de turma com nome duplicado no mesmo ano (falha - RN-06)
-    Given uma "turma" com nome "7A" e ano letivo "2025" "já está" registrada
-    When um coordenador tenta cadastrar uma "turma" com nome "7A" e ano letivo "2025"
+    Given uma "turma" com nome "7A" e ano letivo "2024" "já está" registrada
+    When um coordenador tenta cadastrar uma "turma" com nome "7A" e ano letivo "2024"
     Then o sistema rejeita o cadastro em turmas
     And o sistema informa em turmas que "Nome único no ano letivo"
 
   Scenario: Permitir cadastro de turma com mesmo nome em anos diferentes (sucesso - RN-06)
-    Given uma "turma" com nome "7A" e ano letivo "2025" "já está" registrada
-    When um coordenador cadastra uma "turma" com nome "7A" e ano letivo "2026"
+    Given uma "turma" com nome "7A" e ano letivo "2024" "já está" registrada
+    When um coordenador cadastra uma "turma" com nome "7A" e ano letivo "2025"
     Then o sistema confirma o cadastro da "turma"
 
   # ========= H2.2 EDITAR TURMA =========

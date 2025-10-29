@@ -49,16 +49,16 @@ Feature: Gerenciar professores
 
   # ========= H3.3 VALIDAR LIMITE DE TURMAS =========
 
-  Scenario: Validar professor com até 3 turmas ativas (sucesso - RN-07)
-    Given um "professor" "está" registrado e "possui" 3 turmas ativas
+  Scenario: Validar professor com até 5 turmas ativas (sucesso - RN-07)
+    Given um "professor" "está" registrado e "possui" 5 turmas ativas
     When um coordenador valida o limite de turmas do "professor"
     Then o sistema confirma que o "professor" está dentro do limite
 
-  Scenario: Bloquear professor com mais de 3 turmas ativas (falha - RN-07)
-    Given um "professor" "está" registrado e "possui" 4 turmas ativas
+  Scenario: Bloquear professor com mais de 5 turmas ativas (falha - RN-07)
+    Given um "professor" "está" registrado e "possui" 6 turmas ativas
     When um coordenador tenta validar o limite de turmas do "professor"
     Then o sistema rejeita a validação em professores
-    And o sistema informa em professores que "Até 3 turmas simultâneas"
+    And o sistema informa em professores que "Até 5 turmas simultâneas"
 
   # ========= H3.4 EXCLUIR PROFESSOR =========
 
@@ -81,25 +81,25 @@ Feature: Gerenciar professores
     Given um "professor" "não está" registrado e "sem nome"
     When um coordenador tenta cadastrar o "professor" com dados válidos
     Then o sistema rejeita o cadastro em professores
-    And o sistema informa em professores que "'nome' não pode ser vazio"
+    And o sistema informa em professores que "Nome não pode ser vazio"
 
   Scenario: Bloquear cadastro com nome do professor em branco (falha - NOT BLANK)
     Given um "professor" "não está" registrado e "nome em branco"
     When um coordenador tenta cadastrar o "professor" com dados válidos
     Then o sistema rejeita o cadastro em professores
-    And o sistema informa em professores que "'nome' não pode ser vazio"
+    And o sistema informa em professores que "Nome não pode ser vazio"
 
   Scenario: Bloquear cadastro sem CPF do professor (falha - NOT NULL)
     Given um "professor" "não está" registrado e "sem CPF"
     When um coordenador tenta cadastrar o "professor" com dados válidos
     Then o sistema rejeita o cadastro em professores
-    And o sistema informa em professores que "'cpf' não pode ser vazio"
+    And o sistema informa em professores que "CPF não pode ser vazio"
 
   Scenario: Bloquear cadastro sem email do professor (falha - NOT NULL)
     Given um "professor" "não está" registrado e "sem email"
     When um coordenador tenta cadastrar o "professor" com dados válidos
     Then o sistema rejeita o cadastro em professores
-    And o sistema informa em professores que "'email' não pode ser vazio"
+    And o sistema informa em professores que "Email não pode ser vazio"
 
   Scenario: Bloquear cadastro com especialidade vazia (falha - NOT BLANK)
     Given um "professor" "não está" registrado e "especialidade vazia"

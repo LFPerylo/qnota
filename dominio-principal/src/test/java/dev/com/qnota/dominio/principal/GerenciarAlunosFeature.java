@@ -54,7 +54,7 @@ public class GerenciarAlunosFeature {
     @Before
     public void reset() {
         repo = new RepositorioEmMemoria();
-        alunoSrv = new AlunoServico(repo, repo, repo);
+        alunoSrv = new AlunoServico(repo, repo, repo, repo);
         responsavelSrv = new ResponsavelServico(repo, alunoSrv); // usaremos serviço para cadastrar responsáveis-fixture
 
         seq = new AtomicInteger(1);
@@ -104,7 +104,7 @@ public class GerenciarAlunosFeature {
         });
     }
 
-    private TurmaId ensureTurmaDefault(String alias) { return ensureTurma(alias, 2025); }
+    private TurmaId ensureTurmaDefault(String alias) { return ensureTurma(alias, 2024); }
 
     private ResponsavelId ensureResp(String alias, boolean principal, String grau) {
         return aliasResp.computeIfAbsent(alias, a -> {
@@ -197,7 +197,7 @@ public class GerenciarAlunosFeature {
 
     @Given("a turma de destino {string} pertence ao ano letivo {string} igual ao da turma atual")
     public void turma_destino_ano_igual(String destinoAlias, String ano) {
-        int origemAno = 2025;
+        int origemAno = 2024;
         anoTurma.putIfAbsent("7A", origemAno);
         ensureTurma("7A", origemAno);
         currentTurmaDestinoId = ensureTurma(destinoAlias, origemAno);
@@ -205,7 +205,7 @@ public class GerenciarAlunosFeature {
 
     @Given("a turma de destino {string} pertence ao ano letivo {string} diferente do atual")
     public void turma_destino_ano_diferente(String destinoAlias, String ano) {
-        int origemAno = 2025;
+        int origemAno = 2024;
         anoTurma.putIfAbsent("7A", origemAno);
         ensureTurma("7A", origemAno);
         currentTurmaDestinoId = ensureTurma(destinoAlias, Integer.parseInt(ano));
@@ -225,7 +225,7 @@ public class GerenciarAlunosFeature {
             
             // Adiciona nota diretamente ao agregado Aluno
             var aluno = repo.porId(currentAlunoId);
-            aluno.adicionarNota(sim.getId(), new DisciplinaId(1), 8.0);
+            aluno.adicionarNotaParaTeste(sim.getId(), new DisciplinaId(1), 8.0);
             repo.salvar(aluno);
         }
     }

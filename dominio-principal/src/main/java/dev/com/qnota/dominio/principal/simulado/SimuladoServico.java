@@ -63,8 +63,8 @@ public class SimuladoServico {
             throw new IllegalStateException(
                 "RN-53: Professor não possui especialidade compatível com as disciplinas do simulado.");
 
-        if (repo.contarEmEdicaoPorTurma(s.getTurma()) >= 2)
-            throw new IllegalStateException("RN-52: Máximo de 2 simulados em edição por turma.");
+        if (repo.contarEmEdicaoPorTurma(s.getTurma()) >= 3)
+            throw new IllegalStateException("RN-52: Máximo de 3 simulados em edição por turma.");
 
         return repo.salvar(s); // ORM atribui o ID se estiver nulo
     }

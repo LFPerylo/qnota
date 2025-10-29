@@ -8,23 +8,28 @@ import java.util.Objects;
 import dev.com.qnota.dominio.principal.responsavel.Responsavel;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelRepositorio;
+import dev.com.qnota.dominio.principal.responsavel.ResponsavelVinculoService;
+import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
 import dev.com.qnota.dominio.principal.turma.Turma;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 import dev.com.qnota.dominio.principal.turma.TurmaRepositorio;
 
 /** Serviço de aplicação — regras entre agregados. */
-public class AlunoServico {
+public class AlunoServico implements ResponsavelVinculoService {
 
     private final AlunoRepositorio repo;
     private final ResponsavelRepositorio responsavelRepo;
     private final TurmaRepositorio turmaRepo;
+    private final SimuladoRepositorio simuladoRepo;
 
     public AlunoServico(AlunoRepositorio repo,
                         ResponsavelRepositorio responsavelRepo,
-                        TurmaRepositorio turmaRepo) {
+                        TurmaRepositorio turmaRepo,
+                        SimuladoRepositorio simuladoRepo) {
         this.repo = repo;
         this.responsavelRepo = responsavelRepo;
         this.turmaRepo = turmaRepo;
+        this.simuladoRepo = simuladoRepo;
     }
 
     // ---------- CADASTRAR ----------
@@ -46,7 +51,7 @@ public class AlunoServico {
     public void transferir(AlunoId id, TurmaId novaTurma) {
         var aluno = repo.porId(id);
 
-        if (repo.possuiSimuladoFinalizado(id))
+        if (simuladoRepo.possuiSimuladoFinalizadoParaAluno(id))
             throw new IllegalStateException("não é permitido alterar a turma do aluno com simulados finalizados");
 
         int anoAtual = turmaRepo.porId(aluno.getTurma()).getAnoLetivo();
@@ -60,7 +65,7 @@ public class AlunoServico {
 
     // ---------- INATIVAR ----------
     public void inativar(AlunoId id) {
-        if (repo.temNotasPendentesEmSimuladosEmEdicao(id))
+        if (simuladoRepo.temNotasPendentesEmSimuladosEmEdicao(id))
             throw new IllegalStateException("existem notas pendentes de lançamento");
         var aluno = repo.porId(id);
         aluno.inativar();
@@ -163,9 +168,9 @@ public class AlunoServico {
             throw new IllegalStateException("deve haver exatamente um responsável principal");
         }
         
-        // RN-XX: Máximo 3 responsáveis
-        if (aluno.getResponsaveis().size() >= 3) {
-            throw new IllegalStateException("o número máximo de responsáveis por aluno é 3");
+        // RN-XX: Máximo 5 responsáveis
+        if (aluno.getResponsaveis().size() >= 5) {
+            throw new IllegalStateException("o número máximo de responsáveis por aluno é 5");
         }
     }
     
@@ -192,9 +197,9 @@ public class AlunoServico {
             throw new IllegalArgumentException("Aluno deve ter ao menos um responsável");
         }
         
-        // RN-XX: Máximo 3 responsáveis
-        if (responsaveis.size() > 3) {
-            throw new IllegalArgumentException("o número máximo de responsáveis por aluno é 3");
+        // RN-XX: Máximo 5 responsáveis
+        if (responsaveis.size() > 5) {
+            throw new IllegalArgumentException("o número máximo de responsáveis por aluno é 5");
         }
         
         // RN-20: Verificar duplicação
@@ -211,5 +216,28 @@ public class AlunoServico {
         if (!responsaveis.contains(principal)) {
             throw new IllegalArgumentException("o responsável principal deve estar na lista de responsáveis");
         }
+    }
+    
+    // ===== ResponsavelVinculoService implementation =====
+    
+    @Override
+    public boolean possuiVinculosAtivos(ResponsavelId responsavelId) {
+        return responsavelRepo.estaVinculadoAAlgumAluno(responsavelId);
+    }
+    
+    @Override
+    public void removerVinculos(ResponsavelId responsavelId) {
+        // Implementação para remover todos os vínculos do responsável
+        // Por enquanto, deixamos vazio pois não há método específico no repositório
+    }
+    
+    @Override
+    public void vincularResponsavel(ResponsavelId responsavelId, AlunoId alunoId, boolean principal) {
+        vincularResponsavel(alunoId, responsavelId, principal);
+    }
+    
+    @Override
+    public void desvincularResponsavel(ResponsavelId responsavelId, AlunoId alunoId) {
+        desvincularResponsavel(alunoId, responsavelId);
     }
 }

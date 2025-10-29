@@ -1,12 +1,14 @@
 package dev.com.qnota.dominio.principal.aluno;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Objects;
 
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaRepositorio;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
-import dev.com.qnota.dominio.principal.ranking.RankingServico;
 import dev.com.qnota.dominio.principal.simulado.Simulado;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
@@ -14,18 +16,15 @@ import dev.com.qnota.dominio.principal.turma.TurmaRepositorio;
 
 public class NotaServico {
 
-    private final RankingServico rankingServico;
     private final AlunoRepositorio alunoRepo;
     private final SimuladoRepositorio simuladoRepo;
     private final TurmaRepositorio turmaRepo;
     private final DisciplinaRepositorio disciplinaRepo;
 
-    public NotaServico(RankingServico rankingServico,
-                       AlunoRepositorio alunoRepo,
+    public NotaServico(AlunoRepositorio alunoRepo,
                        SimuladoRepositorio simuladoRepo,
                        TurmaRepositorio turmaRepo,
                        DisciplinaRepositorio disciplinaRepo) {
-        this.rankingServico = Objects.requireNonNull(rankingServico);
         this.alunoRepo = Objects.requireNonNull(alunoRepo);
         this.simuladoRepo = Objects.requireNonNull(simuladoRepo);
         this.turmaRepo = Objects.requireNonNull(turmaRepo);
@@ -69,14 +68,14 @@ public class NotaServico {
             throw new IllegalStateException("RN-32: Lançamento só com simulado EM_EDICAO.");
 
         // RN-33: evitar duplicidade (aluno+simulado+disciplina)
-        if (aluno.possuiNota(simuladoId, disciplinaId))
+        if (aluno.possuiNotaInterna(simuladoId, disciplinaId))
             throw new IllegalStateException("RN-33: Nota duplicada para mesma disciplina/simulado/aluno.");
 
         // Adiciona a nota ao agregado Aluno
-        aluno.adicionarNota(simuladoId, disciplinaId, valor);
+        aluno.adicionarNotaInterna(simuladoId, disciplinaId, valor);
         alunoRepo.salvar(aluno);
 
-        rankingServico.recalcular(simuladoId);
+        // Nota: Ranking será recalculado externamente pelo RankingServico
     }
 
     /**
@@ -102,7 +101,7 @@ public class NotaServico {
             throw new IllegalArgumentException("RN-37: Justificativa deve conter ao menos 20 caracteres.");
 
         // Verifica se a nota existe
-        var notaExistente = aluno.obterNota(simuladoId, disciplinaId);
+        var notaExistente = aluno.obterNotaInterna(simuladoId, disciplinaId);
         if (notaExistente.isEmpty())
             throw new IllegalStateException("Nota não encontrada para retificação");
 
@@ -115,10 +114,10 @@ public class NotaServico {
                 professorId
         );
 
-        aluno.retificarNota(simuladoId, disciplinaId, novoValor, novaJustificativa);
+        aluno.retificarNotaInterna(simuladoId, disciplinaId, novoValor, novaJustificativa);
         alunoRepo.salvar(aluno);
 
-        rankingServico.recalcular(simuladoId);
+        // Nota: Ranking será recalculado externamente pelo RankingServico
     }
 
     /**
@@ -139,7 +138,7 @@ public class NotaServico {
             throw new IllegalArgumentException("RN-37: Justificativa deve conter ao menos 20 caracteres.");
 
         // Verifica se a nota existe
-        var notaExistente = aluno.obterNota(simuladoId, disciplinaId);
+        var notaExistente = aluno.obterNotaInterna(simuladoId, disciplinaId);
         if (notaExistente.isEmpty())
             throw new IllegalStateException("Nota não encontrada para adicionar justificativa");
 
@@ -152,7 +151,26 @@ public class NotaServico {
                 professorId
         );
 
-        aluno.adicionarJustificativa(simuladoId, disciplinaId, novaJustificativa);
+        aluno.adicionarJustificativaInterna(simuladoId, disciplinaId, novaJustificativa);
         alunoRepo.salvar(aluno);
+
+        // Nota: Ranking será recalculado externamente pelo RankingServico
+    }
+
+    /**
+     * Calcula a média ponderada de um aluno para um simulado específico.
+     * Usado pelo RankingServico para calcular rankings.
+     */
+    public double calcularMediaPonderada(Aluno aluno, Map<Integer, Double> pesos) {
+        double soma = 0, somaPesos = 0;
+
+        for (var notaDoAluno : aluno.getNotas()) {
+            double p = pesos.getOrDefault(notaDoAluno.getDisciplinaId().value(), 0.0);
+            soma += notaDoAluno.getValor() * p;
+            somaPesos += p;
+        }
+
+        double media = somaPesos == 0 ? 0 : (soma / somaPesos) * 10.0; // pesos somam 10
+        return BigDecimal.valueOf(media).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 }

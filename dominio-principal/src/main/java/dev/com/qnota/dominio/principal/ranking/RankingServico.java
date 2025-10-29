@@ -9,6 +9,7 @@ import java.util.Map;
 
 import dev.com.qnota.dominio.principal.aluno.Aluno;
 import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
+import dev.com.qnota.dominio.principal.aluno.NotaServico;
 import dev.com.qnota.dominio.principal.simulado.Simulado;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
@@ -18,13 +19,16 @@ public class RankingServico {
     private final AlunoRepositorio alunoRepo;
     private final SimuladoRepositorio simuladoRepo;
     private final RankingRepositorio rankingRepo;
+    private final NotaServico notaServico;
 
     public RankingServico(AlunoRepositorio alunoRepo,
                           SimuladoRepositorio simuladoRepo,
-                          RankingRepositorio rankingRepo) {
+                          RankingRepositorio rankingRepo,
+                          NotaServico notaServico) {
         this.alunoRepo = alunoRepo;
         this.simuladoRepo = simuladoRepo;
         this.rankingRepo = rankingRepo;
+        this.notaServico = notaServico;
     }
 
     /** RN-98/99: recalcula e salva (não congela). Se já estiver congelado, devolve o atual. */
@@ -89,16 +93,7 @@ public class RankingServico {
     }
 
     private double mediaPonderada(Aluno aluno, List<Aluno> todosAlunos, Map<Integer, Double> pesos) {
-        double soma = 0, somaPesos = 0;
-
-        for (var notaDoAluno : aluno.getNotas()) {
-            double p = pesos.getOrDefault(notaDoAluno.getDisciplinaId().value(), 0.0);
-            soma += notaDoAluno.getValor() * p;
-            somaPesos += p;
-        }
-
-        double media = somaPesos == 0 ? 0 : (soma / somaPesos) * 10.0; // pesos somam 10
-        return BigDecimal.valueOf(media).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        return notaServico.calcularMediaPonderada(aluno, pesos);
     }
 
     private record Temp(Aluno aluno, double media) {}

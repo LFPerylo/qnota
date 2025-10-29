@@ -130,42 +130,57 @@ public class Aluno {
         promover(idResp);
     }
 
-    // ========= operações de notas (mantidas) =========
-    public void adicionarNota(SimuladoId simuladoId, DisciplinaId disciplinaId, double valor) {
+    // ========= operações de notas (métodos internos - apenas para NotaServico) =========
+    
+    private String gerarChaveNota(SimuladoId simuladoId, DisciplinaId disciplinaId) {
+        return simuladoId.value() + "_" + disciplinaId.value();
+    }
+    
+    /** Método interno para NotaServico - adiciona nota sem validações */
+    void adicionarNotaInterna(SimuladoId simuladoId, DisciplinaId disciplinaId, double valor) {
         String chave = gerarChaveNota(simuladoId, disciplinaId);
         var notaDoAluno = new NotaDoAluno(simuladoId, disciplinaId, valor, LocalDateTime.now(), Collections.emptyList());
         notas.put(chave, notaDoAluno);
     }
 
-    public Optional<NotaDoAluno> obterNota(SimuladoId simuladoId, DisciplinaId disciplinaId) {
+    /** Método interno para NotaServico - obtém nota sem validações */
+    Optional<NotaDoAluno> obterNotaInterna(SimuladoId simuladoId, DisciplinaId disciplinaId) {
         String chave = gerarChaveNota(simuladoId, disciplinaId);
         return Optional.ofNullable(notas.get(chave));
     }
 
-    public void adicionarJustificativa(SimuladoId simuladoId, DisciplinaId disciplinaId, Justificativa justificativa) {
+    /** Método interno para NotaServico - adiciona justificativa sem validações */
+    void adicionarJustificativaInterna(SimuladoId simuladoId, DisciplinaId disciplinaId, Justificativa justificativa) {
         String chave = gerarChaveNota(simuladoId, disciplinaId);
         var notaExistente = notas.get(chave);
-        // Validação movida para NotaServico - aqui apenas executa a operação
         notas.put(chave, notaExistente.adicionarJustificativa(justificativa));
     }
 
-    public void retificarNota(SimuladoId simuladoId, DisciplinaId disciplinaId, double novoValor, Justificativa justificativa) {
+    /** Método interno para NotaServico - retifica nota sem validações */
+    void retificarNotaInterna(SimuladoId simuladoId, DisciplinaId disciplinaId, double novoValor, Justificativa justificativa) {
         String chave = gerarChaveNota(simuladoId, disciplinaId);
         var notaExistente = notas.get(chave);
-        // Validação movida para NotaServico - aqui apenas executa a operação
         notas.put(chave, notaExistente.alterarValor(novoValor).adicionarJustificativa(justificativa));
     }
 
-    public boolean possuiNota(SimuladoId simuladoId, DisciplinaId disciplinaId) {
+    /** Método interno para NotaServico - verifica se possui nota */
+    boolean possuiNotaInterna(SimuladoId simuladoId, DisciplinaId disciplinaId) {
         return notas.containsKey(gerarChaveNota(simuladoId, disciplinaId));
     }
 
-    public List<NotaDoAluno> obterNotasDoSimulado(SimuladoId simuladoId) {
+    /** Método interno para NotaServico - obtém notas do simulado */
+    List<NotaDoAluno> obterNotasDoSimuladoInterna(SimuladoId simuladoId) {
         return notas.values().stream().filter(n -> n.getSimuladoId().equals(simuladoId)).toList();
     }
 
-    private String gerarChaveNota(SimuladoId simuladoId, DisciplinaId disciplinaId) {
-        return simuladoId.value() + "_" + disciplinaId.value();
+    /** Método público para testes - adiciona nota sem validações */
+    public void adicionarNotaParaTeste(SimuladoId simuladoId, DisciplinaId disciplinaId, double valor) {
+        adicionarNotaInterna(simuladoId, disciplinaId, valor);
+    }
+
+    /** Método público para testes - obtém nota sem validações */
+    public Optional<NotaDoAluno> obterNotaParaTeste(SimuladoId simuladoId, DisciplinaId disciplinaId) {
+        return obterNotaInterna(simuladoId, disciplinaId);
     }
 
     // ========= helpers =========

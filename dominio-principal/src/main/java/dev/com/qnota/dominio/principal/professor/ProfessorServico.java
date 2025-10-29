@@ -6,21 +6,34 @@ import java.util.Objects;
 import java.util.Set;
 
 import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
+import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
 
 public class ProfessorServico {
 
     private final ProfessorRepositorio repo;
     private final AlunoRepositorio alunoRepo;
+    private final SimuladoRepositorio simuladoRepo;
 
-    public ProfessorServico(ProfessorRepositorio repo, AlunoRepositorio alunoRepo) {
+    public ProfessorServico(ProfessorRepositorio repo, AlunoRepositorio alunoRepo, SimuladoRepositorio simuladoRepo) {
         this.repo = Objects.requireNonNull(repo);
         this.alunoRepo = Objects.requireNonNull(alunoRepo);
+        this.simuladoRepo = Objects.requireNonNull(simuladoRepo);
     }
 
     /** Cadastro: entidade garante NOT NULL/NOT BLANK, serviço garante RN-84. */
     public ProfessorId cadastrar(String nome, String cpf, String email, List<String> especialidades) {
+        // Validações básicas de entrada
+        if (nome == null || nome.trim().isEmpty())
+            throw new IllegalArgumentException("Nome não pode ser vazio");
+        if (cpf == null || cpf.trim().isEmpty())
+            throw new IllegalArgumentException("CPF não pode ser vazio");
+        if (email == null || email.trim().isEmpty())
+            throw new IllegalArgumentException("Email não pode ser vazio");
+        if (especialidades == null)
+            throw new IllegalArgumentException("Especialidades não podem ser nulas");
+        
         // RN-84: professor deve ter ao menos uma especialidade
-        if (especialidades == null || especialidades.isEmpty()) {
+        if (especialidades.isEmpty()) {
             throw new IllegalArgumentException("RN-84: Professor deve ter ao menos uma especialidade.");
         }
         
@@ -28,6 +41,9 @@ public class ProfessorServico {
         Set<String> vistos = new HashSet<>();
         for (String e : especialidades) {
             String key = e.trim().toLowerCase();
+            if (key.isEmpty()) {
+                throw new IllegalArgumentException("especialidade não pode ser vazia");
+            }
             if (!vistos.add(key)) {
                 throw new IllegalArgumentException("RN-84: Especialidades duplicadas não são permitidas: " + e);
             }
@@ -45,10 +61,10 @@ public class ProfessorServico {
         repo.salvar(p); // ignoramos o retorno aqui
     }
 
-    /** RN-07: no máximo 3 turmas ativas (checagem centralizada no serviço). */
+    /** RN-07: no máximo 5 turmas ativas (checagem centralizada no serviço). */
     public void validarLimiteDeTurmas(ProfessorId id) {
-        if (repo.contarTurmasAtivas(id) > 3)
-            throw new IllegalStateException("RN-07: Até 3 turmas simultâneas.");
+        if (repo.contarTurmasAtivas(id) > 5)
+            throw new IllegalStateException("RN-07: Até 5 turmas simultâneas.");
     }
 
     /**
@@ -57,7 +73,7 @@ public class ProfessorServico {
      * - RN-125: substitui nas turmas e (por política) nos simulados futuros.
      */
     public void removerComSubstituto(ProfessorId aRemover, ProfessorId substituto) {
-        if (alunoRepo.possuiSimuladoFinalizadoParaProfessor(aRemover))
+        if (simuladoRepo.possuiSimuladoFinalizadoParaProfessor(aRemover))
             throw new IllegalStateException("RN-26A: Não pode excluir se houver simulados finalizados vinculados.");
         repo.substituirProfessor(aRemover, substituto); // move vínculos p/ o substituto
     }
