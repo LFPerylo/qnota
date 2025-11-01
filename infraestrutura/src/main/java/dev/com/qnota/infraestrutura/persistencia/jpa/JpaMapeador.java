@@ -1,187 +1,283 @@
-/*package dev.sauloaraujo.sgb.infraestrutura.persistencia.jpa;
-
-import java.util.List;
+package dev.com.qnota.infraestrutura.persistencia.jpa;
 
 import org.modelmapper.AbstractConverter;
 import org.modelmapper.ModelMapper;
-import org.modelmapper.TypeToken;
 import org.modelmapper.config.Configuration.AccessLevel;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import dev.sauloaraujo.dominio.analise.emprestimo.EmprestimoRegistro;
-import dev.sauloaraujo.dominio.analise.emprestimo.EmprestimoRegistroId;
-import dev.sauloaraujo.sgb.dominio.acervo.autor.Autor;
-import dev.sauloaraujo.sgb.dominio.acervo.autor.AutorId;
-import dev.sauloaraujo.sgb.dominio.acervo.exemplar.Emprestimo;
-import dev.sauloaraujo.sgb.dominio.acervo.exemplar.Exemplar;
-import dev.sauloaraujo.sgb.dominio.acervo.exemplar.ExemplarId;
-import dev.sauloaraujo.sgb.dominio.acervo.exemplar.Periodo;
-import dev.sauloaraujo.sgb.dominio.acervo.livro.Isbn;
-import dev.sauloaraujo.sgb.dominio.acervo.livro.IsbnFabrica;
-import dev.sauloaraujo.sgb.dominio.acervo.livro.Livro;
-import dev.sauloaraujo.sgb.dominio.administracao.socio.Email;
-import dev.sauloaraujo.sgb.dominio.administracao.socio.Socio;
-import dev.sauloaraujo.sgb.dominio.administracao.socio.SocioId;
+import dev.com.qnota.dominio.principal.aluno.Aluno;
+import dev.com.qnota.dominio.principal.aluno.AlunoId;
+import dev.com.qnota.dominio.principal.coordenador.Coordenador;
+import dev.com.qnota.dominio.principal.coordenador.CoordenadorId;
+import dev.com.qnota.dominio.principal.disciplina.Disciplina.AreaConhecimento;
+import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
+import dev.com.qnota.dominio.principal.professor.Professor;
+import dev.com.qnota.dominio.principal.professor.ProfessorId;
+import dev.com.qnota.dominio.principal.simulado.SimuladoId;
+import dev.com.qnota.dominio.principal.turma.TurmaId;
 
 @Component
 class JpaMapeador extends ModelMapper {
-	private IsbnFabrica isbnFabrica;
 
-	private @Autowired LivroJpaRepository livroRepositorio;
-	private @Autowired SocioJpaRepository socioRepositorio;
+    JpaMapeador() {
+        var cfg = getConfiguration();
+        cfg.setFieldMatchingEnabled(true);
+        cfg.setFieldAccessLevel(AccessLevel.PRIVATE);
 
-	JpaMapeador() {
-		isbnFabrica = new IsbnFabrica();
+        // ----- Converters Coordenador -----
 
-		var configuracao = getConfiguration();
-		configuracao.setFieldMatchingEnabled(true);
-		configuracao.setFieldAccessLevel(AccessLevel.PRIVATE);
+        // Domínio -> JPA
+		addConverter(new AbstractConverter<Coordenador, CoordenadorJpa>() {
+		@Override
+		protected CoordenadorJpa convert(Coordenador src) {
+			if (src == null) return null;
+			var j = new CoordenadorJpa();
+			j.id                 = (src.getId() != null) ? src.getId().value() : null; // <-- value()
+			j.nome               = src.getNome();
+			j.enderecoEletronico = src.getEmail();
+			j.senhaHash          = src.getSenhaHash();
+			j.ativo              = src.isAtivo();
+			return j;
+		}
+		});
 
-		addConverter(new AbstractConverter<AutorJpa, Autor>() {
+		// JPA -> Domínio
+		addConverter(new AbstractConverter<CoordenadorJpa, Coordenador>() {
+		@Override
+		protected Coordenador convert(CoordenadorJpa src) {
+			if (src == null) return null;
+			var c = new Coordenador(
+				src.nome,
+				src.enderecoEletronico,
+				src.senhaHash,
+				src.ativo != null ? src.ativo : Boolean.TRUE
+			);
+			if (src.id != null) {
+			c.atribuirIdSeAusente(new CoordenadorId(src.id)); // <-- constrói VO
+			}
+			return c;
+		}
+		});
+
+		// Integer -> CoordenadorId
+		addConverter(new AbstractConverter<Integer, CoordenadorId>() {
+		@Override
+		protected CoordenadorId convert(Integer src) {
+			return (src == null) ? null : new CoordenadorId(src);
+		}
+		});
+
+		// No seu JpaMapeador (o mesmo arquivo onde você configurou coordenador)
+		addConverter(new org.modelmapper.AbstractConverter<Integer, dev.com.qnota.dominio.principal.aluno.AlunoId>() {
+		@Override
+		protected dev.com.qnota.dominio.principal.aluno.AlunoId convert(Integer source) {
+			return source == null ? null : new dev.com.qnota.dominio.principal.aluno.AlunoId(source);
+		}
+		});
+
+		addConverter(new org.modelmapper.AbstractConverter<Integer, dev.com.qnota.dominio.principal.simulado.SimuladoId>() {
+		@Override
+		protected dev.com.qnota.dominio.principal.simulado.SimuladoId convert(Integer source) {
+			return source == null ? null : new dev.com.qnota.dominio.principal.simulado.SimuladoId(source);
+		}
+		});
+
+		// DisciplinaId
+		addConverter(new org.modelmapper.AbstractConverter<Integer, dev.com.qnota.dominio.principal.disciplina.DisciplinaId>() {
+		@Override protected dev.com.qnota.dominio.principal.disciplina.DisciplinaId convert(Integer source) {
+			return source == null ? null : new dev.com.qnota.dominio.principal.disciplina.DisciplinaId(source);
+		}
+		});
+
+		// AreaConhecimento ⇄ AreaConhecimentoJpa (se preferir via mapper)
+		addConverter(new org.modelmapper.AbstractConverter<AreaConhecimentoJpa, AreaConhecimento>() {
+		@Override protected AreaConhecimento convert(AreaConhecimentoJpa source) {
+			return source == null ? null : new AreaConhecimento(source.id, source.nome);
+		}
+		});
+
+				// ProfessorJpa -> Professor (domínio)
+		addConverter(new AbstractConverter<ProfessorJpa, Professor>() {
 			@Override
-			protected Autor convert(AutorJpa source) {
-				var id = map(source.id, AutorId.class);
-				return new Autor(id, source.nome);
+			protected Professor convert(ProfessorJpa src) {
+				var p = new Professor(
+					src.nome,
+					src.cpf,
+					src.email,
+					new java.util.ArrayList<>(src.especialidades)
+				);
+				p.atribuirIdSeAusente(new ProfessorId(src.id));
+				return p;
 			}
 		});
 
-		addConverter(new AbstractConverter<Integer, AutorId>() {
+		// Professor (domínio) -> ProfessorJpa
+		addConverter(new AbstractConverter<Professor, ProfessorJpa>() {
 			@Override
-			protected AutorId convert(Integer source) {
-				return new AutorId(source);
+			protected ProfessorJpa convert(Professor src) {
+				var j = new ProfessorJpa();
+				if (src.getId() != null) j.id = src.getId().value();
+				j.nome = src.getNome();
+				j.cpf = src.getCpf();
+				j.email = src.getEmail();
+				j.especialidades = new java.util.ArrayList<>(src.getEspecialidades());
+				return j;
 			}
 		});
 
-		addConverter(new AbstractConverter<AutorJpa, AutorId>() {
+		// Integer -> ProfessorId
+		addConverter(new AbstractConverter<Integer, ProfessorId>() {
 			@Override
-			protected AutorId convert(AutorJpa source) {
-				return map(source.id, AutorId.class);
+			protected ProfessorId convert(Integer src) {
+				return new ProfessorId(src);
 			}
 		});
 
-		addConverter(new AbstractConverter<LivroJpa, Livro>() {
+		// ProfessorId -> Integer
+		addConverter(new AbstractConverter<ProfessorId, Integer>() {
 			@Override
-			protected Livro convert(LivroJpa source) {
-				var id = map(source.id, Isbn.class);
-				List<AutorId> autores = map(source.autores, new TypeToken<List<AutorId>>() {
-				}.getType());
-				return new Livro(id, source.titulo, source.subtitulo, autores);
+			protected Integer convert(ProfessorId src) {
+				return src != null ? src.value() : null;
 			}
 		});
 
-		addConverter(new AbstractConverter<String, Isbn>() {
-			@Override
-			protected Isbn convert(String source) {
-				return isbnFabrica.construir(source);
-			}
+				// IDs
+		addConverter(new org.modelmapper.AbstractConverter<Integer, AlunoId>() {
+		@Override protected AlunoId convert(Integer s){ return s == null ? null : new AlunoId(s); }
+		});
+		addConverter(new org.modelmapper.AbstractConverter<Integer, TurmaId>() {
+		@Override protected TurmaId convert(Integer s){ return s == null ? null : new TurmaId(s); }
+		});
+		addConverter(new org.modelmapper.AbstractConverter<Integer, SimuladoId>() {
+		@Override protected SimuladoId convert(Integer s){ return s == null ? null : new SimuladoId(s); }
+		});
+		addConverter(new org.modelmapper.AbstractConverter<Integer, DisciplinaId>() {
+		@Override protected DisciplinaId convert(Integer s){ return s == null ? null : new DisciplinaId(s); }
+		});
+		addConverter(new org.modelmapper.AbstractConverter<Integer, dev.com.qnota.dominio.principal.responsavel.ResponsavelId>() {
+		@Override protected dev.com.qnota.dominio.principal.responsavel.ResponsavelId convert(Integer s){
+			return s == null ? null : new dev.com.qnota.dominio.principal.responsavel.ResponsavelId(s);
+		}
 		});
 
-		addConverter(new AbstractConverter<LivroJpa, Isbn>() {
-			@Override
-			protected Isbn convert(LivroJpa source) {
-				return map(source.id, Isbn.class);
+		// JPA -> Domínio (Aluno)
+		addConverter(new org.modelmapper.AbstractConverter<AlunoJpa, Aluno>() {
+		@Override protected Aluno convert(AlunoJpa src){
+			if (src == null) return null;
+
+			// vínculos
+			java.util.List<dev.com.qnota.dominio.principal.responsavel.ResponsavelId> rs = new java.util.ArrayList<>();
+			dev.com.qnota.dominio.principal.responsavel.ResponsavelId principal = null;
+			if (src.responsaveis != null){
+			for (var v: src.responsaveis){
+				var rid = map(v.id.responsavelId, dev.com.qnota.dominio.principal.responsavel.ResponsavelId.class);
+				rs.add(rid);
+				if (v.principal) principal = rid;
 			}
+			}
+
+			var aluno = new Aluno(
+				map(src.id, AlunoId.class),
+				src.nome,
+				src.dataNascimento,
+				src.ativo,
+				map(src.turmaId, TurmaId.class),
+				rs,
+				principal
+			);
+
+			// Hidratar notas (opcional; exige método de apoio no domínio — aqui via reflexão como fallback)
+			if (src.notas != null){
+			try {
+				var addNota = Aluno.class.getDeclaredMethod("adicionarNotaInterna", SimuladoId.class, DisciplinaId.class, double.class);
+				addNota.setAccessible(true);
+
+				var addJust = Aluno.class.getDeclaredMethod("adicionarJustificativaInterna",
+								SimuladoId.class, DisciplinaId.class, dev.com.qnota.dominio.principal.aluno.Justificativa.class);
+				addJust.setAccessible(true);
+
+				for (var n : src.notas){
+				var sim = map(n.id.simuladoId, SimuladoId.class);
+				var dis = map(n.id.disciplinaId, DisciplinaId.class);
+				addNota.invoke(aluno, sim, dis, n.valor);
+
+				if (n.justificativas != null){
+					for (var j : n.justificativas){
+					var jj = new dev.com.qnota.dominio.principal.aluno.Justificativa(
+						j.notaAnterior, j.notaCorrigida, j.texto, j.dataHora,
+						new dev.com.qnota.dominio.principal.professor.ProfessorId(j.professorId)
+					);
+					addJust.invoke(aluno, sim, dis, jj);
+					}
+				}
+				}
+			} catch (Exception ignore) { /* se não quiser reflexão, exponha método público no domínio */ }
+			}
+			return aluno;
+		}
 		});
 
-		addConverter(new AbstractConverter<SocioJpa, Socio>() {
-			@Override
-			protected Socio convert(SocioJpa source) {
-				var id = map(source.id, SocioId.class);
-				var email = map(source.email, Email.class);
-				return new Socio(id, source.nome, email);
+		// Domínio -> JPA (Aluno)
+		addConverter(new org.modelmapper.AbstractConverter<Aluno, AlunoJpa>() {
+		@Override protected AlunoJpa convert(Aluno src){
+			if (src == null) return null;
+			var j = new AlunoJpa();
+			j.id             = (src.getId() != null ? src.getId().value() : null);
+			j.nome           = src.getNome();
+			j.dataNascimento = src.getDataNascimento();
+			j.ativo          = src.isAtivo();
+			j.turmaId        = (src.getTurma() != null ? src.getTurma().value() : null);
+
+			// vínculos
+			j.responsaveis = new java.util.LinkedHashSet<>();
+			for (var v : src.getVinculos()){
+			var x = new AlunoResponsavelJpa();
+			x.aluno = j;
+			var id = new AlunoRespIdJpa();
+			id.alunoId = j.id; // MapsId ajusta quando null em insert
+			id.responsavelId = v.responsavel().value();
+			x.id = id;
+			x.principal = v.principal();
+			j.responsaveis.add(x);
 			}
+
+			// notas
+			j.notas = new java.util.LinkedHashSet<>();
+			for (var n : src.getNotas()){
+			var nj = new NotaAlunoJpa();
+			nj.aluno = j;
+			var nid = new NotaIdJpa();
+			nid.alunoId = j.id;
+			nid.simuladoId = n.getSimuladoId().value();
+			nid.disciplinaId = n.getDisciplinaId().value();
+			nj.id = nid;
+			nj.valor = n.getValor();
+			nj.dataLancamento = n.getDataLancamento();
+
+			nj.justificativas = new java.util.LinkedHashSet<>();
+			if (n.getJustificativas() != null){
+				for (var jj : n.getJustificativas()){
+				var jpaJ = new JustificativaJpa();
+				jpaJ.nota = nj;
+				jpaJ.professorId = jj.getProfessor().value();
+				jpaJ.notaAnterior = jj.getNotaAnterior();
+				jpaJ.notaCorrigida = jj.getNotaCorrigida();
+				jpaJ.texto = jj.getTexto();
+				jpaJ.dataHora = jj.getDataHora();
+				nj.justificativas.add(jpaJ);
+				}
+			}
+			j.notas.add(nj);
+			}
+			return j;
+		}
 		});
 
-		addConverter(new AbstractConverter<Integer, SocioId>() {
-			@Override
-			protected SocioId convert(Integer source) {
-				return new SocioId(source);
-			}
-		});
 
-		addConverter(new AbstractConverter<String, Email>() {
-			@Override
-			protected Email convert(String source) {
-				return new Email(source);
-			}
-		});
-
-		addConverter(new AbstractConverter<ExemplarJpa, Exemplar>() {
-			@Override
-			protected Exemplar convert(ExemplarJpa source) {
-				var id = map(source.id, ExemplarId.class);
-				var livro = map(source.livro, Isbn.class);
-				var emprestimo = map(source.emprestimo, Emprestimo.class);
-				return new Exemplar(id, livro, emprestimo);
-			}
-		});
-
-		addConverter(new AbstractConverter<Integer, ExemplarId>() {
-			@Override
-			protected ExemplarId convert(Integer source) {
-				return new ExemplarId(source);
-			}
-		});
-
-		addConverter(new AbstractConverter<Isbn, LivroJpa>() {
-			@Override
-			protected LivroJpa convert(Isbn source) {
-				return livroRepositorio.findById(source.getCodigo()).get();
-			}
-		});
-
-		addConverter(new AbstractConverter<EmprestimoJpa, Emprestimo>() {
-			@Override
-			protected Emprestimo convert(EmprestimoJpa source) {
-				var periodo = map(source.periodo, Periodo.class);
-				var tomador = map(source.tomador, SocioId.class);
-				return new Emprestimo(periodo, tomador);
-			}
-		});
-
-		addConverter(new AbstractConverter<PeriodoJpa, Periodo>() {
-			@Override
-			protected Periodo convert(PeriodoJpa source) {
-				return new Periodo(source.inicio, source.fim);
-			}
-		});
-
-		addConverter(new AbstractConverter<SocioJpa, SocioId>() {
-			@Override
-			protected SocioId convert(SocioJpa source) {
-				return map(source.id, SocioId.class);
-			}
-		});
-
-		addConverter(new AbstractConverter<SocioId, SocioJpa>() {
-			@Override
-			protected SocioJpa convert(SocioId source) {
-				return socioRepositorio.findById(source.getId()).get();
-			}
-		});
-
-		addConverter(new AbstractConverter<EmprestimoRegistroJpa, EmprestimoRegistro>() {
-			@Override
-			protected EmprestimoRegistro convert(EmprestimoRegistroJpa source) {
-				var id = map(source.id, EmprestimoRegistroId.class);
-				var exemplar = map(source.exemplar.id, ExemplarId.class);
-				var emprestimo = map(source.emprestimo, Emprestimo.class);
-				return new EmprestimoRegistro(id, exemplar, emprestimo, source.devolucao);
-			}
-		});
-
-		addConverter(new AbstractConverter<Integer, EmprestimoRegistroId>() {
-			@Override
-			protected EmprestimoRegistroId convert(Integer source) {
-				return new EmprestimoRegistroId(source);
-			}
-		});
 	}
 
-	@Override
-	public <D> D map(Object source, Class<D> destinationType) {
-		return source != null ? super.map(source, destinationType) : null;
-	}
+    @Override
+    public <D> D map(Object source, Class<D> destinationType) {
+        return source != null ? super.map(source, destinationType) : null;
+    }
 }
-*/

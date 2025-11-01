@@ -1,3 +1,0 @@
-/*
-package dev.sauloaraujo.sgb.infraestrutura.persistencia.jpa;
-*/

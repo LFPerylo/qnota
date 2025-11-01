@@ -1,85 +1,93 @@
 USE qnota;
 
--- ==============================
--- PROFESSORES
--- ==============================
-INSERT INTO professor (nome, cpf, email, especialidade) VALUES
-('Carlos Silva', '111.111.111-11', 'carlos.silva@escola.com', 'Matemática'),
-('Fernanda Souza', '222.222.222-22', 'fernanda.souza@escola.com', 'Linguagens'),
-('Marcos Andrade', '333.333.333-33', 'marcos.andrade@escola.com', 'Ciências Humanas');
+-- Áreas
+INSERT INTO areas_conhecimento (nome) VALUES
+  ('Matemática'), ('Português') ON DUPLICATE KEY UPDATE nome=VALUES(nome);
 
--- ==============================
--- RESPONSAVEIS
--- ==============================
-INSERT INTO responsavel (nome, cpf, email, inadimplente) VALUES
-('João Pereira', '444.444.444-44', 'joao.pereira@email.com', FALSE),
-('Maria Oliveira', '555.555.555-55', 'maria.oliveira@email.com', FALSE),
-('Ana Costa', '666.666.666-66', 'ana.costa@email.com', TRUE); -- inadimplente
+-- Professores
+INSERT INTO professores (nome, cpf, enderecoEletronico, especialidades) VALUES
+  ('Ana Souza','111.111.111-11','ana@escola.com','["Matemática"]'),
+  ('Bruno Lima','222.222.222-22','bruno@escola.com','["Português"]')
+ON DUPLICATE KEY UPDATE enderecoEletronico=VALUES(enderecoEletronico);
 
--- ==============================
--- TURMAS
--- ==============================
-INSERT INTO turma (nome, ano_letivo, ativo, id_professor) VALUES
-('Turma A', 2025, TRUE, 1),
-('Turma B', 2025, TRUE, 2);
+-- Disciplinas
+INSERT INTO disciplinas (nome, versao, idVersaoOrigem, ativo, area_id) VALUES
+  ('Matemática',1,NULL,1,(SELECT id FROM areas_conhecimento WHERE nome='Matemática')),
+  ('Português',1,NULL,1,(SELECT id FROM areas_conhecimento WHERE nome='Português'))
+ON DUPLICATE KEY UPDATE ativo=VALUES(ativo);
 
--- ==============================
--- ALUNOS
--- ==============================
-INSERT INTO aluno (nome, data_nascimento, ativo, id_turma) VALUES
-('Pedro Santos', '2010-05-12', TRUE, 1),
-('Lucas Lima', '2010-08-20', TRUE, 1),
-('Mariana Alves', '2011-02-10', TRUE, 2);
+-- Turma
+INSERT INTO turmas (nome, anoLetivo, ativo, professor_id) VALUES
+  ('6º Ano A', 2025, 1, (SELECT id FROM professores WHERE nome='Ana Souza'))
+ON DUPLICATE KEY UPDATE ativo=VALUES(ativo);
 
--- ==============================
--- VÍNCULOS ALUNO-RESPONSAVEL
--- ==============================
-INSERT INTO aluno_responsavel (id_aluno, id_responsavel, principal) VALUES
-(1, 1, TRUE),  -- Pedro -> João
-(1, 2, FALSE), -- Pedro -> Maria
-(2, 2, TRUE),  -- Lucas -> Maria
-(3, 1, FALSE), -- Mariana -> João
-(3, 3, TRUE);  -- Mariana -> Ana (inadimplente, mas já estava vinculada antes)
+-- Responsáveis
+INSERT INTO responsaveis (nome, cpf, enderecoEletronico, status) VALUES
+  ('Maria Silva','333.333.333-33','maria@gmail.com','ATIVO'),
+  ('João Silva','444.444.444-44','joao@gmail.com','ATIVO')
+ON DUPLICATE KEY UPDATE status=VALUES(status);
 
--- ==============================
--- DISCIPLINAS
--- ==============================
-INSERT INTO disciplina (nome, area) VALUES
-('Matemática', 'Exatas'),
-('Português', 'Linguagens'),
-('História', 'Humanas'),
-('Geografia', 'Humanas');
+-- Alunos
+INSERT INTO alunos (nome, dataNascimento, ativo, turma_id) VALUES
+  ('Pedro Silva', '2013-05-20', 1, (SELECT id FROM turmas WHERE nome='6º Ano A'))
+;
 
--- ==============================
--- SIMULADOS
--- ==============================
-INSERT INTO simulado (data_aplicacao, status, id_turma) VALUES
-('2025-06-15', 'EM_EDICAO', 1),
-('2025-06-20', 'EM_EDICAO', 2);
+-- Vínculos aluno-responsável (um principal por aluno, garantido pelo índice único)
+INSERT INTO aluno_responsaveis (responsavel_id, principal, aluno_id) VALUES
+  ((SELECT id FROM responsaveis WHERE cpf='333.333.333-33'), 1, (SELECT id FROM alunos WHERE nome='Pedro Silva')),
+  ((SELECT id FROM responsaveis WHERE cpf='444.444.444-44'), 0, (SELECT id FROM alunos WHERE nome='Pedro Silva'))
+ON DUPLICATE KEY UPDATE principal=VALUES(principal);
 
--- ==============================
--- SIMULADO_DISCIPLINA (pesos somando 10)
--- ==============================
-INSERT INTO simulado_disciplina (id_simulado, id_disciplina, peso) VALUES
-(1, 1, 6.0), -- Matemática
-(1, 2, 4.0), -- Português
-(2, 2, 5.0), -- Português
-(2, 3, 5.0); -- História
+-- Simulado
+INSERT INTO simulados (dataAplicacao, status, turma_id) VALUES
+  ('2025-06-10','EM_EDICAO',(SELECT id FROM turmas WHERE nome='6º Ano A'));
 
--- ==============================
--- NOTAS DOS ALUNOS
--- ==============================
-INSERT INTO nota_aluno_disciplina (id_aluno, id_simulado, id_disciplina, valor) VALUES
-(1, 1, 1, 8.50), -- Pedro - Matemática
-(1, 1, 2, 7.00), -- Pedro - Português
-(2, 1, 1, 6.00), -- Lucas - Matemática
-(2, 1, 2, 9.00), -- Lucas - Português
-(3, 2, 2, 8.00), -- Mariana - Português
-(3, 2, 3, 7.50); -- Mariana - História
+-- Disciplinas do simulado (pesos somando 10; regra validada na aplicação)
+INSERT INTO simulado_disciplinas (simulado_id, disciplina_id, peso)
+SELECT s.id, d.id, p.peso FROM
+  (SELECT (SELECT id FROM simulados ORDER BY id DESC LIMIT 1) AS id) s
+JOIN (
+  SELECT (SELECT id FROM disciplinas WHERE nome='Matemática') AS id, 6.0 AS peso
+  UNION ALL
+  SELECT (SELECT id FROM disciplinas WHERE nome='Português')  AS id, 4.0
+) d ON 1=1
+JOIN (SELECT 1 AS peso) p ON 1=1
+ON DUPLICATE KEY UPDATE peso=VALUES(peso);
 
--- ==============================
--- JUSTIFICATIVA DE NOTA
--- ==============================
-INSERT INTO justificativa (texto, id_professor, id_nota, nota_anterior, nota_corrigida)
+-- Notas do aluno (exemplo)
+INSERT INTO notas_do_aluno (aluno_id, simulado_id, disciplina_id, valor)
 VALUES
-('Correção por erro de digitação no lançamento da nota.', 1, 3, 5.00, 6.00);
+  ((SELECT id FROM alunos WHERE nome='Pedro Silva'),
+   (SELECT id FROM simulados ORDER BY id DESC LIMIT 1),
+   (SELECT id FROM disciplinas WHERE nome='Matemática'),
+   8.5),
+  ((SELECT id FROM alunos WHERE nome='Pedro Silva'),
+   (SELECT id FROM simulados ORDER BY id DESC LIMIT 1),
+   (SELECT id FROM disciplinas WHERE nome='Português'),
+   7.0)
+ON DUPLICATE KEY UPDATE valor=VALUES(valor);
+
+-- Justificativa (exemplo simples; gere UUID real na app)
+INSERT INTO justificativas (id, aluno_id, simulado_id, disciplina_id, professor_id, notaAnterior, notaCorrigida, texto)
+VALUES
+  ('JUS-0001',
+   (SELECT id FROM alunos WHERE nome='Pedro Silva'),
+   (SELECT id FROM simulados ORDER BY id DESC LIMIT 1),
+   (SELECT id FROM disciplinas WHERE nome='Português'),
+   (SELECT id FROM professores WHERE nome='Bruno Lima'),
+   7.0, 7.5,
+   'Erro de digitação corrigido pelo professor.')
+ON DUPLICATE KEY UPDATE texto=VALUES(texto);
+
+-- Ranking (mock)
+INSERT INTO rankings (congelado, simulado_id)
+VALUES (0, (SELECT id FROM simulados ORDER BY id DESC LIMIT 1))
+ON DUPLICATE KEY UPDATE congelado=VALUES(congelado);
+
+INSERT INTO ranking_linhas (ranking_id, aluno_id, media, posicao)
+VALUES (
+  (SELECT id FROM rankings ORDER BY id DESC LIMIT 1),
+  (SELECT id FROM alunos WHERE nome='Pedro Silva'),
+  7.9, 1
+)
+ON DUPLICATE KEY UPDATE media=VALUES(media), posicao=VALUES(posicao);
