@@ -24,7 +24,7 @@ BoundedContext QNota implements QNota {
             
 
             Repository ResponsavelRepository {
-                void salvar(@Responsavel r);
+                @ResponsavelId salvar(@Responsavel r);
 
                 @Responsavel porId(@ResponsavelId id);
 
@@ -149,7 +149,20 @@ BoundedContext QNota implements QNota {
             def void adicionarResponsavel(@ResponsavelId idResp, boolean principal);
             def void removerResponsavel(@ResponsavelId idResp);
             def void definirPrincipal(@ResponsavelId idResp);
-            def void validarInvariantesResponsaveis(List<@ResponsavelId> lista, @ResponsavelId principal);
+
+            def void adicionarNotaInterna(@SimuladoId simuladoId, @DisciplinaId disciplinaId, double valor);
+
+            def Optional<@NotaDoAluno> obterNotaInterna(@SimuladoId simuladoId, @DisciplinaId disciplinaId);
+
+            def void adicionarJustificativaInterna(@SimuladoId simuladoId, @DisciplinaId disciplinaId, @Justificativa justificativa);
+
+            def void retificarNotaInterna(@SimuladoId simuladoId, @DisciplinaId disciplinaId, double novoValor, @Justificativa justificativa);
+
+            def boolean possuiNotaInterna(@SimuladoId simuladoId, @DisciplinaId disciplinaId);
+
+            def List<AlunoResponsavel> montarVinculos(List<@ResponsavelId> ids, @ResponsavelId principal);
+
+            def void promover(@ResponsavelId novoPrincipal);
 
             Repository AlunoRepository {
                 @AlunoId salvar(@Aluno aluno);
@@ -163,12 +176,9 @@ BoundedContext QNota implements QNota {
 
                 List<@Aluno> porTurma(@TurmaId turmaId);
 
-                boolean temNotasPendentesEmSimuladosEmEdicao(@AlunoId alunoId);
                 boolean temNotas(@AlunoId alunoId);
 
                 boolean existeNotaParaSimulado(@SimuladoId simuladoId);
-
-                boolean possuiSimuladoFinalizado(@AlunoId alunoId);
 
                 void alterarTurma(@AlunoId alunoId, @TurmaId novaTurmaId);
             }
@@ -185,7 +195,7 @@ BoundedContext QNota implements QNota {
         	def @NotaDoAluno alterarValor(double novoValor);
         	def boolean temJustificativas();
         	def int quantidadeJustificativas();
-        	def void validarFaixa(double v);
+        	
         }
 
         
@@ -214,9 +224,34 @@ BoundedContext QNota implements QNota {
             void desvincularResponsavel(@AlunoId id, @ResponsavelId resp);
             void definirPrincipal(@AlunoId id, @ResponsavelId resp);
 
-            void editar(@Aluno alunoEditado);
-
             void validarCadastro(String nome, LocalDate nascimento, @TurmaId turma, List<@ResponsavelId> responsaveis);
+
+            void validarAdicionarResponsavel(@Aluno aluno, @ResponsavelId responsavelId, boolean principal);
+
+            void validarRemoverResponsavel(@Aluno aluno);
+            void validarDefinirPrincipal(@Aluno aluno, @ResponsavelId responsavelId);
+            void validarCadastroResponsaveis(List<@ResponsavelId> responsaveis, @ResponsavelId principal);
+
+            boolean possuiVinculosAtivos(@ResponsavelId responsavelId);
+            void removerVinculos(@ResponsavelId responsavelId);
+
+            void vincularResponsavel(@ResponsavelId rid, @AlunoId aid, boolean p);
+
+            void desvincularResponsavel(@ResponsavelId rid, @AlunoId aid);
+        }
+
+        Service NotaService {
+            void lancar(@AlunoId aluno, @SimuladoId simulado, @DisciplinaId disciplina, double valor);
+
+            void lancarNota(@AlunoId alunoId, @SimuladoId simuladoId, @DisciplinaId disciplinaId, double valor);
+
+            void retificarNota(@AlunoId alunoId, @SimuladoId simuladoId, @DisciplinaId disciplinaId,
+                              double novoValor, String justificativa, @ProfessorId professorId);
+            
+            void adicionarJustificativa(@AlunoId alunoId, @SimuladoId simuladoId, @DisciplinaId disciplinaId,
+                                       String justificativa, @ProfessorId professorId);
+            
+            double calcularMediaPonderada(@Aluno aluno, Map<Integer, Double> pesos);
         }
 
     }
@@ -244,8 +279,7 @@ BoundedContext QNota implements QNota {
                 @Professor porId(@ProfessorId id);
 
                 int contarTurmasAtivas(@ProfessorId id);              
-                List<String> nomesDeAreasDoProfessor(@ProfessorId id); 
-                boolean possuiSimuladoFinalizado(@ProfessorId id);     
+                List<String> nomesDeAreasDoProfessor(@ProfessorId id);     
 
                 void substituirProfessor(@ProfessorId antigo, @ProfessorId substituto);
             }
@@ -381,7 +415,6 @@ BoundedContext QNota implements QNota {
             def void alterarDisciplinas(List<@DisciplinaPeso> novas);
             def void alterarData(LocalDate novaData);
             def void finalizar();
-            def void validarDisciplinas(List<@DisciplinaPeso> lista);
 
             Repository SimuladoRepository {
                 @SimuladoId salvar(@Simulado s);
@@ -394,6 +427,12 @@ BoundedContext QNota implements QNota {
                 Map<Integer, Double> pesosDoSimulado(@SimuladoId id);
 
                 boolean todasNotasLancadas(@SimuladoId id);
+
+                boolean possuiSimuladoFinalizadoParaProfessor(@ProfessorId professorId);
+
+                boolean possuiSimuladoFinalizadoParaAluno(@AlunoId alunoId);
+
+                boolean temNotasPendentesEmSimuladosEmEdicao(@AlunoId alunoId);
                 
                 void remover(@SimuladoId id);
             }
