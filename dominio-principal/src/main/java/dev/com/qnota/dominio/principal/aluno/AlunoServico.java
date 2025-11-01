@@ -10,11 +10,10 @@ import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelRepositorio;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelVinculoService;
 import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
-import dev.com.qnota.dominio.principal.turma.Turma;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 import dev.com.qnota.dominio.principal.turma.TurmaRepositorio;
 
-/** Serviço de aplicação — regras entre agregados. */
+/** Serviço de aplicação — regras e orquestração cross-aggregate. */
 public class AlunoServico implements ResponsavelVinculoService {
 
     private final AlunoRepositorio repo;
@@ -38,11 +37,10 @@ public class AlunoServico implements ResponsavelVinculoService {
                              TurmaId turma,
                              List<ResponsavelId> responsaveis,
                              ResponsavelId principal) {
+
         validarCadastro(nome, nascimento, turma, responsaveis, principal);
-        
-        // Validações de negócio para cadastro
         validarCadastroResponsaveis(responsaveis, principal);
-        
+
         var aluno = new Aluno(nome, nascimento, true, turma, responsaveis, principal);
         return repo.salvar(aluno);
     }
@@ -51,9 +49,11 @@ public class AlunoServico implements ResponsavelVinculoService {
     public void transferir(AlunoId id, TurmaId novaTurma) {
         var aluno = repo.porId(id);
 
+        // RN-57: não transferir se houver simulados finalizados do aluno
         if (simuladoRepo.possuiSimuladoFinalizadoParaAluno(id))
             throw new IllegalStateException("não é permitido alterar a turma do aluno com simulados finalizados");
 
+        // RN-57a: mesmo ano letivo
         int anoAtual = turmaRepo.porId(aluno.getTurma()).getAnoLetivo();
         int anoNovo  = turmaRepo.porId(novaTurma).getAnoLetivo();
         if (anoAtual != anoNovo)
@@ -65,6 +65,7 @@ public class AlunoServico implements ResponsavelVinculoService {
 
     // ---------- INATIVAR ----------
     public void inativar(AlunoId id) {
+        // RN-67: não inativar com notas pendentes em simulados EM_EDICAO
         if (simuladoRepo.temNotasPendentesEmSimuladosEmEdicao(id))
             throw new IllegalStateException("existem notas pendentes de lançamento");
         var aluno = repo.porId(id);
@@ -74,6 +75,7 @@ public class AlunoServico implements ResponsavelVinculoService {
 
     // ---------- EXCLUIR ----------
     public void excluir(AlunoId id) {
+        // RN-04: não excluir se tiver notas
         if (repo.temNotas(id))
             throw new IllegalStateException("o aluno possui vínculos com simulados/nota");
         repo.remover(id);
@@ -86,30 +88,22 @@ public class AlunoServico implements ResponsavelVinculoService {
             throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
 
         var aluno = repo.porId(id);
-        
-        // Validações de negócio (RN)
         validarAdicionarResponsavel(aluno, resp, principal);
-        
+
         aluno.adicionarResponsavel(resp, principal);
         repo.salvar(aluno);
     }
 
     public void desvincularResponsavel(AlunoId id, ResponsavelId resp) {
         var aluno = repo.porId(id);
-        
-        // Validações de negócio (RN)
-        validarRemoverResponsavel(aluno, resp);
-        
+        validarRemoverResponsavel(aluno);
         aluno.removerResponsavel(resp);
         repo.salvar(aluno);
     }
 
     public void definirPrincipal(AlunoId id, ResponsavelId resp) {
         var aluno = repo.porId(id);
-        
-        // Validações de negócio (RN)
         validarDefinirPrincipal(aluno, resp);
-        
         aluno.definirPrincipal(resp);
         repo.salvar(aluno);
     }
@@ -124,120 +118,60 @@ public class AlunoServico implements ResponsavelVinculoService {
 
         if (responsaveis == null || responsaveis.isEmpty())
             throw new IllegalArgumentException("Aluno deve ter ao menos um responsável");
-        
-        // Verificar responsáveis nulos primeiro
-        for (ResponsavelId rid : responsaveis) {
-            if (rid == null) 
-                throw new IllegalArgumentException("Responsável não pode ser nulo");
-        }
-        
-        if (principal == null)
-            throw new IllegalArgumentException("é obrigatório definir um responsável principal");
-            
-        // Verificar se o principal está na lista de responsáveis
-        if (!responsaveis.contains(principal))
-            throw new IllegalArgumentException("o responsável principal deve estar na lista de responsáveis");
-            
-        // RN-58: Deve haver exatamente um responsável principal
-        long countPrincipais = responsaveis.stream().filter(r -> r.equals(principal)).count();
-        if (countPrincipais != 1)
-            throw new IllegalArgumentException("deve haver exatamente um responsável principal");
-        
-        if (new LinkedHashSet<>(responsaveis).size() != responsaveis.size())
-            throw new IllegalArgumentException("Vínculo de responsável duplicado"); // sanity check leve
 
         for (ResponsavelId rid : responsaveis) {
+            if (rid == null) throw new IllegalArgumentException("Responsável não pode ser nulo");
             var r = responsavelRepo.porId(rid);
             if (r.getStatus() == Responsavel.Status.INADIMPLENTE)
                 throw new IllegalStateException("responsável inadimplente não pode ser vinculado até regularização");
         }
-        // Todas as demais invariantes ficam no próprio Aluno
+
+        if (principal == null || !responsaveis.contains(principal))
+            throw new IllegalArgumentException("deve haver exatamente um responsável principal na lista");
     }
-    
-    // ---------- VALIDAÇÕES DE NEGÓCIO (RN) ----------
-    
-    /** RN-19/20/58: Validações para adicionar responsável */
+
+    // ---------- RN específicas ----------
     private void validarAdicionarResponsavel(Aluno aluno, ResponsavelId responsavelId, boolean principal) {
-        // RN-20: Verificar duplicação
-        if (aluno.getResponsaveis().contains(responsavelId)) {
+        if (aluno.getResponsaveis().contains(responsavelId))
             throw new IllegalStateException("já existe vínculo entre o responsável e o aluno");
-        }
-        
-        // RN-58: Verificar principal único
-        if (principal && aluno.getResponsavelPrincipal() != null) {
+
+        if (principal && aluno.getResponsavelPrincipal() != null)
             throw new IllegalStateException("deve haver exatamente um responsável principal");
-        }
-        
-        // RN-XX: Máximo 5 responsáveis
-        if (aluno.getResponsaveis().size() >= 5) {
-            throw new IllegalStateException("o número máximo de responsáveis por aluno é 5");
-        }
+
+        // Limite consistente (3)
+        if (aluno.getResponsaveis().size() >= 3)
+            throw new IllegalStateException("o número máximo de responsáveis por aluno é 3");
     }
-    
-    /** RN-19: Validações para remover responsável */
-    private void validarRemoverResponsavel(Aluno aluno, ResponsavelId responsavelId) {
-        // RN-19: Deve ter pelo menos um responsável
-        if (aluno.getResponsaveis().size() <= 1) {
+
+    private void validarRemoverResponsavel(Aluno aluno) {
+        if (aluno.getResponsaveis().size() <= 1)
             throw new IllegalStateException("o aluno deve ter pelo menos um responsável");
-        }
     }
-    
-    /** RN-XX: Validações para definir principal */
+
     private void validarDefinirPrincipal(Aluno aluno, ResponsavelId responsavelId) {
-        // Verificar se o responsável está vinculado
-        if (!aluno.getResponsaveis().contains(responsavelId)) {
+        if (!aluno.getResponsaveis().contains(responsavelId))
             throw new IllegalStateException("Vínculo de responsável inexistente");
-        }
     }
-    
-    /** RN-19/20/58: Validações para cadastro de responsáveis */
+
     private void validarCadastroResponsaveis(List<ResponsavelId> responsaveis, ResponsavelId principal) {
-        // RN-19: Deve ter pelo menos um responsável
-        if (responsaveis == null || responsaveis.isEmpty()) {
+        if (responsaveis == null || responsaveis.isEmpty())
             throw new IllegalArgumentException("Aluno deve ter ao menos um responsável");
-        }
-        
-        // RN-XX: Máximo 5 responsáveis
-        if (responsaveis.size() > 5) {
-            throw new IllegalArgumentException("o número máximo de responsáveis por aluno é 5");
-        }
-        
-        // RN-20: Verificar duplicação
-        if (new LinkedHashSet<>(responsaveis).size() != responsaveis.size()) {
+
+        if (responsaveis.size() > 3)
+            throw new IllegalArgumentException("o número máximo de responsáveis por aluno é 3");
+
+        if (new LinkedHashSet<>(responsaveis).size() != responsaveis.size())
             throw new IllegalArgumentException("Vínculo de responsável duplicado");
-        }
-        
-        // RN-58: Deve haver exatamente um responsável principal
-        if (principal == null) {
-            throw new IllegalArgumentException("é obrigatório definir um responsável principal");
-        }
-        
-        // Verificar se o principal está na lista (após verificar se não é nulo)
-        if (!responsaveis.contains(principal)) {
-            throw new IllegalArgumentException("o responsável principal deve estar na lista de responsáveis");
-        }
+
+        if (principal == null || !responsaveis.contains(principal))
+            throw new IllegalArgumentException("deve haver exatamente um responsável principal na lista");
     }
-    
-    // ===== ResponsavelVinculoService implementation =====
-    
-    @Override
-    public boolean possuiVinculosAtivos(ResponsavelId responsavelId) {
+
+    // ===== ResponsavelVinculoService =====
+    @Override public boolean possuiVinculosAtivos(ResponsavelId responsavelId) {
         return responsavelRepo.estaVinculadoAAlgumAluno(responsavelId);
     }
-    
-    @Override
-    public void removerVinculos(ResponsavelId responsavelId) {
-        // Implementação para remover todos os vínculos do responsável
-        // Por enquanto, deixamos vazio pois não há método específico no repositório
-    }
-    
-    @Override
-    public void vincularResponsavel(ResponsavelId responsavelId, AlunoId alunoId, boolean principal) {
-        vincularResponsavel(alunoId, responsavelId, principal);
-    }
-    
-    @Override
-    public void desvincularResponsavel(ResponsavelId responsavelId, AlunoId alunoId) {
-        desvincularResponsavel(alunoId, responsavelId);
-    }
+    @Override public void removerVinculos(ResponsavelId responsavelId) { /* opcional/infra */ }
+    @Override public void vincularResponsavel(ResponsavelId rid, AlunoId aid, boolean p) { vincularResponsavel(aid, rid, p); }
+    @Override public void desvincularResponsavel(ResponsavelId rid, AlunoId aid) { desvincularResponsavel(aid, rid); }
 }
