@@ -229,7 +229,7 @@ public class GerenciarNotasFeature {
     public void nova_versao_nota_criada() {
         // Verificar se a nota foi atualizada no agregado Aluno
         var aluno = repo.porId(currentAlunoId);
-        var notaDoAluno = aluno.obterNotaParaTeste(currentSimuladoId, currentDisciplinaId);
+        var notaDoAluno = obterNota(aluno, currentSimuladoId, currentDisciplinaId);
         assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
         assertFalse(notaDoAluno.get().getJustificativas().isEmpty(), "Deveria ter justificativas");
     }
@@ -237,9 +237,19 @@ public class GerenciarNotasFeature {
     @Then("a justificativa é registrada no histórico")
     public void justificativa_registrada_historico() {
         var aluno = repo.porId(currentAlunoId);
-        var notaDoAluno = aluno.obterNotaParaTeste(currentSimuladoId, currentDisciplinaId);
+        var notaDoAluno = obterNota(aluno, currentSimuladoId, currentDisciplinaId);
         assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
         assertFalse(notaDoAluno.get().getJustificativas().isEmpty(), "Justificativa deveria ter sido registrada");
+    }
+    
+    // Helper method para obter nota do agregado Aluno
+    private java.util.Optional<dev.com.qnota.dominio.principal.aluno.NotaDoAluno> obterNota(
+            dev.com.qnota.dominio.principal.aluno.Aluno aluno, 
+            SimuladoId simuladoId, 
+            DisciplinaId disciplinaId) {
+        return aluno.getNotas().stream()
+            .filter(n -> n.getSimuladoId().equals(simuladoId) && n.getDisciplinaId().equals(disciplinaId))
+            .findFirst();
     }
 
     @Then("o sistema rejeita a retificação em notas")

@@ -22,6 +22,7 @@ import dev.com.qnota.dominio.principal.turma.TurmaId;
 
 import dev.com.qnota.dominio.principal.simulado.Simulado;
 
+import dev.com.qnota.dominio.principal.disciplina.Disciplina;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 
 // novo import para professor
@@ -149,6 +150,13 @@ public class GerenciarAlunosFeature {
         return new Simulado.DisciplinaPeso(new DisciplinaId(id), peso);
     }
 
+    // helper para criar disciplina no repositório
+    private DisciplinaId ensureDisciplina(String nome, String area) {
+        var disciplina = new Disciplina(nome, new Disciplina.AreaConhecimento(seq.getAndIncrement(), area));
+        repo.salvar(disciplina); // o repositório atribui o ID automaticamente
+        return disciplina.getId();
+    }
+
     // ===== Givens (agora LITERAIS "aluno") =====
 
     @Given("um \"aluno\" com nome {string} e nascimento {string} {string} registrado na turma {string}")
@@ -215,18 +223,29 @@ public class GerenciarAlunosFeature {
     public void aluno_registrado_possui_notas(String estado, String possui) {
         aluno_estado_registrado("está");
         if ("possui".equalsIgnoreCase(possui)) {
+            // Criar disciplinas necessárias
+            var disciplina1Id = ensureDisciplina("Matemática", "Exatas");
+            var disciplina2Id = ensureDisciplina("Física", "Exatas");
+            
+            // Criar simulado EM_EDICAO para poder lançar nota
             var sim = new Simulado(
                 LocalDate.now(),
-                Simulado.Status.FINALIZADO,
+                Simulado.Status.EM_EDICAO,
                 currentTurmaId,
-                List.of(dp(1, 6.0), dp(2, 4.0))
+                List.of(
+                    new Simulado.DisciplinaPeso(disciplina1Id, 6.0),
+                    new Simulado.DisciplinaPeso(disciplina2Id, 4.0)
+                )
             );
             repo.salvar(sim);
             
-            // Adiciona nota diretamente ao agregado Aluno
-            var aluno = repo.porId(currentAlunoId);
-            aluno.adicionarNotaParaTeste(sim.getId(), new DisciplinaId(1), 8.0);
-            repo.salvar(aluno);
+            // Adiciona nota usando NotaServico (forma correta)
+            var notaSrv = new dev.com.qnota.dominio.principal.aluno.NotaServico(repo, repo, repo, repo);
+            notaSrv.lancarNota(currentAlunoId, sim.getId(), disciplina1Id, 8.0);
+            
+            // Finalizar simulado após lançar nota para manter comportamento esperado do teste
+            sim.finalizar();
+            repo.salvar(sim);
         }
     }
 

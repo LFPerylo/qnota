@@ -63,10 +63,20 @@ public class RetificarNotaFeature {
     /** Localiza a nota do par (aluno, disciplina) neste simulado e guarda o valor. */
     private void capturarNotaOriginalId() {
         var aluno = repo.porId(alunoId);
-        var notaDoAluno = aluno.obterNotaParaTeste(simuladoId, disciplinaId);
+        var notaDoAluno = obterNota(aluno, simuladoId, disciplinaId);
         if (notaDoAluno.isPresent()) {
             valorOriginal = notaDoAluno.get().getValor();
         }
+    }
+    
+    // Helper method para obter nota do agregado Aluno
+    private java.util.Optional<dev.com.qnota.dominio.principal.aluno.NotaDoAluno> obterNota(
+            dev.com.qnota.dominio.principal.aluno.Aluno aluno, 
+            SimuladoId simuladoId, 
+            DisciplinaId disciplinaId) {
+        return aluno.getNotas().stream()
+            .filter(n -> n.getSimuladoId().equals(simuladoId) && n.getDisciplinaId().equals(disciplinaId))
+            .findFirst();
     }
 
     // ===== Given =====
@@ -157,7 +167,7 @@ public class RetificarNotaFeature {
 
         // Verificar se a nota foi retificada no agregado Aluno
         var aluno = repo.porId(alunoId);
-        var notaDoAluno = aluno.obterNotaParaTeste(simuladoId, disciplinaId);
+        var notaDoAluno = obterNota(aluno, simuladoId, disciplinaId);
         assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
         
         // Verificar se tem justificativas
@@ -171,7 +181,7 @@ public class RetificarNotaFeature {
     public void justificativa_registra_valores(double anterior, double corrigida) {
         // A justificativa está salva no agregado Aluno
         var aluno = repo.porId(alunoId);
-        var notaDoAluno = aluno.obterNotaParaTeste(simuladoId, disciplinaId);
+        var notaDoAluno = obterNota(aluno, simuladoId, disciplinaId);
         assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
         
         var justificativas = notaDoAluno.get().getJustificativas();

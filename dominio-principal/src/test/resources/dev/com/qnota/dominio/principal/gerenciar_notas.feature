@@ -29,7 +29,7 @@ Feature: Gerenciar Notas
     Given o "aluno" "A1" "está" inativo
     When um coordenador tenta lançar nota 6.5 para o "aluno" "A1" no "simulado" "S1" na "disciplina" "Matemática"
     Then o sistema rejeita o lançamento em notas
-    And o sistema informa em notas que "RN-31/RN-32/RN-33"
+    And o sistema informa em notas que "RN-31/32/33"
 
   Scenario: Bloquear lançamento em turma inativa (falha - RN-94)
     Given a "turma" "7A" "está" inativa

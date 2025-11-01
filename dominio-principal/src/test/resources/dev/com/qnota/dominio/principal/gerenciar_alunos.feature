@@ -13,16 +13,16 @@ Feature: Gerenciar alunos
     Then o sistema rejeita o cadastro em alunos
     And o sistema informa em alunos que "já existe aluno com mesmo nome e data de nascimento na turma"
 
-  Scenario: Cadastrar aluno com até cinco responsáveis (sucesso - RN-02)
+  Scenario: Cadastrar aluno com até três responsáveis (sucesso - RN-02)
     Given um "aluno" "não está" registrado
-    When um coordenador cadastra o "aluno" informando exatamente 5 responsáveis
+    When um coordenador cadastra o "aluno" informando exatamente 3 responsáveis
     Then o sistema confirma o cadastro do "aluno"
 
-  Scenario: Impedir cadastro com mais de cinco responsáveis (falha - RN-02)
+  Scenario: Impedir cadastro com mais de três responsáveis (falha - RN-02)
     Given um "aluno" "não está" registrado
-    When um coordenador tenta cadastrar o "aluno" informando 6 responsáveis
+    When um coordenador tenta cadastrar o "aluno" informando 4 responsáveis
     Then o sistema rejeita o cadastro em alunos
-    And o sistema informa em alunos que "o número máximo de responsáveis por aluno é 5"
+    And o sistema informa em alunos que "o número máximo de responsáveis por aluno é 3"
 
   Scenario: Cadastrar aluno com responsável principal definido (sucesso - RN-58)
     Given um "aluno" "não está" registrado
@@ -33,7 +33,7 @@ Feature: Gerenciar alunos
     Given um "aluno" "não está" registrado
     When um coordenador tenta cadastrar o "aluno" sem nenhum responsável marcado como "principal"
     Then o sistema rejeita o cadastro em alunos
-    And o sistema informa em alunos que "é obrigatório definir um responsável principal"
+    And o sistema informa em alunos que "deve haver exatamente um responsável principal na lista"
 
   # ========= H1 EDITAR / TRANSFERIR TURMA =========
 
@@ -99,7 +99,7 @@ Feature: Gerenciar alunos
     Given um "aluno" "não está" registrado
     When um coordenador tenta cadastrar o "aluno" na turma "7A" com dois responsáveis marcados como "principal"
     Then o sistema rejeita o cadastro em alunos
-    And o sistema informa em alunos que "deve haver exatamente um responsável principal"
+    And o sistema informa em alunos que "Vínculo de responsável duplicado"
 
   Scenario: Bloquear cadastro sem nome do aluno (falha - NOT NULL)
     Given um "aluno" "não está" registrado e "sem nome"
