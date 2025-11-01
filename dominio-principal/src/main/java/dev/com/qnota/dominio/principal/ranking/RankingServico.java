@@ -1,7 +1,5 @@
 package dev.com.qnota.dominio.principal.ranking;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.cucumber.java.Before;
@@ -68,14 +67,6 @@ public class GerenciarDisciplinasFeature {
             // Retornar o ID gerado pelo repositório
             return d.getId();
         });
-    }
-
-    private Disciplina byId(DisciplinaId id) { 
-        try {
-            return repo.porId(id);
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     private static Simulado.DisciplinaPeso dp(int did, double peso) {

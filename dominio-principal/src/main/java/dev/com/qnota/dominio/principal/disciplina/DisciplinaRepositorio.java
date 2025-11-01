@@ -1,7 +1,5 @@
 package dev.com.qnota.dominio.principal.disciplina;
 
-import java.util.Optional;
-
 public interface DisciplinaRepositorio {
 
     /**

@@ -11,12 +11,11 @@ import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
 public class ProfessorServico {
 
     private final ProfessorRepositorio repo;
-    private final AlunoRepositorio alunoRepo;
     private final SimuladoRepositorio simuladoRepo;
 
     public ProfessorServico(ProfessorRepositorio repo, AlunoRepositorio alunoRepo, SimuladoRepositorio simuladoRepo) {
         this.repo = Objects.requireNonNull(repo);
-        this.alunoRepo = Objects.requireNonNull(alunoRepo);
+        Objects.requireNonNull(alunoRepo); // mantido por compatibilidade de API, mas não usado
         this.simuladoRepo = Objects.requireNonNull(simuladoRepo);
     }
 

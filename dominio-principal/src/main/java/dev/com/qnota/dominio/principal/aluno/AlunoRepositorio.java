@@ -3,7 +3,6 @@ package dev.com.qnota.dominio.principal.aluno;
 import java.time.LocalDate;
 import java.util.List;
 
-import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 

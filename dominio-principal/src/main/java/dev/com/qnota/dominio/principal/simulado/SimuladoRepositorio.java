@@ -2,7 +2,6 @@ package dev.com.qnota.dominio.principal.simulado;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;

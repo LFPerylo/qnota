@@ -439,7 +439,7 @@ public class GerenciarAlunosFeature {
         lastError = null;
         try {
             var rA = ensureResp("R1", false, "Parente");
-            var rB = ensureResp("R2", false, "Parente");
+            ensureResp("R2", false, "Parente");
             // Simular "dois principais" criando uma lista onde o mesmo responsável aparece duas vezes
             // Isso deveria gerar o erro "deve haver exatamente um responsável principal"
             var lista = List.of(rA, rA); // mesmo responsável duas vezes
