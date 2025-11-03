@@ -1,185 +1,260 @@
 package dev.com.qnota.infraestrutura.persistencia.jpa;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.ranking.Ranking;
-import dev.com.qnota.dominio.principal.ranking.RankingRepositorio;
 import dev.com.qnota.dominio.principal.ranking.RankingId;
+import dev.com.qnota.dominio.principal.ranking.RankingRepositorio;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Column;
+import jakarta.persistence.UniqueConstraint;
 
-/* =========================================================
- * Entidades JPA
- * ========================================================= */
+/* =========================
+   ENTIDADES JPA
+   ========================= */
 
 @Entity
-@Table(name = "rankings", indexes = {
-  @Index(name = "uk_rankings_simulado", columnList = "simulado_id", unique = true)
-})
+@Table(name = "rankings")
 class RankingJpa {
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  Integer id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Integer id;
 
-  @Column(name = "simulado_id", nullable = false)
-  Integer simuladoId;
+    @Column(nullable = false)
+    Boolean congelado = Boolean.FALSE;
 
-  @Column(name = "congelado", nullable = false)
-  Boolean congelado;
+    @Column(name = "simulado_id", nullable = false, unique = true)
+    Integer simuladoId;
+
+    @jakarta.persistence.OneToMany(mappedBy = "ranking",
+        cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    Set<RankingLinhaJpa> linhas = new LinkedHashSet<>();
+}
+
+@Embeddable
+class RankingLinhaIdJpa implements Serializable {
+    @Column(name = "ranking_id", nullable = false)
+    Integer rankingId;
+
+    @Column(name = "aluno_id", nullable = false)
+    Integer alunoId;
+
+    public RankingLinhaIdJpa() {}
+
+    public RankingLinhaIdJpa(Integer rankingId, Integer alunoId) {
+        this.rankingId = rankingId;
+        this.alunoId = alunoId;
+    }
+
+    @Override public int hashCode() { return java.util.Objects.hash(rankingId, alunoId); }
+    @Override public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof RankingLinhaIdJpa other)) return false;
+        return java.util.Objects.equals(rankingId, other.rankingId)
+            && java.util.Objects.equals(alunoId, other.alunoId);
+    }
 }
 
 @Entity
-@Table(name = "ranking_linhas", indexes = {
-  @Index(name = "idx_ranklin_sim_pos", columnList = "simulado_id,posicao")
-})
+@Table(name = "ranking_linhas",
+       uniqueConstraints = @UniqueConstraint(name = "ux_rl_rank_pos",
+                                             columnNames = {"ranking_id","posicao"}))
 class RankingLinhaJpa {
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  Integer id;
+    @EmbeddedId
+    RankingLinhaIdJpa id;
 
-  @Column(name = "simulado_id", nullable = false)
-  Integer simuladoId;
+    @jakarta.persistence.MapsId("rankingId")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ranking_id", nullable = false,
+        foreignKey = @ForeignKey(name = "fk_rl_rank"))
+    RankingJpa ranking;
 
-  @Column(name = "aluno_id", nullable = false)
-  Integer alunoId;
+    @Column(name = "media", nullable = false)
+    Double media;
 
-  @Column(name = "media", nullable = false)
-  Double media;
+    @Column(name = "posicao", nullable = false)
+    Integer posicao;
 
-  @Column(name = "posicao", nullable = false)
-  Integer posicao;
+    public RankingLinhaJpa() {}
+
+    public RankingLinhaJpa(RankingJpa ranking, Integer alunoId, double media, int posicao) {
+        this.ranking = ranking;
+        this.id = new RankingLinhaIdJpa(ranking.id, alunoId);
+        this.media = media;
+        this.posicao = posicao;
+    }
 }
 
-/* =========================================================
- * Repositórios Spring Data
- * ========================================================= */
+/* =========================
+   REPOSITÓRIOS SPRING DATA
+   ========================= */
 
 interface RankingJpaRepository extends JpaRepository<RankingJpa, Integer> {
-  Optional<RankingJpa> findBySimuladoId(Integer simuladoId);
-  boolean existsBySimuladoIdAndCongeladoTrue(Integer simuladoId);
+    Optional<RankingJpa> findBySimuladoId(Integer simuladoId);
 
-  @Modifying
-  @Query("update RankingJpa r set r.congelado=true where r.simuladoId = :simId")
-  int marcarCongelado(Integer simId);
+    boolean existsBySimuladoId(Integer simuladoId);
 
-  @Modifying
-  @Query("update RankingJpa r set r.congelado=false where r.simuladoId = :simId")
-  int desmarcarCongelado(Integer simId);
+    @Modifying
+    @Transactional
+    @Query("update RankingJpa r set r.congelado = TRUE where r.simuladoId = :simuladoId")
+    int marcarCongeladoPorSimulado(@org.springframework.data.repository.query.Param("simuladoId") Integer simuladoId);
 }
 
-interface RankingLinhaJpaRepository extends JpaRepository<RankingLinhaJpa, Integer> {
-  List<RankingLinhaJpa> findBySimuladoIdOrderByPosicaoAsc(Integer simuladoId);
+interface RankingLinhaJpaRepository extends JpaRepository<RankingLinhaJpa, RankingLinhaIdJpa> {
 
-  @Modifying
-  @Query("delete from RankingLinhaJpa l where l.simuladoId = :simId")
-  int apagarPorSimulado(Integer simId);
+    @Modifying
+    @Transactional
+    @Query("delete from RankingLinhaJpa rl where rl.ranking.id = :rankingId")
+    int deleteAllByRankingId(@org.springframework.data.repository.query.Param("rankingId") Integer rankingId);
+
+    @Query("select rl from RankingLinhaJpa rl where rl.ranking.id = :rankingId order by rl.posicao asc")
+    List<RankingLinhaJpa> findAllByRankingIdOrderByPosicaoAsc(@org.springframework.data.repository.query.Param("rankingId") Integer rankingId);
 }
 
-/* =========================================================
- * Implementação do RankingRepositorio
- * ========================================================= */
+/* =========================
+   IMPLEMENTAÇÃO DO REPOSITÓRIO DE DOMÍNIO
+   ========================= */
 
 @Repository
-@Transactional
 class RankingRepositorioImpl implements RankingRepositorio {
 
-  @Autowired RankingJpaRepository rankingRepo;
-  @Autowired RankingLinhaJpaRepository linhaRepo;
-  @Autowired JpaMapeador mapeador;
+    @Autowired RankingJpaRepository rankingRepo;
+    @Autowired RankingLinhaJpaRepository linhaRepo;
 
-  /* util: garante linha em 'rankings' para o simulado informado */
-  private RankingJpa garantirCabecalho(Integer simId) {
-    return rankingRepo.findBySimuladoId(simId)
-        .orElseGet(() -> {
-          var r = new RankingJpa();
-          r.simuladoId = simId;
-          r.congelado  = Boolean.FALSE;
-          return rankingRepo.save(r);
-        });
-  }
+    @Transactional
+    protected RankingJpa garantirRankingDoSimulado(@NonNull SimuladoId simulado) {
+        return rankingRepo.findBySimuladoId(simulado.value())
+                .orElseGet(() -> {
+                    var r = new RankingJpa();
+                    r.simuladoId = simulado.value();
+                    r.congelado = Boolean.FALSE;
+                    return rankingRepo.save(r);
+                });
+    }
 
-  @Override
-  public void limpar(SimuladoId simulado) {
-    Integer simId = simulado.value();
-    linhaRepo.apagarPorSimulado(simId);
-    rankingRepo.desmarcarCongelado(simId); // voltar a “não congelado”
-  }
+    @Override
+    @Transactional
+    public void limpar(SimuladoId simulado) {
+        var r = garantirRankingDoSimulado(simulado);
+        linhaRepo.deleteAllByRankingId(r.id);
+        if (Boolean.TRUE.equals(r.congelado)) {
+            r.congelado = Boolean.FALSE;
+            rankingRepo.save(r);
+        }
+    }
 
-  @Override
-  public void salvarPosicoes(SimuladoId simulado, List<Ranking.Linha> linhas) {
-    Integer simId = simulado.value();
-    garantirCabecalho(simId);
+    @Override
+    @Transactional
+    public void salvarPosicoes(SimuladoId simulado, List<Ranking.Linha> linhas) {
+        var r = garantirRankingDoSimulado(simulado);
+        linhaRepo.deleteAllByRankingId(r.id);
 
-    // Apaga antigas (em caso de regravação direta)
-    linhaRepo.apagarPorSimulado(simId);
+        if (linhas != null) {
+            for (var l : linhas) {
+                linhaRepo.save(new RankingLinhaJpa(r, l.aluno().value(), l.media(), l.posicao()));
+            }
+        }
+        if (Boolean.TRUE.equals(r.congelado)) {
+            r.congelado = Boolean.FALSE;
+            rankingRepo.save(r);
+        }
+    }
 
-    // Persiste novas
-    var entidades = linhas.stream().map(l -> {
-      var j = new RankingLinhaJpa();
-      j.simuladoId = simId;
-      j.alunoId    = l.aluno().value();
-      j.media      = l.media();
-      j.posicao    = l.posicao();
-      return j;
-    }).toList();
+    @Override
+    @Transactional
+    public void congelar(SimuladoId simulado) {
+        var updated = rankingRepo.marcarCongeladoPorSimulado(simulado.value());
+        if (updated == 0) {
+            var r = garantirRankingDoSimulado(simulado);
+            r.congelado = Boolean.TRUE;
+            rankingRepo.save(r);
+        }
+    }
 
-    linhaRepo.saveAll(entidades);
-  }
+    @Override
+    @Transactional(readOnly = true)
+    public boolean estaCongelado(SimuladoId simulado) {
+        return rankingRepo.findBySimuladoId(simulado.value())
+                .map(r -> Boolean.TRUE.equals(r.congelado))
+                .orElse(false);
+    }
 
-  @Override
-  public void congelar(SimuladoId simulado) {
-    Integer simId = simulado.value();
-    garantirCabecalho(simId);
-    rankingRepo.marcarCongelado(simId);
-  }
+    @Override
+    @Transactional(readOnly = true)
+    public List<Ranking.Linha> carregar(SimuladoId simulado) {
+        var opt = rankingRepo.findBySimuladoId(simulado.value());
+        if (opt.isEmpty()) return List.of();
 
-  @Override
-  @Transactional(readOnly = true)
-  public boolean estaCongelado(SimuladoId simulado) {
-    return rankingRepo.existsBySimuladoIdAndCongeladoTrue(simulado.value());
-  }
+        var r = opt.get();
+        var jpaLinhas = linhaRepo.findAllByRankingIdOrderByPosicaoAsc(r.id);
+        var out = new ArrayList<Ranking.Linha>(jpaLinhas.size());
+        for (var jl : jpaLinhas) {
+            out.add(new Ranking.Linha(new AlunoId(jl.id.alunoId), jl.media, jl.posicao));
+        }
+        return out;
+    }
 
-  @Override
-  @Transactional(readOnly = true)
-  public List<Ranking.Linha> carregar(SimuladoId simulado) {
-    Integer simId = simulado.value();
-    var linhas = linhaRepo.findBySimuladoIdOrderByPosicaoAsc(simId);
-    return linhas.stream()
-        .map(j -> new Ranking.Linha(new AlunoId(j.alunoId), j.media, j.posicao))
-        .toList();
-  }
+    @Override
+    @Transactional
+    public Ranking salvar(Ranking ranking) {
+        var simId = ranking.getSimulado();
+        var r = garantirRankingDoSimulado(simId);
 
-  /* Opcional: versão que atribui ID do agregado (se desejar trabalhar com RankingId) */
-  @Override
-  public Ranking salvar(Ranking ranking) {
-    Integer simId = ranking.getSimulado().value();
+        linhaRepo.deleteAllByRankingId(r.id);
+        for (var l : ranking.getLinhas()) {
+            linhaRepo.save(new RankingLinhaJpa(r, l.aluno().value(), l.media(), l.posicao()));
+        }
 
-    // upsert do cabeçalho
-    var cab = garantirCabecalho(simId);
-    cab.congelado = ranking.isCongelado();
-    cab = rankingRepo.save(cab);
+        if (ranking.isCongelado()) {
+            r.congelado = Boolean.TRUE;
+            rankingRepo.save(r);
+        } else if (Boolean.TRUE.equals(r.congelado)) {
+            r.congelado = Boolean.FALSE;
+            rankingRepo.save(r);
+        }
 
-    // linhas
-    linhaRepo.apagarPorSimulado(simId);
-    salvarPosicoes(ranking.getSimulado(), ranking.getLinhas());
+        if (ranking.getId() == null) {
+            ranking.atribuirIdSeAusente(new RankingId(r.id));
+        }
+        return ranking;
+    }
 
-    // devolve com id preenchido (se o domínio quiser usar)
-    ranking.atribuirIdSeAusente(new RankingId(cab.id));
-    return ranking;
-  }
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Ranking> carregarAgregado(SimuladoId simulado) {
+        var opt = rankingRepo.findBySimuladoId(simulado.value());
+        if (opt.isEmpty()) return Optional.of(new Ranking(simulado, List.of()));
+        var r = opt.get();
+        var linhas = carregar(simulado);
+        var agg = new Ranking(simulado, linhas);
+        if (Boolean.TRUE.equals(r.congelado)) agg.congelar();
+        agg.atribuirIdSeAusente(new RankingId(r.id));
+        return Optional.of(agg);
+    }
 }

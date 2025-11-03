@@ -1,116 +1,184 @@
 package dev.com.qnota.infraestrutura.persistencia.jpa;
 
-import static jakarta.persistence.GenerationType.IDENTITY;
-
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
-// IMPORTS CORRETOS PARA ANOTAÇÕES DO SPRING DATA:
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query; // Spring Data JPA
 import org.springframework.data.repository.query.Param;
-
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dev.com.qnota.dominio.principal.professor.Professor;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.professor.ProfessorRepositorio;
-import jakarta.persistence.*;
 
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Converter;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+/* =========================
+ * ENTIDADE JPA (professores)
+ * ========================= */
 @Entity
-@Table(name = "PROFESSORES") // use o mesmo nome do seu script (professores)
+@Table(name = "professores")
 class ProfessorJpa {
-  @Id @GeneratedValue(strategy = IDENTITY)
-  @Column(name="ID")
-  int id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Integer id;
 
-  @Column(name="NOME", nullable=false, length=120)
-  String nome;
+    @Column(name = "nome", nullable = false)
+    String nome;
 
-  @Column(name="CPF", nullable=false, unique=true, length=14)
-  String cpf;
+    @Column(name = "cpf", nullable = false, unique = true)
+    String cpf;
 
-  @Column(name="ENDERECOELETRONICO", nullable=false, length=160)
-  String email;
+    @Column(name = "endereco_eletronico", nullable = false)
+    String email;
 
-  @ElementCollection
-  @CollectionTable(name="PROFESSOR_ESPECIALIDADE", joinColumns=@JoinColumn(name="PROFESSOR_ID"))
-  @OrderColumn(name="ORDEM")
-  @Column(name="NOME", nullable=false, length=80)
-  List<String> especialidades = new ArrayList<>();
+    // JSONB em Postgres
+    @Column(name = "especialidades", columnDefinition = "jsonb")
+    @Convert(converter = StringListJsonConverter.class)
+    List<String> especialidades = new ArrayList<>();
+
+    ProfessorJpa() {}
+    ProfessorJpa(String nome, String cpf, String email, List<String> especialidades) {
+        this.nome = nome;
+        this.cpf = cpf;
+        this.email = email;
+        this.especialidades = (especialidades != null) ? new ArrayList<>(especialidades) : new ArrayList<>();
+    }
 }
 
+/* =========================
+ * Converter List<String> <-> JSON
+ * ========================= */
+@Converter
+class StringListJsonConverter implements AttributeConverter<List<String>, String> {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final TypeReference<List<String>> TYPE = new TypeReference<>() {};
+
+    @Override
+    public String convertToDatabaseColumn(List<String> attribute) {
+        try {
+            return MAPPER.writeValueAsString(attribute == null ? List.of() : attribute);
+        } catch (IOException e) {
+            throw new IllegalStateException("Erro serializando especialidades.", e);
+        }
+    }
+
+    @Override
+    public List<String> convertToEntityAttribute(String dbData) {
+        try {
+            if (dbData == null || dbData.isBlank()) return new ArrayList<>();
+            return MAPPER.readValue(dbData, TYPE);
+        } catch (IOException e) {
+            throw new IllegalStateException("Erro desserializando especialidades.", e);
+        }
+    }
+}
+
+/* =========================
+ * REPOSITÓRIO SPRING DATA
+ * ========================= */
 interface ProfessorJpaRepository extends JpaRepository<ProfessorJpa, Integer> {
+    Optional<ProfessorJpa> findByCpf(String cpf);
 
-  // Conte as turmas ATIVAS do professor (tabela 'turmas' do seu script)
-  @Query(
-      value = """
-              SELECT COUNT(*)
-                FROM turmas
-               WHERE professor_id = :profId
-                 AND ativo = 1
-              """,
-      nativeQuery = true)
-  long countTurmasAtivas(@Param("profId") int profId);
+    @Query(value = "SELECT COUNT(*) FROM turmas t WHERE t.professor_id = :id AND t.ativo = TRUE", nativeQuery = true)
+    int countTurmasAtivas(@Param("id") int professorId);
 
-  // Substitui o professor nas turmas
-  @Modifying
-  @Transactional
-  @Query(
-      value = """
-              UPDATE turmas
-                 SET professor_id = :substituto
-               WHERE professor_id = :antigo
-              """,
-      nativeQuery = true)
-  int substituirProfessorNasTurmas(@Param("antigo") int antigo,
-                                   @Param("substituto") int substituto);
+    @Modifying
+    @Query(value = "UPDATE turmas SET professor_id = :substituto WHERE professor_id = :antigo", nativeQuery = true)
+    int substituirProfessor(@Param("antigo") int antigo, @Param("substituto") int substituto);
 }
 
+/* =========================
+ * IMPLEMENTAÇÃO DO DOMÍNIO
+ * ========================= */
 @Repository
 class ProfessorRepositorioImpl implements ProfessorRepositorio {
 
-  @Autowired private ProfessorJpaRepository repo;
-  @Autowired private JpaMapeador mapper;
+    private final ProfessorJpaRepository repo;
 
-  @Transactional
-  @Override
-  public ProfessorId salvar(Professor p) {
-    var j = mapper.map(p, ProfessorJpa.class);
-    j = repo.save(j);
-    var idGerado = new ProfessorId(j.id);
-    if (p.getId() == null) {
-      p.atribuirIdSeAusente(idGerado);
+    @Autowired
+    ProfessorRepositorioImpl(ProfessorJpaRepository repo) {
+        this.repo = repo;
     }
-    return idGerado;
-  }
 
-  @Transactional(readOnly = true)
-  @Override
-  public Professor porId(ProfessorId id) {
-    var j = repo.findById(id.value()).orElseThrow();
-    return mapper.map(j, Professor.class);
-  }
+    // ----- mapeamento manual -----
+    private Professor toDomain(ProfessorJpa j) {
+        var p = new Professor(j.nome, j.cpf, j.email, j.especialidades);
+        if (j.id != null) p.atribuirIdSeAusente(new ProfessorId(j.id));
+        return p;
+    }
 
-  @Transactional(readOnly = true)
-  @Override
-  public int contarTurmasAtivas(ProfessorId id) {
-    return (int) repo.countTurmasAtivas(id.value());
-  }
+    private ProfessorJpa novoJpa(Professor d) {
+        return new ProfessorJpa(d.getNome(), d.getCpf(), d.getEmail(), d.getEspecialidades());
+    }
 
-  @Transactional(readOnly = true)
-  @Override
-  public List<String> nomesDeAreasDoProfessor(ProfessorId id) {
-    var j = repo.findById(id.value()).orElseThrow();
-    return List.copyOf(j.especialidades);
-  }
+    private void copiarMutaveis(Professor d, ProfessorJpa j) {
+        j.nome = d.getNome();
+        j.email = d.getEmail();
+        j.especialidades = new ArrayList<>(d.getEspecialidades());
+        // cpf é imutável por regra
+    }
 
-  @Transactional
-  @Override
-  public void substituirProfessor(ProfessorId antigo, ProfessorId substituto) {
-    repo.substituirProfessorNasTurmas(antigo.value(), substituto.value());
-  }
+    // ----- contrato -----
+    @Override
+    @Transactional
+    public ProfessorId salvar(Professor p) {
+        ProfessorJpa salvo;
+        if (p.getId() == null) {
+            salvo = repo.save(novoJpa(p));          // INSERT (Postgres gera id)
+            p.atribuirIdSeAusente(new ProfessorId(salvo.id));
+        } else {
+            var j = repo.findById(p.getId().value())
+                        .orElseThrow(() -> new EntityNotFoundException("Professor não encontrado: id=" + p.getId().value()));
+            copiarMutaveis(p, j);
+            salvo = repo.save(j);                   // UPDATE
+        }
+        return new ProfessorId(salvo.id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Professor porId(ProfessorId id) {
+        var j = repo.findById(id.value())
+                    .orElseThrow(() -> new EntityNotFoundException("Professor não encontrado: id=" + id.value()));
+        return toDomain(j);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int contarTurmasAtivas(ProfessorId id) {
+        return repo.countTurmasAtivas(id.value());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> nomesDeAreasDoProfessor(ProfessorId id) {
+        var j = repo.findById(id.value())
+                    .orElseThrow(() -> new EntityNotFoundException("Professor não encontrado: id=" + id.value()));
+        return List.copyOf(j.especialidades);
+    }
+
+    @Override
+    @Transactional
+    public void substituirProfessor(ProfessorId antigo, ProfessorId substituto) {
+        repo.substituirProfessor(antigo.value(), substituto.value());
+    }
 }

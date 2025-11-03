@@ -1,93 +1,101 @@
-USE qnota;
+-- Use o schema
+SET search_path TO qnota;
 
--- Áreas
-INSERT INTO areas_conhecimento (nome) VALUES
-  ('Matemática'), ('Português') ON DUPLICATE KEY UPDATE nome=VALUES(nome);
+-- AREAS
+INSERT INTO areas_conhecimento (id, nome) VALUES
+  (1,'Matemática'),
+  (2,'Português'),
+  (3,'Ciências')
+ON CONFLICT (id) DO NOTHING;
 
--- Professores
-INSERT INTO professores (nome, cpf, enderecoEletronico, especialidades) VALUES
-  ('Ana Souza','111.111.111-11','ana@escola.com','["Matemática"]'),
-  ('Bruno Lima','222.222.222-22','bruno@escola.com','["Português"]')
-ON DUPLICATE KEY UPDATE enderecoEletronico=VALUES(enderecoEletronico);
+-- DISCIPLINAS
+INSERT INTO disciplinas (id, nome, versao, idVersaoOrigem, ativo, area_id) VALUES
+  (1,'Matemática',1,NULL,TRUE,1),
+  (2,'Português',1,NULL,TRUE,2),
+  (3,'Ciências',1,NULL,TRUE,3)
+ON CONFLICT (id) DO NOTHING;
 
--- Disciplinas
-INSERT INTO disciplinas (nome, versao, idVersaoOrigem, ativo, area_id) VALUES
-  ('Matemática',1,NULL,1,(SELECT id FROM areas_conhecimento WHERE nome='Matemática')),
-  ('Português',1,NULL,1,(SELECT id FROM areas_conhecimento WHERE nome='Português'))
-ON DUPLICATE KEY UPDATE ativo=VALUES(ativo);
+-- PROFESSORES
+INSERT INTO professores (id, nome, cpf, enderecoEletronico, especialidades) VALUES
+  (1,'Ana Paula','111.111.111-11','ana@escola.com', '["Matemática","Português"]'::jsonb),
+  (2,'Carlos Silva','222.222.222-22','carlos@escola.com', '["Ciências"]'::jsonb)
+ON CONFLICT (id) DO NOTHING;
 
--- Turma
-INSERT INTO turmas (nome, anoLetivo, ativo, professor_id) VALUES
-  ('6º Ano A', 2025, 1, (SELECT id FROM professores WHERE nome='Ana Souza'))
-ON DUPLICATE KEY UPDATE ativo=VALUES(ativo);
+-- TURMAS
+INSERT INTO turmas (id, nome, anoLetivo, ativo, professor_id) VALUES
+  (1,'6ºA',2025,TRUE,1),
+  (2,'6ºB',2025,TRUE,2)
+ON CONFLICT (id) DO NOTHING;
 
--- Responsáveis
-INSERT INTO responsaveis (nome, cpf, enderecoEletronico, status) VALUES
-  ('Maria Silva','333.333.333-33','maria@gmail.com','ATIVO'),
-  ('João Silva','444.444.444-44','joao@gmail.com','ATIVO')
-ON DUPLICATE KEY UPDATE status=VALUES(status);
+-- COORDENADORES
+INSERT INTO coordenadores (id, nome, enderecoEletronico, senhaHash, ativo) VALUES
+  (1,'Coordenadora Júlia','julia@escola.com','$2a$10$hash-exemplo',TRUE)
+ON CONFLICT (id) DO NOTHING;
 
--- Alunos
-INSERT INTO alunos (nome, dataNascimento, ativo, turma_id) VALUES
-  ('Pedro Silva', '2013-05-20', 1, (SELECT id FROM turmas WHERE nome='6º Ano A'))
-;
+-- RESPONSAVEIS
+INSERT INTO responsaveis (id, nome, cpf, enderecoEletronico, status) VALUES
+  (1,'Maria Souza','333.333.333-33','maria@email.com','ATIVO'),
+  (2,'João Souza','444.444.444-44','joao@email.com','ATIVO'),
+  (3,'Paula Dias','555.555.555-55','paula@email.com','INADIMPLENTE')
+ON CONFLICT (id) DO NOTHING;
 
--- Vínculos aluno-responsável (um principal por aluno, garantido pelo índice único)
-INSERT INTO aluno_responsaveis (responsavel_id, principal, aluno_id) VALUES
-  ((SELECT id FROM responsaveis WHERE cpf='333.333.333-33'), 1, (SELECT id FROM alunos WHERE nome='Pedro Silva')),
-  ((SELECT id FROM responsaveis WHERE cpf='444.444.444-44'), 0, (SELECT id FROM alunos WHERE nome='Pedro Silva'))
-ON DUPLICATE KEY UPDATE principal=VALUES(principal);
+-- ALUNOS
+INSERT INTO alunos (id, nome, dataNascimento, ativo, turma_id) VALUES
+  (1,'Lucas Souza','2013-04-10',TRUE,1),
+  (2,'Bianca Dias','2013-07-22',TRUE,1)
+ON CONFLICT (id) DO NOTHING;
 
--- Simulado
-INSERT INTO simulados (dataAplicacao, status, turma_id) VALUES
-  ('2025-06-10','EM_EDICAO',(SELECT id FROM turmas WHERE nome='6º Ano A'));
+-- VÍNCULOS (um principal por aluno)
+INSERT INTO aluno_responsaveis (responsavel_id, aluno_id, principal) VALUES
+  (1,1,TRUE),   -- Maria é principal do Lucas
+  (2,1,FALSE),  -- João também vinculado ao Lucas
+  (3,2,TRUE)    -- Paula é principal da Bianca
+ON CONFLICT DO NOTHING;
 
--- Disciplinas do simulado (pesos somando 10; regra validada na aplicação)
-INSERT INTO simulado_disciplinas (simulado_id, disciplina_id, peso)
-SELECT s.id, d.id, p.peso FROM
-  (SELECT (SELECT id FROM simulados ORDER BY id DESC LIMIT 1) AS id) s
-JOIN (
-  SELECT (SELECT id FROM disciplinas WHERE nome='Matemática') AS id, 6.0 AS peso
-  UNION ALL
-  SELECT (SELECT id FROM disciplinas WHERE nome='Português')  AS id, 4.0
-) d ON 1=1
-JOIN (SELECT 1 AS peso) p ON 1=1
-ON DUPLICATE KEY UPDATE peso=VALUES(peso);
+-- SIMULADOS
+INSERT INTO simulados (id, dataAplicacao, status, turma_id) VALUES
+  (1,'2025-05-15','EM_EDICAO',1),
+  (2,'2025-06-20','FINALIZADO',1)
+ON CONFLICT (id) DO NOTHING;
 
--- Notas do aluno (exemplo)
-INSERT INTO notas_do_aluno (aluno_id, simulado_id, disciplina_id, valor)
+-- DISCIPLINAS DO SIMULADO (pesos somam 10)
+INSERT INTO simulado_disciplinas (simulado_id, disciplina_id, peso) VALUES
+  (1,1,6.0),(1,2,4.0),
+  (2,1,5.0),(2,2,5.0)
+ON CONFLICT DO NOTHING;
+
+-- NOTAS (para o simulado 2, que está FINALIZADO)
+INSERT INTO notas_do_aluno (aluno_id, simulado_id, disciplina_id, valor, dataLancamento) VALUES
+  (1,2,1,8.5, NOW()),
+  (1,2,2,7.0, NOW()),
+  (2,2,1,9.0, NOW()),
+  (2,2,2,8.0, NOW())
+ON CONFLICT DO NOTHING;
+
+-- JUSTIFICATIVAS (exemplo)
+INSERT INTO justificativas
+(id, aluno_id, simulado_id, disciplina_id, professor_id, notaAnterior, notaCorrigida, texto, dataHora)
 VALUES
-  ((SELECT id FROM alunos WHERE nome='Pedro Silva'),
-   (SELECT id FROM simulados ORDER BY id DESC LIMIT 1),
-   (SELECT id FROM disciplinas WHERE nome='Matemática'),
-   8.5),
-  ((SELECT id FROM alunos WHERE nome='Pedro Silva'),
-   (SELECT id FROM simulados ORDER BY id DESC LIMIT 1),
-   (SELECT id FROM disciplinas WHERE nome='Português'),
-   7.0)
-ON DUPLICATE KEY UPDATE valor=VALUES(valor);
+('J-0001', 1, 2, 2, 1, 6.5, 7.0, 'Correção de erro de digitação na planilha.', NOW())
+ON CONFLICT DO NOTHING;
 
--- Justificativa (exemplo simples; gere UUID real na app)
-INSERT INTO justificativas (id, aluno_id, simulado_id, disciplina_id, professor_id, notaAnterior, notaCorrigida, texto)
-VALUES
-  ('JUS-0001',
-   (SELECT id FROM alunos WHERE nome='Pedro Silva'),
-   (SELECT id FROM simulados ORDER BY id DESC LIMIT 1),
-   (SELECT id FROM disciplinas WHERE nome='Português'),
-   (SELECT id FROM professores WHERE nome='Bruno Lima'),
-   7.0, 7.5,
-   'Erro de digitação corrigido pelo professor.')
-ON DUPLICATE KEY UPDATE texto=VALUES(texto);
+-- RANKING (para o simulado 2)
+INSERT INTO rankings (id, congelado, simulado_id) VALUES
+  (1, TRUE, 2)
+ON CONFLICT (id) DO NOTHING;
 
--- Ranking (mock)
-INSERT INTO rankings (congelado, simulado_id)
-VALUES (0, (SELECT id FROM simulados ORDER BY id DESC LIMIT 1))
-ON DUPLICATE KEY UPDATE congelado=VALUES(congelado);
+INSERT INTO ranking_linhas (ranking_id, aluno_id, media, posicao) VALUES
+  (1,2,8.50,1),
+  (1,1,7.70,2)
+ON CONFLICT DO NOTHING;
 
-INSERT INTO ranking_linhas (ranking_id, aluno_id, media, posicao)
-VALUES (
-  (SELECT id FROM rankings ORDER BY id DESC LIMIT 1),
-  (SELECT id FROM alunos WHERE nome='Pedro Silva'),
-  7.9, 1
-)
-ON DUPLICATE KEY UPDATE media=VALUES(media), posicao=VALUES(posicao);
+-- Ajusta sequences para não colidir em futuros INSERTs sem id
+SELECT setval(pg_get_serial_sequence('qnota.coordenadores','id'), COALESCE((SELECT MAX(id) FROM qnota.coordenadores),1), TRUE);
+SELECT setval(pg_get_serial_sequence('qnota.responsaveis','id'),  COALESCE((SELECT MAX(id) FROM qnota.responsaveis),1), TRUE);
+SELECT setval(pg_get_serial_sequence('qnota.professores','id'),  COALESCE((SELECT MAX(id) FROM qnota.professores),1), TRUE);
+SELECT setval(pg_get_serial_sequence('qnota.areas_conhecimento','id'), COALESCE((SELECT MAX(id) FROM qnota.areas_conhecimento),1), TRUE);
+SELECT setval(pg_get_serial_sequence('qnota.disciplinas','id'),   COALESCE((SELECT MAX(id) FROM qnota.disciplinas),1), TRUE);
+SELECT setval(pg_get_serial_sequence('qnota.turmas','id'),       COALESCE((SELECT MAX(id) FROM qnota.turmas),1), TRUE);
+SELECT setval(pg_get_serial_sequence('qnota.alunos','id'),       COALESCE((SELECT MAX(id) FROM qnota.alunos),1), TRUE);
+SELECT setval(pg_get_serial_sequence('qnota.simulados','id'),    COALESCE((SELECT MAX(id) FROM qnota.simulados),1), TRUE);
+SELECT setval(pg_get_serial_sequence('qnota.rankings','id'),     COALESCE((SELECT MAX(id) FROM qnota.rankings),1), TRUE);

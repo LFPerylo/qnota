@@ -1,10 +1,12 @@
 package dev.com.qnota.infraestrutura.persistencia.jpa;
 
+import java.lang.reflect.Field;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,198 +14,214 @@ import dev.com.qnota.dominio.principal.disciplina.Disciplina;
 import dev.com.qnota.dominio.principal.disciplina.Disciplina.AreaConhecimento;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaRepositorio;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
-/* =========================================================
- * Entidades JPA
- * ========================================================= */
+/* =======================
+   ENTIDADES JPA
+   ======================= */
 
 @Entity
 @Table(name = "areas_conhecimento")
 class AreaConhecimentoJpa {
-  @Id
-  Integer id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Integer id;
 
-  @Column(nullable = false)
-  String nome;
+    @Column(name = "nome", nullable = false, unique = true)
+    String nome;
+
+    AreaConhecimentoJpa() {}
+
+    AreaConhecimentoJpa(String nome) { this.nome = nome; }
 }
 
 @Entity
-@Table(name = "disciplinas")
+@Table(
+    name = "disciplinas",
+    uniqueConstraints = @UniqueConstraint(
+        name = "ux_disc_nome_area_versao",
+        columnNames = {"nome", "area_id", "versao"}
+    )
+)
 class DisciplinaJpa {
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  Integer id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Integer id;
 
-  @Column(nullable = false)
-  String nome;
+    @Column(name = "nome", nullable = false)
+    String nome;
 
-  @Column(nullable = false)
-  Integer versao;
+    @Column(name = "versao", nullable = false)
+    Integer versao;
 
-  @Column(name = "idVersaoOrigem")
-  Integer idVersaoOrigem;
+    @Column(name = "id_versao_origem")
+    Integer idVersaoOrigem;
 
-  @Column(nullable = false)
-  Boolean ativo;
+    @Column(name = "ativo", nullable = false)
+    Boolean ativo;
 
-  @ManyToOne
-  @JoinColumn(name = "area_id", nullable = false)
-  AreaConhecimentoJpa area;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "area_id", nullable = false,
+        foreignKey = @ForeignKey(name = "fk_disc_area"))
+    AreaConhecimentoJpa area;
+
+    DisciplinaJpa() {}
 }
 
-/* =========================================================
- * Repositórios Spring Data
- * ========================================================= */
+/* =======================
+   REPOSITÓRIOS SPRING DATA
+   ======================= */
 
 interface AreaConhecimentoJpaRepository extends JpaRepository<AreaConhecimentoJpa, Integer> {
-  Optional<AreaConhecimentoJpa> findByNomeIgnoreCase(String nome);
+    Optional<AreaConhecimentoJpa> findByNomeIgnoreCase(String nome);
 }
 
 interface DisciplinaJpaRepository extends JpaRepository<DisciplinaJpa, Integer> {
 
-  // RN-121: nome único por área (case-insensitive)
-  boolean existsByNomeIgnoreCaseAndArea_NomeIgnoreCase(String nome, String areaNome);
+    boolean existsByNomeIgnoreCaseAndArea_NomeIgnoreCase(String nome, String areaNome);
 
-  // RN-44: foi usada em algum simulado?
-  @Query(value = """
-      select exists (
-        select 1
-          from simulado_disciplinas sd
-         where sd.disciplina_id = :discId
-      )
-      """, nativeQuery = true)
-  boolean usadaEmAlgumSimulado(Integer discId);
+    // Postgres: retorna boolean diretamente
+    @Query(value =
+        "SELECT ( " +
+        "  EXISTS (SELECT 1 FROM simulado_disciplinas sd WHERE sd.disciplina_id = :id) " +
+        "  OR EXISTS (SELECT 1 FROM notas_do_aluno n WHERE n.disciplina_id = :id) " +
+        ")",
+        nativeQuery = true)
+    boolean usedAnywhere(@Param("id") int disciplinaId);
 
-  // RN-62: foi usada em simulado FINALIZADO?
-  @Query(value = """
-      select exists (
-        select 1
-          from simulado_disciplinas sd
-          join simulados s on s.id = sd.simulado_id
-         where sd.disciplina_id = :discId
-           and s.status = 'FINALIZADO'
-      )
-      """, nativeQuery = true)
-  boolean usadaEmSimuladoFinalizado(Integer discId);
+    @Query(value =
+        "SELECT ( " +
+        "  EXISTS ( " +
+        "    SELECT 1 FROM simulado_disciplinas sd " +
+        "    JOIN simulados s ON s.id = sd.simulado_id " +
+        "    WHERE sd.disciplina_id = :id AND s.status = 'FINALIZADO' " +
+        "  ) " +
+        "  OR EXISTS ( " +
+        "    SELECT 1 FROM notas_do_aluno n " +
+        "    JOIN simulados s ON s.id = n.simulado_id " +
+        "    WHERE n.disciplina_id = :id AND s.status = 'FINALIZADO' " +
+        "  ) " +
+        ")",
+        nativeQuery = true)
+    boolean usedInFinalizado(@Param("id") int disciplinaId);
 }
 
-/* =========================================================
- * Implementação do DisciplinaRepositorio
- * ========================================================= */
+/* =======================
+   IMPLEMENTAÇÃO DO REPOSITÓRIO DE DOMÍNIO
+   ======================= */
 
 @Repository
-@Transactional
 class DisciplinaRepositorioImpl implements DisciplinaRepositorio {
 
-  @Autowired DisciplinaJpaRepository repo;
-  @Autowired AreaConhecimentoJpaRepository areaRepo;
-  @Autowired JpaMapeador mapeador;
+    private final DisciplinaJpaRepository disciplinaRepo;
+    private final AreaConhecimentoJpaRepository areaRepo;
 
-  @Override
-  public DisciplinaId salvar(Disciplina d) {
-    DisciplinaJpa jpa;
-
-    if (d.getId() == null) {
-      // INSERT
-      jpa = new DisciplinaJpa();
-      aplicar(d, jpa);
-      jpa = repo.save(jpa);
-      d.atribuirIdSeAusente(new DisciplinaId(jpa.id));
-      return d.getId();
-    } else {
-      // UPDATE
-      jpa = repo.findById(d.getId().value()).orElseThrow();
-      aplicar(d, jpa);
-      repo.save(jpa);
-      return d.getId();
+    @Autowired
+    DisciplinaRepositorioImpl(DisciplinaJpaRepository disciplinaRepo,
+                              AreaConhecimentoJpaRepository areaRepo) {
+        this.disciplinaRepo = disciplinaRepo;
+        this.areaRepo = areaRepo;
     }
-  }
 
-  @Override
-  @Transactional(readOnly = true)
-  public Disciplina porId(DisciplinaId id) {
-    var jpa = repo.findById(id.value()).orElseThrow();
-    return toDomain(jpa);
-  }
-
-  @Override
-  public void remover(DisciplinaId id) {
-    repo.deleteById(id.value());
-  }
-
-  // ===== Regras/consultas usadas pelo serviço =====
-
-  @Override
-  @Transactional(readOnly = true)
-  public boolean existeNomeNaArea(String nome, String areaNome) {
-    return repo.existsByNomeIgnoreCaseAndArea_NomeIgnoreCase(nome, areaNome);
-  }
-
-  @Override
-  @Transactional(readOnly = true)
-  public boolean foiUsadaEmAlgumSimulado(DisciplinaId id) {
-    return repo.usadaEmAlgumSimulado(id.value());
-  }
-
-  @Override
-  @Transactional(readOnly = true)
-  public boolean foiUsadaEmSimuladoFinalizado(DisciplinaId id) {
-    return repo.usadaEmSimuladoFinalizado(id.value());
-  }
-
-  /* =====================================================
-   * mapeamentos simples (sem depender de ModelMapper)
-   * ===================================================== */
-
-  private Disciplina toDomain(DisciplinaJpa j) {
-    var area = new AreaConhecimento(j.area.id, j.area.nome);
-    var d = new Disciplina(j.nome, area);
-    // “reconstituir” o estado correto:
-    d.atribuirIdSeAusente(new DisciplinaId(j.id));
-    if (!j.ativo) d.inativar();
-    if (j.versao != 1 || j.idVersaoOrigem != null) {
-      // forçamos os campos ‘versao’ e ‘idVersaoOrigem’ refletindo a linha
-      // (sem expor setters públicos no domínio)
-      // Para manter o domínio limpo, reconstituímos por reflexo leve:
-      try {
-        var fVersao = Disciplina.class.getDeclaredField("versao");
-        fVersao.setAccessible(true);
-        fVersao.setInt(d, j.versao);
-
-        var fOrigem = Disciplina.class.getDeclaredField("idVersaoOrigem");
-        fOrigem.setAccessible(true);
-        fOrigem.set(d, j.idVersaoOrigem);
-      } catch (ReflectiveOperationException e) {
-        throw new IllegalStateException("Falha ao reconstituir Disciplina", e);
-      }
+    private static void setPrivate(Object target, String fieldName, Object value) {
+        try {
+            Field f = Disciplina.class.getDeclaredField(fieldName);
+            f.setAccessible(true);
+            f.set(target, value);
+        } catch (Exception e) {
+            throw new IllegalStateException("Falha ao atribuir campo '" + fieldName + "' em Disciplina.", e);
+        }
     }
-    return d;
-  }
 
-  private void aplicar(Disciplina d, DisciplinaJpa j) {
-    j.nome  = d.getNome();
-    j.versao = d.getVersao();
-    j.idVersaoOrigem = d.getIdVersaoOrigem();
-    j.ativo = d.isAtivo();
+    private static AreaConhecimento toVO(AreaConhecimentoJpa a) {
+        return new AreaConhecimento(a.id, a.nome);
+    }
 
-    // área: preferimos buscar por ID; se não houver, tentamos por nome
-    var areaId = d.getArea().id();
-    AreaConhecimentoJpa area = null;
-    if (areaId != 0) {
-      area = areaRepo.findById(areaId).orElse(null);
+    private Disciplina toDomain(DisciplinaJpa j) {
+        var voArea = toVO(j.area);
+        var d = new Disciplina(j.nome, voArea);       // v1
+        d.atribuirIdSeAusente(new DisciplinaId(j.id));
+        setPrivate(d, "versao", j.versao);
+        setPrivate(d, "idVersaoOrigem", j.idVersaoOrigem);
+        setPrivate(d, "ativo", j.ativo != null ? j.ativo : Boolean.TRUE);
+        return d;
     }
-    if (area == null) {
-      area = areaRepo.findByNomeIgnoreCase(d.getArea().nome())
-              .orElseThrow(() -> new IllegalStateException("Área de conhecimento inexistente: " + d.getArea().nome()));
+
+    private DisciplinaJpa toJpa(Disciplina d, AreaConhecimentoJpa area) {
+        DisciplinaJpa j = (d.getId() != null)
+            ? disciplinaRepo.findById(d.getId().value()).orElseGet(DisciplinaJpa::new)
+            : new DisciplinaJpa();
+
+        j.nome = d.getNome();
+        j.versao = d.getVersao();
+        j.idVersaoOrigem = d.getIdVersaoOrigem();
+        j.ativo = d.isAtivo();
+        j.area = area;
+        return j;
     }
-    j.area = area;
-  }
+
+    private AreaConhecimentoJpa resolveArea(AreaConhecimento voArea) {
+        if (voArea == null) throw new IllegalArgumentException("Area de conhecimento não pode ser nula.");
+        if (voArea.id() > 0) {
+            return areaRepo.findById(voArea.id())
+                .orElseThrow(() -> new IllegalArgumentException("Area id=" + voArea.id() + " inexistente."));
+        }
+        return areaRepo.findByNomeIgnoreCase(voArea.nome())
+            .orElseGet(() -> areaRepo.save(new AreaConhecimentoJpa(voArea.nome().trim())));
+    }
+
+    @Override
+    @Transactional
+    public DisciplinaId salvar(Disciplina d) {
+        var areaJpa = resolveArea(d.getArea());
+        var jpa = toJpa(d, areaJpa);
+        jpa = disciplinaRepo.save(jpa); // IDENTITY (Postgres)
+        d.atribuirIdSeAusente(new DisciplinaId(jpa.id));
+        return new DisciplinaId(jpa.id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Disciplina porId(DisciplinaId id) {
+        var j = disciplinaRepo.findById(id.value())
+            .orElseThrow(() -> new EntityNotFoundException("Disciplina id=" + id.value() + " não encontrada."));
+        return toDomain(j);
+    }
+
+    @Override
+    @Transactional
+    public void remover(DisciplinaId id) {
+        disciplinaRepo.deleteById(id.value());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existeNomeNaArea(String nome, String areaNome) {
+        if (nome == null || areaNome == null) return false;
+        return disciplinaRepo.existsByNomeIgnoreCaseAndArea_NomeIgnoreCase(nome.trim(), areaNome.trim());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean foiUsadaEmAlgumSimulado(DisciplinaId id) {
+        return disciplinaRepo.usedAnywhere(id.value());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean foiUsadaEmSimuladoFinalizado(DisciplinaId id) {
+        return disciplinaRepo.usedInFinalizado(id.value());
+    }
 }
