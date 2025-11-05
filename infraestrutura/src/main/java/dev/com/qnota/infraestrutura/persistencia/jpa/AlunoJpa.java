@@ -2,14 +2,16 @@ package dev.com.qnota.infraestrutura.persistencia.jpa;
 
 import java.lang.reflect.Method;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;           // <- Spring Data
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +25,27 @@ import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
-import jakarta.persistence.*;
+
+// ---- imports JPA SEM wildcard (evita conflito com @Query do Spring) ----
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
 /* =========================================================
- * ENTIDADES JPA (package-private) — compatíveis com Postgres
+ * ENTIDADES JPA (package-private)
  * ========================================================= */
 
 @Entity
@@ -36,20 +55,22 @@ class AlunoJpa {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Integer id;
 
-    @Column(nullable = false) String nome;
+    @Column(nullable = false)
+    String nome;
 
     @Column(name = "data_nascimento", nullable = false)
     LocalDate dataNascimento;
 
-    @Column(nullable = false) Boolean ativo;
+    @Column(nullable = false)
+    Boolean ativo;
 
     @Column(name = "turma_id", nullable = false)
     Integer turmaId;
 
-    @OneToMany(mappedBy = "aluno", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "aluno", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
     Set<AlunoResponsavelJpa> responsaveis = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "aluno", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "aluno", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
     Set<NotaAlunoJpa> notas = new LinkedHashSet<>();
 }
 
@@ -60,13 +81,14 @@ class AlunoRespIdJpa implements java.io.Serializable {
 
     AlunoRespIdJpa() {}
     AlunoRespIdJpa(Integer alunoId, Integer responsavelId) {
-        this.alunoId = alunoId; this.responsavelId = responsavelId;
+        this.alunoId = alunoId;
+        this.responsavelId = responsavelId;
     }
     @Override public int hashCode(){ return Objects.hash(alunoId, responsavelId); }
     @Override public boolean equals(Object o){
         if(this==o) return true;
         if(!(o instanceof AlunoRespIdJpa a)) return false;
-        return Objects.equals(alunoId,a.alunoId)&&Objects.equals(responsavelId,a.responsavelId);
+        return Objects.equals(alunoId,a.alunoId) && Objects.equals(responsavelId,a.responsavelId);
     }
 }
 
@@ -79,8 +101,6 @@ class AlunoResponsavelJpa {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "aluno_id", nullable = false, foreignKey = @ForeignKey(name="fk_ar_aluno"))
     AlunoJpa aluno;
-
-    // responsavel_id está no EmbeddedId
 
     @Column(nullable = false) Boolean principal = Boolean.FALSE;
 
@@ -125,13 +145,13 @@ class NotaAlunoJpa {
     @Column(nullable=false) Double valor;
 
     @Column(name="data_lancamento", nullable=false)
-    java.time.LocalDateTime dataLancamento;
+    LocalDateTime dataLancamento;
 
-    @OneToMany(mappedBy="nota", cascade=CascadeType.ALL, orphanRemoval=true)
+    @OneToMany(mappedBy="nota", cascade=jakarta.persistence.CascadeType.ALL, orphanRemoval=true)
     Set<JustificativaJpa> justificativas = new LinkedHashSet<>();
 
     NotaAlunoJpa(){}
-    NotaAlunoJpa(AlunoJpa aluno, Integer simuladoId, Integer disciplinaId, Double valor, java.time.LocalDateTime dataLancamento){
+    NotaAlunoJpa(AlunoJpa aluno, Integer simuladoId, Integer disciplinaId, Double valor, LocalDateTime dataLancamento){
         this.aluno = aluno;
         this.id = new NotaIdJpa(aluno.id, simuladoId, disciplinaId);
         this.valor = valor;
@@ -143,7 +163,7 @@ class NotaAlunoJpa {
 @Table(name = "justificativas")
 class JustificativaJpa {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO) // usa UUID em Postgres
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(columnDefinition = "uuid")
     java.util.UUID id;
 
@@ -156,18 +176,13 @@ class JustificativaJpa {
     NotaAlunoJpa nota;
 
     @Column(name="professor_id", nullable=false) Integer professorId;
-
     @Column(name="nota_anterior", nullable=false) Double notaAnterior;
     @Column(name="nota_corrigida", nullable=false) Double notaCorrigida;
-
-    @Column(name="texto", nullable=false, columnDefinition="text")
-    String texto;
-
-    @Column(name="data_hora", nullable=false)
-    java.time.LocalDateTime dataHora;
+    @Column(name="texto", nullable=false, columnDefinition="text") String texto;
+    @Column(name="data_hora", nullable=false) LocalDateTime dataHora;
 
     JustificativaJpa(){}
-    JustificativaJpa(NotaAlunoJpa nota, Integer professorId, Double notaAnterior, Double notaCorrigida, String texto, java.time.LocalDateTime dataHora){
+    JustificativaJpa(NotaAlunoJpa nota, Integer professorId, Double notaAnterior, Double notaCorrigida, String texto, LocalDateTime dataHora){
         this.nota = nota;
         this.professorId = professorId;
         this.notaAnterior = notaAnterior;
@@ -178,8 +193,9 @@ class JustificativaJpa {
 }
 
 /* =========================================================
- * SPRING DATA REPOSITORY
+ * REPOSITÓRIOS SPRING DATA (um por ENTIDADE)
  * ========================================================= */
+
 interface AlunoJpaRepository extends JpaRepository<AlunoJpa, Integer> {
 
     @Query(value = """
@@ -194,39 +210,46 @@ interface AlunoJpaRepository extends JpaRepository<AlunoJpa, Integer> {
                                                  @Param("data") LocalDate data,
                                                  @Param("turmaId") int turmaId);
 
-    @Query(value = "select count(*) from aluno_responsaveis ar where ar.aluno_id = :alunoId", nativeQuery = true)
-    int countResponsaveis(@Param("alunoId") int alunoId);
-
-    @Query(value = "select exists(select 1 from aluno_responsaveis ar where ar.aluno_id = :alunoId)", nativeQuery = true)
-    boolean existsVinculo(@Param("alunoId") int alunoId);
-
     List<AlunoJpa> findByTurmaId(Integer turmaId);
 
     @Modifying
     @Query(value = "update alunos set turma_id = :nova where id = :alunoId", nativeQuery = true)
     int alterarTurma(@Param("alunoId") int alunoId, @Param("nova") int novaTurmaId);
-
-    @Query(value = "select exists(select 1 from notas_do_aluno n where n.aluno_id = :alunoId)", nativeQuery = true)
-    boolean temNotas(@Param("alunoId") int alunoId);
-
-    @Query(value = "select exists(select 1 from notas_do_aluno n where n.simulado_id = :simuladoId)", nativeQuery = true)
-    boolean existeNotaParaSimulado(@Param("simuladoId") int simuladoId);
 }
 
+interface AlunoResponsavelJpaRepository extends JpaRepository<AlunoResponsavelJpa, AlunoRespIdJpa> {
+    int countByIdAlunoId(int alunoId);
+    boolean existsByIdAlunoId(int alunoId);
+}
+
+interface NotaAlunoJpaRepository extends JpaRepository<NotaAlunoJpa, NotaIdJpa> {
+    boolean existsByIdAlunoId(int alunoId);
+    boolean existsByIdSimuladoId(int simuladoId);
+}
+
+interface JustificativaJpaRepository extends JpaRepository<JustificativaJpa, java.util.UUID> {}
+
 /* =========================================================
- * IMPLEMENTAÇÃO DO REPOSITÓRIO DO DOMÍNIO (mapeamento manual)
+ * IMPLEMENTAÇÃO DO REPOSITÓRIO DO AGREGADO
  * ========================================================= */
+
 @Repository
 class AlunoRepositorioImpl implements AlunoRepositorio {
 
-    private final AlunoJpaRepository repo;
+    private final AlunoJpaRepository alunoRepo;
+    private final AlunoResponsavelJpaRepository respRepo;
+    private final NotaAlunoJpaRepository notaRepo;
 
     @Autowired
-    AlunoRepositorioImpl(AlunoJpaRepository repo) {
-        this.repo = repo;
+    AlunoRepositorioImpl(AlunoJpaRepository alunoRepo,
+                          AlunoResponsavelJpaRepository respRepo,
+                          NotaAlunoJpaRepository notaRepo) {
+        this.alunoRepo = alunoRepo;
+        this.respRepo = respRepo;
+        this.notaRepo = notaRepo;
     }
 
-    /* --------------- helpers de (des)mapa --------------- */
+    /* ---------- helpers de (des)mapa ---------- */
 
     private static ResponsavelId principalDe(Set<AlunoResponsavelJpa> vinculos) {
         return vinculos.stream()
@@ -242,7 +265,7 @@ class AlunoRepositorioImpl implements AlunoRepositorio {
                 .collect(Collectors.toList());
     }
 
-    /** Usa reflexão para hidratar notas/justificativas no agregado (métodos são package-private). */
+    /** Hidrata notas/justificativas no agregado via métodos package-private. */
     private static void hidratarNotas(Aluno agregado, Set<NotaAlunoJpa> notasJpa) {
         try {
             Method addNota = Aluno.class.getDeclaredMethod(
@@ -286,7 +309,6 @@ class AlunoRepositorioImpl implements AlunoRepositorio {
         );
         if (j.id != null) aluno.atribuirIdSeAusente(new AlunoId(j.id));
 
-        // Notas + justificativas
         if (j.notas != null && !j.notas.isEmpty()) {
             hidratarNotas(aluno, j.notas);
         }
@@ -335,7 +357,7 @@ class AlunoRepositorioImpl implements AlunoRepositorio {
         if (d.getId() == null) {
             j = new AlunoJpa();
         } else {
-            j = repo.findById(d.getId().value())
+            j = alunoRepo.findById(d.getId().value())
                     .orElseThrow(() -> new EntityNotFoundException("Aluno não encontrado: id=" + d.getId().value()));
         }
         j.nome = d.getNome();
@@ -343,20 +365,19 @@ class AlunoRepositorioImpl implements AlunoRepositorio {
         j.ativo = d.isAtivo();
         j.turmaId = d.getTurma().value();
 
-        // relacionamentos
         preencherVinculosJpa(j, d);
         preencherNotasJpa(j, d.getNotas());
 
         return j;
     }
 
-    /* --------------- contrato do domínio --------------- */
+    /* ---------- contrato do domínio ---------- */
 
     @Override
     @Transactional
     public AlunoId salvar(Aluno aluno) {
         var j = toJpa(aluno);
-        j = repo.save(j); // INSERT/UPDATE; propaga filhos por cascade
+        j = alunoRepo.save(j);
         if (aluno.getId() == null) {
             aluno.atribuirIdSeAusente(new AlunoId(j.id));
         }
@@ -366,7 +387,7 @@ class AlunoRepositorioImpl implements AlunoRepositorio {
     @Override
     @Transactional(readOnly = true)
     public Aluno porId(AlunoId id) {
-        var j = repo.findById(id.value())
+        var j = alunoRepo.findById(id.value())
                 .orElseThrow(() -> new EntityNotFoundException("Aluno não encontrado: id=" + id.value()));
         return toDomain(j);
     }
@@ -375,35 +396,33 @@ class AlunoRepositorioImpl implements AlunoRepositorio {
     @Transactional
     public void remover(AlunoId id) {
         try {
-            repo.deleteById(id.value());
-        } catch (EmptyResultDataAccessException ignore) {
-            // id inexistente -> no-op
-        }
+            alunoRepo.deleteById(id.value());
+        } catch (EmptyResultDataAccessException ignore) { }
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean existeOutroComMesmoNomeENascimentoNaTurma(String nome, LocalDate data, TurmaId turmaId) {
         if (nome == null || data == null || turmaId == null) return false;
-        return repo.existsHomonimoMesmoNascimentoNaTurma(nome.trim(), data, turmaId.value());
+        return alunoRepo.existsHomonimoMesmoNascimentoNaTurma(nome.trim(), data, turmaId.value());
     }
 
     @Override
     @Transactional(readOnly = true)
     public int contarResponsaveis(AlunoId id) {
-        return repo.countResponsaveis(id.value());
+        return respRepo.countByIdAlunoId(id.value());
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean existeVinculo(AlunoId id) {
-        return repo.existsVinculo(id.value());
+        return respRepo.existsByIdAlunoId(id.value());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Aluno> porTurma(TurmaId turmaId) {
-        return repo.findByTurmaId(turmaId.value()).stream()
+        return alunoRepo.findByTurmaId(turmaId.value()).stream()
                 .map(AlunoRepositorioImpl::toDomain)
                 .collect(Collectors.toList());
     }
@@ -411,18 +430,18 @@ class AlunoRepositorioImpl implements AlunoRepositorio {
     @Override
     @Transactional
     public void alterarTurma(AlunoId alunoId, TurmaId novaTurmaId) {
-        repo.alterarTurma(alunoId.value(), novaTurmaId.value());
+        alunoRepo.alterarTurma(alunoId.value(), novaTurmaId.value());
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean temNotas(AlunoId alunoId) {
-        return repo.temNotas(alunoId.value());
+        return notaRepo.existsByIdAlunoId(alunoId.value());
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean existeNotaParaSimulado(SimuladoId simuladoId) {
-        return repo.existeNotaParaSimulado(simuladoId.value());
+        return notaRepo.existsByIdSimuladoId(simuladoId.value());
     }
 }
