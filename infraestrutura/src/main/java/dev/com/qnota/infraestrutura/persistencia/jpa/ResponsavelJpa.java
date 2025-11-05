@@ -10,9 +10,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import dev.com.qnota.aplicacao.principal.responsavel.ResponsavelRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.responsavel.ResponsavelResumo;
 import dev.com.qnota.dominio.principal.responsavel.Responsavel;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelRepositorio;
+
+import java.util.List;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -78,13 +82,28 @@ interface ResponsavelJpaRepository extends JpaRepository<ResponsavelJpa, Integer
     int atualizarContato(@Param("id") int id,
                          @Param("nome") String novoNome,
                          @Param("email") String novoEmail);
+
+    // Query para resumos com contagem de alunos vinculados
+    @Query(value = """
+        SELECT r.id AS id,
+               r.nome AS nome,
+               r.enderecoEletronico AS email,
+               r.cpf AS cpf,
+               COALESCE(COUNT(ar.aluno_id), 0) AS quantidadeAlunos,
+               r.status AS status
+          FROM responsaveis r
+     LEFT JOIN aluno_responsaveis ar ON ar.responsavel_id = r.id
+      GROUP BY r.id, r.nome, r.enderecoEletronico, r.cpf, r.status
+      ORDER BY r.nome
+        """, nativeQuery = true)
+    List<ResponsavelResumo> findResponsavelResumoByOrderByNome();
 }
 
 /* ==================================
  * IMPLEMENTAÇÃO DO REPOSITÓRIO DO DOMÍNIO (mapeamento manual)
  * ================================== */
 @Repository
-class ResponsavelRepositorioImpl implements ResponsavelRepositorio {
+class ResponsavelRepositorioImpl implements ResponsavelRepositorio, ResponsavelRepositorioAplicacao {
 
     private final ResponsavelJpaRepository repo;
 
@@ -173,5 +192,13 @@ class ResponsavelRepositorioImpl implements ResponsavelRepositorio {
     @Override
     public boolean estaVinculadoAAlgumAluno(ResponsavelId id) {
         return repo.existeVinculo(id.value());
+    }
+
+    /* ---------- contrato da aplicação ---------- */
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<ResponsavelResumo> pesquisarResumos() {
+        return repo.findResponsavelResumoByOrderByNome();
     }
 }

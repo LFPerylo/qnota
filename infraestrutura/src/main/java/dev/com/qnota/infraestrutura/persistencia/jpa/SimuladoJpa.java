@@ -17,10 +17,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import dev.com.qnota.aplicacao.principal.simulado.SimuladoRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.simulado.SimuladoResumo;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.simulado.Simulado;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
+
+import java.util.List;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 import jakarta.persistence.*;
 
@@ -163,6 +167,22 @@ interface SimuladoJpaRepository extends JpaRepository<SimuladoJpa, Integer> {
       ) THEN 1 ELSE 0 END
       """, nativeQuery = true)
   int todasNotasLancadas(@Param("simId") int simuladoId);
+
+  // Query para resumos com informações da turma e quantidade de disciplinas
+  @Query(value = """
+      SELECT s.id AS id,
+             s.data_aplicacao AS dataAplicacao,
+             s.status AS status,
+             s.turma_id AS turmaId,
+             t.nome AS turmaNome,
+             COUNT(sd.disciplina_id) AS quantidadeDisciplinas
+        FROM simulados s
+   LEFT JOIN turmas t ON t.id = s.turma_id
+   LEFT JOIN simulado_disciplinas sd ON sd.simulado_id = s.id
+     GROUP BY s.id, s.data_aplicacao, s.status, s.turma_id, t.nome
+     ORDER BY s.data_aplicacao DESC
+      """, nativeQuery = true)
+  List<SimuladoResumo> findSimuladoResumoByOrderByDataAplicacaoDesc();
 }
 
 interface SimuladoDisciplinaJpaRepository
@@ -180,7 +200,7 @@ interface SimuladoDisciplinaJpaRepository
 // IMPLEMENTAÇÃO DO REPOSITÓRIO DO DOMÍNIO (um por agregado)
 // =====================
 @Repository
-class SimuladoRepositorioImpl implements SimuladoRepositorio {
+class SimuladoRepositorioImpl implements SimuladoRepositorio, SimuladoRepositorioAplicacao {
 
   @Autowired SimuladoJpaRepository repositorio;
   @Autowired SimuladoDisciplinaJpaRepository sdRepo;
@@ -299,5 +319,13 @@ class SimuladoRepositorioImpl implements SimuladoRepositorio {
   public void remover(SimuladoId id) {
     sdRepo.deleteByIdSimuladoId(id.value());
     repositorio.deleteById(id.value());
+  }
+
+  /* ---------- contrato da aplicação ---------- */
+
+  @Transactional(readOnly = true)
+  @Override
+  public List<SimuladoResumo> pesquisarResumos() {
+    return repositorio.findSimuladoResumoByOrderByDataAplicacaoDesc();
   }
 }

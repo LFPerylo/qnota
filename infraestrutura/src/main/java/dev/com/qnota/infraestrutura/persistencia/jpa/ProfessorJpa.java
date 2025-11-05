@@ -16,9 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import dev.com.qnota.aplicacao.principal.professor.ProfessorRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.professor.ProfessorResumo;
 import dev.com.qnota.dominio.principal.professor.Professor;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.professor.ProfessorRepositorio;
+
+import java.util.List;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Column;
@@ -104,13 +108,25 @@ interface ProfessorJpaRepository extends JpaRepository<ProfessorJpa, Integer> {
     @Modifying
     @Query(value = "UPDATE turmas SET professor_id = :substituto WHERE professor_id = :antigo", nativeQuery = true)
     int substituirProfessor(@Param("antigo") int antigo, @Param("substituto") int substituto);
+
+    // Query para resumos com especialidades como string (JSON array formatado)
+    @Query(value = """
+        SELECT p.id AS id,
+               p.nome AS nome,
+               p.cpf AS cpf,
+               p.endereco_eletronico AS email,
+               COALESCE(p.especialidades::text, '[]') AS especialidades
+          FROM professores p
+      ORDER BY p.nome
+        """, nativeQuery = true)
+    List<ProfessorResumo> findProfessorResumoByOrderByNome();
 }
 
 /* =========================
  * IMPLEMENTAÇÃO DO DOMÍNIO
  * ========================= */
 @Repository
-class ProfessorRepositorioImpl implements ProfessorRepositorio {
+class ProfessorRepositorioImpl implements ProfessorRepositorio, ProfessorRepositorioAplicacao {
 
     private final ProfessorJpaRepository repo;
 
@@ -180,5 +196,13 @@ class ProfessorRepositorioImpl implements ProfessorRepositorio {
     @Transactional
     public void substituirProfessor(ProfessorId antigo, ProfessorId substituto) {
         repo.substituirProfessor(antigo.value(), substituto.value());
+    }
+
+    /* ---------- contrato da aplicação ---------- */
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<ProfessorResumo> pesquisarResumos() {
+        return repo.findProfessorResumoByOrderByNome();
     }
 }

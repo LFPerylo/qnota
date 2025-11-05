@@ -15,9 +15,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import dev.com.qnota.aplicacao.principal.aluno.AlunoRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.aluno.AlunoResumo;
 import dev.com.qnota.dominio.principal.aluno.Aluno;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
+
+import java.util.List;
 import dev.com.qnota.dominio.principal.aluno.Justificativa;
 import dev.com.qnota.dominio.principal.aluno.NotaDoAluno;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
@@ -215,6 +219,23 @@ interface AlunoJpaRepository extends JpaRepository<AlunoJpa, Integer> {
     @Modifying
     @Query(value = "update alunos set turma_id = :nova where id = :alunoId", nativeQuery = true)
     int alterarTurma(@Param("alunoId") int alunoId, @Param("nova") int novaTurmaId);
+
+    // Query para resumos com informações da turma e quantidade de responsáveis
+    @Query(value = """
+        SELECT a.id AS id,
+               a.nome AS nome,
+               a.data_nascimento AS dataNascimento,
+               a.ativo AS ativo,
+               a.turma_id AS turmaId,
+               t.nome AS turmaNome,
+               COUNT(ar.responsavel_id) AS quantidadeResponsaveis
+          FROM alunos a
+     LEFT JOIN turmas t ON t.id = a.turma_id
+     LEFT JOIN aluno_responsaveis ar ON ar.aluno_id = a.id
+      GROUP BY a.id, a.nome, a.data_nascimento, a.ativo, a.turma_id, t.nome
+      ORDER BY a.nome
+        """, nativeQuery = true)
+    List<AlunoResumo> findAlunoResumoByOrderByNome();
 }
 
 interface AlunoResponsavelJpaRepository extends JpaRepository<AlunoResponsavelJpa, AlunoRespIdJpa> {
@@ -234,7 +255,7 @@ interface JustificativaJpaRepository extends JpaRepository<JustificativaJpa, jav
  * ========================================================= */
 
 @Repository
-class AlunoRepositorioImpl implements AlunoRepositorio {
+class AlunoRepositorioImpl implements AlunoRepositorio, AlunoRepositorioAplicacao {
 
     private final AlunoJpaRepository alunoRepo;
     private final AlunoResponsavelJpaRepository respRepo;
@@ -443,5 +464,13 @@ class AlunoRepositorioImpl implements AlunoRepositorio {
     @Transactional(readOnly = true)
     public boolean existeNotaParaSimulado(SimuladoId simuladoId) {
         return notaRepo.existsByIdSimuladoId(simuladoId.value());
+    }
+
+    /* ---------- contrato da aplicação ---------- */
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<AlunoResumo> pesquisarResumos() {
+        return alunoRepo.findAlunoResumoByOrderByNome();
     }
 }

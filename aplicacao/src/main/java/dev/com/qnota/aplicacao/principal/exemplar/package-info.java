@@ -1,2 +1,0 @@
-/*package dev.sauloaraujo.sgb.aplicacao.acervo.exemplar;
-*/

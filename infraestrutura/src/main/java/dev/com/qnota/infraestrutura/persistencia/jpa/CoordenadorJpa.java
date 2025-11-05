@@ -8,9 +8,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import dev.com.qnota.aplicacao.principal.coordenador.CoordenadorRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.coordenador.CoordenadorResumo;
 import dev.com.qnota.dominio.principal.coordenador.Coordenador;
 import dev.com.qnota.dominio.principal.coordenador.CoordenadorId;
 import dev.com.qnota.dominio.principal.coordenador.CoordenadorRepositorio;
+
+import java.util.List;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -54,10 +58,21 @@ class CoordenadorJpa {
 interface CoordenadorJpaRepository extends JpaRepository<CoordenadorJpa, Integer> {
     Optional<CoordenadorJpa> findByEnderecoEletronicoIgnoreCase(String email);
     boolean existsByEnderecoEletronicoIgnoreCase(String email);
+
+    // Query para resumos
+    @org.springframework.data.jpa.repository.Query(value = """
+        SELECT c.id AS id,
+               c.nome AS nome,
+               c.endereco_eletronico AS email,
+               c.ativo AS ativo
+          FROM coordenadores c
+      ORDER BY c.nome
+        """, nativeQuery = true)
+    List<CoordenadorResumo> findCoordenadorResumoByOrderByNome();
 }
 
 @Repository
-class CoordenadorRepositorioImpl implements CoordenadorRepositorio {
+class CoordenadorRepositorioImpl implements CoordenadorRepositorio, CoordenadorRepositorioAplicacao {
 
     private final CoordenadorJpaRepository jpa;
 
@@ -126,5 +141,13 @@ class CoordenadorRepositorioImpl implements CoordenadorRepositorio {
         try {
             jpa.deleteById(id.value());
         } catch (EmptyResultDataAccessException ignore) { }
+    }
+
+    /* ---------- contrato da aplicação ---------- */
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<CoordenadorResumo> pesquisarResumos() {
+        return jpa.findCoordenadorResumoByOrderByNome();
     }
 }

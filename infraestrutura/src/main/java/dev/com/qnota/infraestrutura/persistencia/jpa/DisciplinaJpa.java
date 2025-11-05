@@ -10,10 +10,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import dev.com.qnota.aplicacao.principal.disciplina.DisciplinaRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.disciplina.DisciplinaResumo;
 import dev.com.qnota.dominio.principal.disciplina.Disciplina;
 import dev.com.qnota.dominio.principal.disciplina.Disciplina.AreaConhecimento;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaRepositorio;
+
+import java.util.List;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -116,6 +120,19 @@ interface DisciplinaJpaRepository extends JpaRepository<DisciplinaJpa, Integer> 
         ")",
         nativeQuery = true)
     boolean usedInFinalizado(@Param("id") int disciplinaId);
+
+    // Query para resumos com nome da área
+    @Query(value = """
+        SELECT d.id AS id,
+               d.nome AS nome,
+               d.versao AS versao,
+               d.ativo AS ativo,
+               a.nome AS areaNome
+          FROM disciplinas d
+     LEFT JOIN areas_conhecimento a ON a.id = d.area_id
+      ORDER BY d.nome
+        """, nativeQuery = true)
+    List<DisciplinaResumo> findDisciplinaResumoByOrderByNome();
 }
 
 /* =======================
@@ -123,7 +140,7 @@ interface DisciplinaJpaRepository extends JpaRepository<DisciplinaJpa, Integer> 
    ======================= */
 
 @Repository
-class DisciplinaRepositorioImpl implements DisciplinaRepositorio {
+class DisciplinaRepositorioImpl implements DisciplinaRepositorio, DisciplinaRepositorioAplicacao {
 
     private final DisciplinaJpaRepository disciplinaRepo;
     private final AreaConhecimentoJpaRepository areaRepo;
@@ -223,5 +240,13 @@ class DisciplinaRepositorioImpl implements DisciplinaRepositorio {
     @Transactional(readOnly = true)
     public boolean foiUsadaEmSimuladoFinalizado(DisciplinaId id) {
         return disciplinaRepo.usedInFinalizado(id.value());
+    }
+
+    /* ---------- contrato da aplicação ---------- */
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<DisciplinaResumo> pesquisarResumos() {
+        return disciplinaRepo.findDisciplinaResumoByOrderByNome();
     }
 }

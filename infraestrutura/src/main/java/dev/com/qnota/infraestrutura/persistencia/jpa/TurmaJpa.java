@@ -11,9 +11,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import dev.com.qnota.aplicacao.principal.turma.TurmaRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.turma.TurmaResumo;
 import dev.com.qnota.dominio.principal.turma.Turma;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 import dev.com.qnota.dominio.principal.turma.TurmaRepositorio;
+
+import java.util.List;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import jakarta.persistence.*;
 
@@ -93,13 +97,30 @@ interface TurmaJpaRepository extends JpaRepository<TurmaJpa, Integer> {
     // Evita problemas de case/snake em nativo: usa JPQL com campos da entidade
     @Query("select t.anoLetivo from TurmaJpa t where t.id = :tid")
     Integer anoLetivoDe(@Param("tid") int turmaId);
+
+    // Query para resumos com informações do professor e quantidade de alunos
+    @Query(value = """
+        SELECT t.id AS id,
+               t.nome AS nome,
+               t.ano_letivo AS anoLetivo,
+               t.ativo AS ativo,
+               t.professor_id AS professorId,
+               p.nome AS professorNome,
+               COUNT(a.id) AS quantidadeAlunos
+          FROM turmas t
+     LEFT JOIN professores p ON p.id = t.professor_id
+     LEFT JOIN alunos a ON a.turma_id = t.id
+      GROUP BY t.id, t.nome, t.ano_letivo, t.ativo, t.professor_id, p.nome
+      ORDER BY t.nome
+        """, nativeQuery = true)
+    List<TurmaResumo> findTurmaResumoByOrderByNome();
 }
 
 /* =====================
  * IMPLEMENTAÇÃO DO REPOSITÓRIO DO DOMÍNIO
  * ===================== */
 @Repository
-class TurmaRepositorioImpl implements TurmaRepositorio {
+class TurmaRepositorioImpl implements TurmaRepositorio, TurmaRepositorioAplicacao {
 
     private final TurmaJpaRepository repo;
 
@@ -204,5 +225,13 @@ class TurmaRepositorioImpl implements TurmaRepositorio {
         Integer ano = repo.anoLetivoDe(id.value());
         if (ano == null) throw new EntityNotFoundException("Turma não encontrada: id=" + id.value());
         return ano;
+    }
+
+    /* ---------- contrato da aplicação ---------- */
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<TurmaResumo> pesquisarResumos() {
+        return repo.findTurmaResumoByOrderByNome();
     }
 }

@@ -15,11 +15,15 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import dev.com.qnota.aplicacao.principal.ranking.RankingRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.ranking.RankingResumo;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.ranking.Ranking;
 import dev.com.qnota.dominio.principal.ranking.RankingId;
 import dev.com.qnota.dominio.principal.ranking.RankingRepositorio;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
+
+import java.util.List;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -124,6 +128,23 @@ interface RankingJpaRepository extends JpaRepository<RankingJpa, Integer> {
     @Transactional
     @Query("update RankingJpa r set r.congelado = TRUE where r.simuladoId = :simuladoId")
     int marcarCongeladoPorSimulado(@org.springframework.data.repository.query.Param("simuladoId") Integer simuladoId);
+
+    // Query para resumos com informações do simulado e quantidade de linhas
+    @Query(value = """
+        SELECT r.id AS id,
+               r.simulado_id AS simuladoId,
+               TO_CHAR(s.data_aplicacao, 'DD/MM/YYYY') AS simuladoDataAplicacao,
+               t.nome AS simuladoTurmaNome,
+               r.congelado AS congelado,
+               COUNT(rl.aluno_id) AS quantidadeLinhas
+          FROM rankings r
+     LEFT JOIN simulados s ON s.id = r.simulado_id
+     LEFT JOIN turmas t ON t.id = s.turma_id
+     LEFT JOIN ranking_linhas rl ON rl.ranking_id = r.id
+       GROUP BY r.id, r.simulado_id, s.data_aplicacao, t.nome, r.congelado
+       ORDER BY s.data_aplicacao DESC
+        """, nativeQuery = true)
+    List<RankingResumo> findRankingResumoByOrderByDataAplicacaoDesc();
 }
 
 interface RankingLinhaJpaRepository extends JpaRepository<RankingLinhaJpa, RankingLinhaIdJpa> {
@@ -142,7 +163,7 @@ interface RankingLinhaJpaRepository extends JpaRepository<RankingLinhaJpa, Ranki
    ========================= */
 
 @Repository
-class RankingRepositorioImpl implements RankingRepositorio {
+class RankingRepositorioImpl implements RankingRepositorio, RankingRepositorioAplicacao {
 
     @Autowired RankingJpaRepository rankingRepo;
     @Autowired RankingLinhaJpaRepository linhaRepo;
@@ -256,5 +277,13 @@ class RankingRepositorioImpl implements RankingRepositorio {
         if (Boolean.TRUE.equals(r.congelado)) agg.congelar();
         agg.atribuirIdSeAusente(new RankingId(r.id));
         return Optional.of(agg);
+    }
+
+    /* ---------- contrato da aplicação ---------- */
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<RankingResumo> pesquisarResumos() {
+        return rankingRepo.findRankingResumoByOrderByDataAplicacaoDesc();
     }
 }
