@@ -1,76 +1,173 @@
-/*package dev.sauloaraujo.sgb;
+package dev.com.qnota;
 
 import static org.springframework.boot.SpringApplication.run;
 
-import java.io.IOException;
-
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-import dev.sauloaraujo.dominio.analise.emprestimo.EmprestimoRegistroRepositorio;
-import dev.sauloaraujo.sgb.aplicacao.acervo.autor.AutorRepositorioAplicacao;
-import dev.sauloaraujo.sgb.aplicacao.acervo.autor.AutorServicoAplicacao;
-import dev.sauloaraujo.sgb.aplicacao.acervo.exemplar.ExemplarRepositorioAplicacao;
-import dev.sauloaraujo.sgb.aplicacao.acervo.exemplar.ExemplarServicoAplicacao;
-import dev.sauloaraujo.sgb.aplicacao.acervo.livro.LivroRepositorioAplicacao;
-import dev.sauloaraujo.sgb.aplicacao.acervo.livro.LivroServicoAplicacao;
-import dev.sauloaraujo.sgb.aplicacao.analise.EmprestimoRegistroRepositorioAplicacao;
-import dev.sauloaraujo.sgb.aplicacao.analise.EmprestimoRegistroServicoAplicacao;
-import dev.sauloaraujo.sgb.dominio.acervo.autor.AutorRepositorio;
-import dev.sauloaraujo.sgb.dominio.acervo.autor.AutorServico;
-import dev.sauloaraujo.sgb.dominio.acervo.exemplar.EmprestimoServico;
-import dev.sauloaraujo.sgb.dominio.acervo.exemplar.ExemplarRepositorio;
-import dev.sauloaraujo.sgb.dominio.acervo.exemplar.ExemplarServico;
-import dev.sauloaraujo.sgb.dominio.acervo.livro.LivroRepositorio;
-import dev.sauloaraujo.sgb.dominio.acervo.livro.LivroServico;
-import dev.sauloaraujo.sgb.dominio.evento.EventoBarramento;
+import dev.com.qnota.aplicacao.principal.aluno.AlunoRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.aluno.AlunoServicoAplicacao;
+import dev.com.qnota.aplicacao.principal.coordenador.CoordenadorRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.coordenador.CoordenadorServicoAplicacao;
+import dev.com.qnota.aplicacao.principal.disciplina.DisciplinaRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.disciplina.DisciplinaServicoAplicacao;
+import dev.com.qnota.aplicacao.principal.professor.ProfessorRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.professor.ProfessorServicoAplicacao;
+import dev.com.qnota.aplicacao.principal.ranking.RankingRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.ranking.RankingServicoAplicacao;
+import dev.com.qnota.aplicacao.principal.responsavel.ResponsavelRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.responsavel.ResponsavelServicoAplicacao;
+import dev.com.qnota.aplicacao.principal.simulado.SimuladoRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.simulado.SimuladoServicoAplicacao;
+import dev.com.qnota.aplicacao.principal.turma.TurmaRepositorioAplicacao;
+import dev.com.qnota.aplicacao.principal.turma.TurmaServicoAplicacao;
+import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
+import dev.com.qnota.dominio.principal.aluno.AlunoServico;
+import dev.com.qnota.dominio.principal.aluno.NotaServico;
+import dev.com.qnota.dominio.principal.coordenador.CoordenadorRepositorio;
+import dev.com.qnota.dominio.principal.coordenador.CoordenadorServico;
+import dev.com.qnota.dominio.principal.coordenador.HashService;
+import dev.com.qnota.dominio.principal.disciplina.DisciplinaRepositorio;
+import dev.com.qnota.dominio.principal.disciplina.DisciplinaServico;
+import dev.com.qnota.dominio.principal.professor.ProfessorRepositorio;
+import dev.com.qnota.dominio.principal.professor.ProfessorServico;
+import dev.com.qnota.dominio.principal.ranking.RankingRepositorio;
+import dev.com.qnota.dominio.principal.ranking.RankingServico;
+import dev.com.qnota.dominio.principal.responsavel.ResponsavelRepositorio;
+import dev.com.qnota.dominio.principal.responsavel.ResponsavelServico;
+import dev.com.qnota.dominio.principal.responsavel.ResponsavelVinculoService;
+import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
+import dev.com.qnota.dominio.principal.simulado.SimuladoServico;
+import dev.com.qnota.dominio.principal.turma.TurmaRepositorio;
+import dev.com.qnota.dominio.principal.turma.TurmaServico;
 
 @SpringBootApplication
 public class AplicacaoBackend {
+
+	// ===== HashService (para Coordenador) =====
 	@Bean
-	public AutorServico autorServico(AutorRepositorio repositorio) {
-		return new AutorServico(repositorio);
+	public HashService hashService(PasswordEncoder passwordEncoder) {
+		return new HashService() {
+			@Override
+			public String hash(String rawPassword) {
+				return passwordEncoder.encode(rawPassword);
+			}
+
+			@Override
+			public boolean matches(String rawPassword, String hashedPassword) {
+				return passwordEncoder.matches(rawPassword, hashedPassword);
+			}
+		};
 	}
 
 	@Bean
-	public AutorServicoAplicacao autorServicoAplicacao(AutorRepositorioAplicacao repositorio) {
-		return new AutorServicoAplicacao(repositorio);
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+
+	// ===== Serviços de Domínio =====
+
+	@Bean
+	public CoordenadorServico coordenadorServico(CoordenadorRepositorio repositorio, HashService hashService) {
+		return new CoordenadorServico(repositorio, hashService);
 	}
 
 	@Bean
-	public ExemplarServico exemplarServico(ExemplarRepositorio repositorio) {
-		return new ExemplarServico(repositorio);
+	public ResponsavelServico responsavelServico(ResponsavelRepositorio repositorio, ResponsavelVinculoService vinculoService) {
+		return new ResponsavelServico(repositorio, vinculoService);
 	}
 
 	@Bean
-	public ExemplarServicoAplicacao exemplarServicoAplicacao(ExemplarRepositorioAplicacao repositorio) {
-		return new ExemplarServicoAplicacao(repositorio);
+	public ProfessorServico professorServico(ProfessorRepositorio repositorio, AlunoRepositorio alunoRepositorio, SimuladoRepositorio simuladoRepositorio) {
+		return new ProfessorServico(repositorio, alunoRepositorio, simuladoRepositorio);
 	}
 
 	@Bean
-	public EmprestimoServico emprestimoServico(ExemplarRepositorio exemplarRepositorio, EventoBarramento barramento) {
-		return new EmprestimoServico(exemplarRepositorio, barramento);
+	public DisciplinaServico disciplinaServico(DisciplinaRepositorio repositorio) {
+		return new DisciplinaServico(repositorio);
 	}
 
 	@Bean
-	public LivroServico livroServico(LivroRepositorio repositorio) {
-		return new LivroServico(repositorio);
+	public TurmaServico turmaServico(TurmaRepositorio repositorio, ProfessorRepositorio professorRepositorio) {
+		return new TurmaServico(repositorio, professorRepositorio);
 	}
 
 	@Bean
-	public LivroServicoAplicacao livroServicoAplicacao(LivroRepositorioAplicacao repositorio) {
-		return new LivroServicoAplicacao(repositorio);
+	public AlunoServico alunoServico(AlunoRepositorio repositorio, ResponsavelRepositorio responsavelRepositorio, 
+	                                  TurmaRepositorio turmaRepositorio, SimuladoRepositorio simuladoRepositorio) {
+		return new AlunoServico(repositorio, responsavelRepositorio, turmaRepositorio, simuladoRepositorio);
 	}
 
 	@Bean
-	public EmprestimoRegistroServicoAplicacao emprestimoRegistroServicoAplicacao(
-			EmprestimoRegistroRepositorio repositorio, EmprestimoRegistroRepositorioAplicacao repositorioAplicacao,
-			EventoBarramento servico) {
-		return new EmprestimoRegistroServicoAplicacao(repositorio, repositorioAplicacao, servico);
+	public NotaServico notaServico(AlunoRepositorio alunoRepositorio, SimuladoRepositorio simuladoRepositorio,
+	                                TurmaRepositorio turmaRepositorio, DisciplinaRepositorio disciplinaRepositorio) {
+		return new NotaServico(alunoRepositorio, simuladoRepositorio, turmaRepositorio, disciplinaRepositorio);
 	}
 
-	public static void main(String[] args) throws IOException {
+	@Bean
+	public RankingServico rankingServico(AlunoRepositorio alunoRepositorio, SimuladoRepositorio simuladoRepositorio,
+	                                      RankingRepositorio rankingRepositorio, NotaServico notaServico) {
+		return new RankingServico(alunoRepositorio, simuladoRepositorio, rankingRepositorio, notaServico);
+	}
+
+	@Bean
+	public SimuladoServico simuladoServico(SimuladoRepositorio repositorio, RankingServico rankingServico,
+	                                       TurmaRepositorio turmaRepositorio, ProfessorRepositorio professorRepositorio,
+	                                       DisciplinaRepositorio disciplinaRepositorio, AlunoRepositorio alunoRepositorio) {
+		return new SimuladoServico(repositorio, rankingServico, turmaRepositorio, professorRepositorio, disciplinaRepositorio, alunoRepositorio);
+	}
+
+	// ===== ResponsavelVinculoService (implementado por AlunoServico) =====
+	@Bean
+	public ResponsavelVinculoService responsavelVinculoService(AlunoServico alunoServico) {
+		return alunoServico; // AlunoServico implementa ResponsavelVinculoService
+	}
+
+	// ===== Serviços de Aplicação =====
+
+	@Bean
+	public CoordenadorServicoAplicacao coordenadorServicoAplicacao(CoordenadorRepositorioAplicacao repositorio) {
+		return new CoordenadorServicoAplicacao(repositorio);
+	}
+
+	@Bean
+	public ResponsavelServicoAplicacao responsavelServicoAplicacao(ResponsavelRepositorioAplicacao repositorio) {
+		return new ResponsavelServicoAplicacao(repositorio);
+	}
+
+	@Bean
+	public ProfessorServicoAplicacao professorServicoAplicacao(ProfessorRepositorioAplicacao repositorio) {
+		return new ProfessorServicoAplicacao(repositorio);
+	}
+
+	@Bean
+	public DisciplinaServicoAplicacao disciplinaServicoAplicacao(DisciplinaRepositorioAplicacao repositorio) {
+		return new DisciplinaServicoAplicacao(repositorio);
+	}
+
+	@Bean
+	public TurmaServicoAplicacao turmaServicoAplicacao(TurmaRepositorioAplicacao repositorio) {
+		return new TurmaServicoAplicacao(repositorio);
+	}
+
+	@Bean
+	public AlunoServicoAplicacao alunoServicoAplicacao(AlunoRepositorioAplicacao repositorio) {
+		return new AlunoServicoAplicacao(repositorio);
+	}
+
+	@Bean
+	public SimuladoServicoAplicacao simuladoServicoAplicacao(SimuladoRepositorioAplicacao repositorio) {
+		return new SimuladoServicoAplicacao(repositorio);
+	}
+
+	@Bean
+	public RankingServicoAplicacao rankingServicoAplicacao(RankingRepositorioAplicacao repositorio) {
+		return new RankingServicoAplicacao(repositorio);
+	}
+
+	public static void main(String[] args) {
 		run(AplicacaoBackend.class, args);
 	}
 }
-*/
