@@ -16,5 +16,9 @@ public class RankingServicoAplicacao {
 	public List<RankingResumo> pesquisarResumos() {
 		return repositorio.pesquisarResumos();
 	}
+
+	public List<RankingResumo> pesquisarResumosExpandidos() {
+		return repositorio.pesquisarResumosExpandidos();
+	}
 }
 

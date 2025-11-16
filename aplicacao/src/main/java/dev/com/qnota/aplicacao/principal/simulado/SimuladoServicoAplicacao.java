@@ -16,5 +16,9 @@ public class SimuladoServicoAplicacao {
 	public List<SimuladoResumo> pesquisarResumos() {
 		return repositorio.pesquisarResumos();
 	}
+
+	public List<SimuladoResumo> pesquisarResumosExpandidos() {
+		return repositorio.pesquisarResumosExpandidos();
+	}
 }
 
