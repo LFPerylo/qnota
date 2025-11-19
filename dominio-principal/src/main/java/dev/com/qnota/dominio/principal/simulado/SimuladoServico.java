@@ -19,16 +19,33 @@ public class SimuladoServico {
     private final ProfessorRepositorio professorRepo;
     private final DisciplinaRepositorio disciplinaRepo;
     private final AlunoRepositorio alunoRepo;
+    private final FinalizacaoSimuladoTemplate finalizacaoTemplate;
 
+    /**
+     * Construtor de conveniência: cria o Template padrão de finalização.
+     */
     public SimuladoServico(SimuladoRepositorio repo, RankingServico rankingServico,
                            TurmaRepositorio turmaRepo, ProfessorRepositorio professorRepo,
                            DisciplinaRepositorio disciplinaRepo, AlunoRepositorio alunoRepo) {
+        this(repo, rankingServico, turmaRepo, professorRepo, disciplinaRepo, alunoRepo,
+             new FinalizacaoSimuladoPadrao(repo, rankingServico));
+    }
+
+    /**
+     * Construtor principal: permite injetar uma implementação customizada
+     * de FinalizacaoSimuladoTemplate, se necessário.
+     */
+    public SimuladoServico(SimuladoRepositorio repo, RankingServico rankingServico,
+                           TurmaRepositorio turmaRepo, ProfessorRepositorio professorRepo,
+                           DisciplinaRepositorio disciplinaRepo, AlunoRepositorio alunoRepo,
+                           FinalizacaoSimuladoTemplate finalizacaoTemplate) {
         this.repo = Objects.requireNonNull(repo);
         this.rankingServico = Objects.requireNonNull(rankingServico);
         this.turmaRepo = Objects.requireNonNull(turmaRepo);
         this.professorRepo = Objects.requireNonNull(professorRepo);
         this.disciplinaRepo = Objects.requireNonNull(disciplinaRepo);
         this.alunoRepo = Objects.requireNonNull(alunoRepo);
+        this.finalizacaoTemplate = Objects.requireNonNull(finalizacaoTemplate);
     }
 
     /** Factory de conveniência para criar EM_EDICAO sem expor ID. */
@@ -121,17 +138,9 @@ public class SimuladoServico {
     }
 
     /** Finalização: RN-16 e congelamento do ranking (RN-102). */
+    /** Finalização: delega para o Template Method de finalização de simulados. */
     public void finalizar(SimuladoId id) {
-        var s = repo.porId(id);
-        if (s.getStatus() == Simulado.Status.FINALIZADO)
-            throw new IllegalStateException("Simulado já está finalizado.");
-
-        if (!repo.todasNotasLancadas(id))
-            throw new IllegalStateException("RN-16: Todas as notas devem estar lançadas.");
-
-        s.finalizar();
-        repo.salvar(s);
-        rankingServico.congelar(id); // RN-102
+        finalizacaoTemplate.finalizar(id);
     }
 
     /** RN-15: excluir simulado só se não houver nota. */

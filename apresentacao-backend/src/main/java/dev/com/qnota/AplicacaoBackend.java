@@ -33,6 +33,8 @@ import dev.com.qnota.dominio.principal.disciplina.DisciplinaRepositorio;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaServico;
 import dev.com.qnota.dominio.principal.professor.ProfessorRepositorio;
 import dev.com.qnota.dominio.principal.professor.ProfessorServico;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaPonderada;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingStrategy;
 import dev.com.qnota.dominio.principal.ranking.RankingRepositorio;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelRepositorio;
@@ -107,9 +109,14 @@ public class AplicacaoBackend {
 	}
 
 	@Bean
+	public CalculoRankingStrategy calculoRankingStrategy(NotaServico notaServico) {
+		return new CalculoRankingMediaPonderada(notaServico);
+	}
+
+	@Bean
 	public RankingServico rankingServico(AlunoRepositorio alunoRepositorio, SimuladoRepositorio simuladoRepositorio,
-	                                      RankingRepositorio rankingRepositorio, NotaServico notaServico) {
-		return new RankingServico(alunoRepositorio, simuladoRepositorio, rankingRepositorio, notaServico);
+	                                      RankingRepositorio rankingRepositorio, CalculoRankingStrategy calculoRankingStrategy) {
+		return new RankingServico(alunoRepositorio, simuladoRepositorio, rankingRepositorio, calculoRankingStrategy);
 	}
 
 	@Bean

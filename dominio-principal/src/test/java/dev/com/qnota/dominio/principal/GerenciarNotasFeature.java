@@ -15,6 +15,8 @@ import dev.com.qnota.infraestrutura.persistencia.memoria.RepositorioEmMemoria;
 import dev.com.qnota.dominio.principal.aluno.NotaServico;
 import dev.com.qnota.dominio.principal.professor.Professor;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaPonderada;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingStrategy;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
 import dev.com.qnota.dominio.principal.responsavel.Responsavel;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
@@ -28,7 +30,8 @@ public class GerenciarNotasFeature {
 
     private final RepositorioEmMemoria repo = new RepositorioEmMemoria();
     private final NotaServico notaServico = new NotaServico(repo, repo, repo, repo);
-    private final RankingServico rankingServico = new RankingServico(repo, repo, repo, notaServico);
+    private final CalculoRankingStrategy calculoRanking = new CalculoRankingMediaPonderada(notaServico);
+    private final RankingServico rankingServico = new RankingServico(repo, repo, repo, calculoRanking);
     
     private final AtomicInteger seq = new AtomicInteger(1);
     
