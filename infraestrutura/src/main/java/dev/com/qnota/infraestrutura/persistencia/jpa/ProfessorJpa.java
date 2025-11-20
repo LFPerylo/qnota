@@ -22,8 +22,6 @@ import dev.com.qnota.dominio.principal.professor.Professor;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.professor.ProfessorRepositorio;
 
-import java.util.List;
-
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;

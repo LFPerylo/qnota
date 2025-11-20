@@ -23,8 +23,6 @@ import dev.com.qnota.dominio.principal.ranking.RankingId;
 import dev.com.qnota.dominio.principal.ranking.RankingRepositorio;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 
-import java.util.List;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;

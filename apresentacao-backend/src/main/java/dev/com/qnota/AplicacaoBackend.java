@@ -40,7 +40,10 @@ import dev.com.qnota.dominio.principal.ranking.RankingServico;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelRepositorio;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelServico;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelVinculoService;
+import dev.com.qnota.dominio.principal.simulado.SimuladoAuditoria;
+import dev.com.qnota.dominio.principal.simulado.SimuladoAuditoriaConsole;
 import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
+import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorioProxy;
 import dev.com.qnota.dominio.principal.simulado.SimuladoServico;
 import dev.com.qnota.dominio.principal.turma.TurmaRepositorio;
 import dev.com.qnota.dominio.principal.turma.TurmaServico;
@@ -82,7 +85,9 @@ public class AplicacaoBackend {
 	}
 
 	@Bean
-	public ProfessorServico professorServico(ProfessorRepositorio repositorio, AlunoRepositorio alunoRepositorio, SimuladoRepositorio simuladoRepositorio) {
+	public ProfessorServico professorServico(ProfessorRepositorio repositorio,
+	                                         AlunoRepositorio alunoRepositorio,
+	                                         SimuladoRepositorio simuladoRepositorio) {
 		return new ProfessorServico(repositorio, alunoRepositorio, simuladoRepositorio);
 	}
 
@@ -97,14 +102,18 @@ public class AplicacaoBackend {
 	}
 
 	@Bean
-	public AlunoServico alunoServico(AlunoRepositorio repositorio, ResponsavelRepositorio responsavelRepositorio, 
-	                                  TurmaRepositorio turmaRepositorio, SimuladoRepositorio simuladoRepositorio) {
+	public AlunoServico alunoServico(AlunoRepositorio repositorio,
+	                                 ResponsavelRepositorio responsavelRepositorio,
+	                                 TurmaRepositorio turmaRepositorio,
+	                                 SimuladoRepositorio simuladoRepositorio) {
 		return new AlunoServico(repositorio, responsavelRepositorio, turmaRepositorio, simuladoRepositorio);
 	}
 
 	@Bean
-	public NotaServico notaServico(AlunoRepositorio alunoRepositorio, SimuladoRepositorio simuladoRepositorio,
-	                                TurmaRepositorio turmaRepositorio, DisciplinaRepositorio disciplinaRepositorio) {
+	public NotaServico notaServico(AlunoRepositorio alunoRepositorio,
+	                               SimuladoRepositorio simuladoRepositorio,
+	                               TurmaRepositorio turmaRepositorio,
+	                               DisciplinaRepositorio disciplinaRepositorio) {
 		return new NotaServico(alunoRepositorio, simuladoRepositorio, turmaRepositorio, disciplinaRepositorio);
 	}
 
@@ -114,16 +123,35 @@ public class AplicacaoBackend {
 	}
 
 	@Bean
-	public RankingServico rankingServico(AlunoRepositorio alunoRepositorio, SimuladoRepositorio simuladoRepositorio,
-	                                      RankingRepositorio rankingRepositorio, CalculoRankingStrategy calculoRankingStrategy) {
+	public RankingServico rankingServico(AlunoRepositorio alunoRepositorio,
+	                                     SimuladoRepositorio simuladoRepositorio,
+	                                     RankingRepositorio rankingRepositorio,
+	                                     CalculoRankingStrategy calculoRankingStrategy) {
 		return new RankingServico(alunoRepositorio, simuladoRepositorio, rankingRepositorio, calculoRankingStrategy);
 	}
 
+	// ===== Auditoria + Proxy para SimuladoRepositorio (Padrão Proxy) =====
+
 	@Bean
-	public SimuladoServico simuladoServico(SimuladoRepositorio repositorio, RankingServico rankingServico,
-	                                       TurmaRepositorio turmaRepositorio, ProfessorRepositorio professorRepositorio,
-	                                       DisciplinaRepositorio disciplinaRepositorio, AlunoRepositorio alunoRepositorio) {
-		return new SimuladoServico(repositorio, rankingServico, turmaRepositorio, professorRepositorio, disciplinaRepositorio, alunoRepositorio);
+	public SimuladoAuditoria simuladoAuditoria() {
+		return new SimuladoAuditoriaConsole();
+	}
+
+	@Bean
+	public SimuladoServico simuladoServico(SimuladoRepositorio repositorio,
+	                                       RankingServico rankingServico,
+	                                       TurmaRepositorio turmaRepositorio,
+	                                       ProfessorRepositorio professorRepositorio,
+	                                       DisciplinaRepositorio disciplinaRepositorio,
+	                                       AlunoRepositorio alunoRepositorio,
+	                                       SimuladoAuditoria simuladoAuditoria) {
+
+		// Envolve o repositório real com o Proxy antes de entregar ao serviço de domínio
+		SimuladoRepositorio proxy = new SimuladoRepositorioProxy(repositorio, simuladoAuditoria);
+
+		return new SimuladoServico(proxy, rankingServico,
+		                           turmaRepositorio, professorRepositorio,
+		                           disciplinaRepositorio, alunoRepositorio);
 	}
 
 	// ===== ResponsavelVinculoService (implementado por AlunoServico) =====

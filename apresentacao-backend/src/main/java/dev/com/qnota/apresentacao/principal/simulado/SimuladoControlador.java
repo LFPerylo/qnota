@@ -3,7 +3,6 @@ package dev.com.qnota.apresentacao.principal.simulado;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
-import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import dev.com.qnota.aplicacao.principal.simulado.SimuladoResumo;
 import dev.com.qnota.aplicacao.principal.simulado.SimuladoServicoAplicacao;
 import dev.com.qnota.apresentacao.BackendMapeador;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;

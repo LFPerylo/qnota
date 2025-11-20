@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import dev.com.qnota.aplicacao.principal.ranking.RankingResumo;
 import dev.com.qnota.aplicacao.principal.ranking.RankingServicoAplicacao;
 import dev.com.qnota.apresentacao.BackendMapeador;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
