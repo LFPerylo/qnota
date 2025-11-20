@@ -1,24 +1,22 @@
+/* Título da análise: QNota - Finalização padrão de Simulado (Template Method) */
 package dev.com.qnota.dominio.principal.simulado;
 
 import java.util.Objects;
 
-import dev.com.qnota.dominio.principal.ranking.RankingServico;
-
 /**
  * Implementação padrão da finalização de simulado no QNota.
- * Regras cobertas:
+ * Regras cobertas diretamente aqui:
  * - RN-16: todas as notas devem estar lançadas antes de finalizar
- * - RN-102: congelar ranking após a finalização
+ *
+ * A RN-102 (congelar ranking após a finalização) passa a ser tratada
+ * por um Observer (RankingServico).
  */
 public class FinalizacaoSimuladoPadrao extends FinalizacaoSimuladoTemplate {
 
     private final SimuladoRepositorio simuladoRepo;
-    private final RankingServico rankingServico;
 
-    public FinalizacaoSimuladoPadrao(SimuladoRepositorio simuladoRepo,
-                                     RankingServico rankingServico) {
+    public FinalizacaoSimuladoPadrao(SimuladoRepositorio simuladoRepo) {
         this.simuladoRepo = Objects.requireNonNull(simuladoRepo);
-        this.rankingServico = Objects.requireNonNull(rankingServico);
     }
 
     @Override
@@ -37,11 +35,5 @@ public class FinalizacaoSimuladoPadrao extends FinalizacaoSimuladoTemplate {
     @Override
     protected void salvar(Simulado s) {
         simuladoRepo.salvar(s);
-    }
-
-    @Override
-    protected void aposFinalizar(Simulado s, SimuladoId id) {
-        // RN-102: congelar ranking após finalização do simulado
-        rankingServico.congelar(id);
     }
 }

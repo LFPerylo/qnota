@@ -1,11 +1,26 @@
+/* Título da análise: QNota - Template Method + Observer na finalização de Simulado */
 package dev.com.qnota.dominio.principal.simulado;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Define o esqueleto do algoritmo de finalização de um simulado.
- * O método template finaliza um simulado seguindo uma sequência padronizada
- * de passos, permitindo que subclasses especializem etapas específicas.
+ * Agora também atua como "Subject" do padrão Observer, notificando
+ * observadores após a finalização bem-sucedida.
  */
 public abstract class FinalizacaoSimuladoTemplate {
+
+    private final List<SimuladoObserver> observers = new ArrayList<>();
+
+    /**
+     * Registra um observer para ser notificado após a finalização.
+     */
+    public void registrarObserver(SimuladoObserver observer) {
+        if (observer != null) {
+            observers.add(observer);
+        }
+    }
 
     /**
      * Método Template: representa o fluxo completo de finalização.
@@ -16,7 +31,8 @@ public abstract class FinalizacaoSimuladoTemplate {
      * 4) Executar gancho antes da finalização (opcional)
      * 5) Alterar estado para FINALIZADO
      * 6) Salvar o simulado
-     * 7) Executar gancho após finalização (ex.: congelar ranking)
+     * 7) Notificar observers
+     * 8) Executar gancho após finalização (opcional)
      */
     public final void finalizar(SimuladoId id) {
         Simulado simulado = carregarSimulado(id);
@@ -25,6 +41,7 @@ public abstract class FinalizacaoSimuladoTemplate {
         antesDeFinalizar(simulado, id);
         aplicarFinalizacao(simulado);
         salvar(simulado);
+        notificarObservers(id);
         aposFinalizar(simulado, id);
     }
 
@@ -67,8 +84,16 @@ public abstract class FinalizacaoSimuladoTemplate {
     protected abstract void salvar(Simulado s);
 
     /**
+     * Notifica todos os observers registrados de que o simulado foi finalizado.
+     */
+    protected void notificarObservers(SimuladoId id) {
+        for (SimuladoObserver observer : observers) {
+            observer.aoFinalizarSimulado(id);
+        }
+    }
+
+    /**
      * Gancho opcional após a finalização.
-     * No QNota atual, aqui entra a RN-102 (congelar ranking).
      */
     protected void aposFinalizar(Simulado s, SimuladoId id) {
         // gancho opcional

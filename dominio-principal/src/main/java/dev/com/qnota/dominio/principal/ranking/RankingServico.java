@@ -5,16 +5,17 @@ import java.util.List;
 import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
 import dev.com.qnota.dominio.principal.simulado.Simulado;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
+import dev.com.qnota.dominio.principal.simulado.SimuladoObserver;
 import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
 
-public class RankingServico {
+public class RankingServico implements SimuladoObserver {
 
     private final AlunoRepositorio alunoRepo;
     private final SimuladoRepositorio simuladoRepo;
     private final RankingRepositorio rankingRepo;
+    private final CalculoRankingStrategy calculoRanking;
 
     // Agora só precisa da Strategy
-    private final CalculoRankingStrategy calculoRanking;
 
     public RankingServico(AlunoRepositorio alunoRepo,
                           SimuladoRepositorio simuladoRepo,
@@ -70,5 +71,11 @@ public class RankingServico {
             recalcular(simuladoId); // garante cálculo salvo
             rankingRepo.congelar(simuladoId);
         }
+    }
+
+    /** Implementação de Observer: reage à finalização de simulados. */
+    @Override
+    public void aoFinalizarSimulado(SimuladoId id) {
+        congelar(id); // RN-102 reagindo ao evento de finalização
     }
 }

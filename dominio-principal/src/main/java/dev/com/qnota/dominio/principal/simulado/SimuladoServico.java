@@ -28,7 +28,7 @@ public class SimuladoServico {
                            TurmaRepositorio turmaRepo, ProfessorRepositorio professorRepo,
                            DisciplinaRepositorio disciplinaRepo, AlunoRepositorio alunoRepo) {
         this(repo, rankingServico, turmaRepo, professorRepo, disciplinaRepo, alunoRepo,
-             new FinalizacaoSimuladoPadrao(repo, rankingServico));
+             criarTemplateFinalizacao(repo, rankingServico));
     }
 
     /**
@@ -46,6 +46,13 @@ public class SimuladoServico {
         this.disciplinaRepo = Objects.requireNonNull(disciplinaRepo);
         this.alunoRepo = Objects.requireNonNull(alunoRepo);
         this.finalizacaoTemplate = Objects.requireNonNull(finalizacaoTemplate);
+    }
+
+    private static FinalizacaoSimuladoTemplate criarTemplateFinalizacao(SimuladoRepositorio repo,
+                                                                        RankingServico rankingServico) {
+        var template = new FinalizacaoSimuladoPadrao(repo);
+        template.registrarObserver(rankingServico);
+        return template;
     }
 
     /** Factory de conveniência para criar EM_EDICAO sem expor ID. */
