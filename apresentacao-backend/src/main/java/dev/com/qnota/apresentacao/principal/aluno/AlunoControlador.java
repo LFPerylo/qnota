@@ -37,8 +37,28 @@ class AlunoControlador {
 			.map(r -> new AlunoResumoDto(r.getId(), r.getNome(), r.getDataNascimento(), r.isAtivo(), r.getTurmaId(), r.getTurmaNome(), r.getQuantidadeResponsaveis()))
 			.toList();
 	}
+
+	@RequestMapping(method = GET, path = "{id}/detalhes")
+	AlunoDetalhesDto detalhes(@PathVariable("id") int id) {
+		var alunoId = mapeador.map(id, AlunoId.class);
+		var aluno = alunoServico.porId(alunoId);
+		return new AlunoDetalhesDto(
+			aluno.getId().value(),
+			aluno.getNome(),
+			aluno.getDataNascimento(),
+			aluno.isAtivo(),
+			aluno.getTurma().value(),
+			aluno.getVinculos().stream()
+				.map(v -> new ResponsavelVinculoDto(v.responsavel().value(), v.principal()))
+				.toList()
+		);
+	}
 	
 	public static record AlunoResumoDto(int id, String nome, java.time.LocalDate dataNascimento, boolean ativo, int turmaId, String turmaNome, int quantidadeResponsaveis) {}
+	
+	public static record AlunoDetalhesDto(int id, String nome, java.time.LocalDate dataNascimento, boolean ativo, int turmaId, List<ResponsavelVinculoDto> responsaveis) {}
+	
+	public static record ResponsavelVinculoDto(int responsavelId, boolean principal) {}
 
 	@RequestMapping(method = POST, path = "cadastrar")
 	Integer cadastrar(@RequestBody AlunoFormulario.AlunoDto dto) {
@@ -58,6 +78,12 @@ class AlunoControlador {
 			principal
 		);
 		return alunoId.value();
+	}
+
+	@RequestMapping(method = POST, path = "{id}/renomear")
+	void renomear(@PathVariable("id") int id, @RequestBody AlunoFormulario.NomeDto dto) {
+		var alunoId = mapeador.map(id, AlunoId.class);
+		alunoServico.renomear(alunoId, dto.nome);
 	}
 
 	@RequestMapping(method = POST, path = "{id}/transferir")

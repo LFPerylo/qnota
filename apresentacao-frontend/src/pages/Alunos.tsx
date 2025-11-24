@@ -12,6 +12,7 @@ import {
   AlunoDetailModal,
   AlunoDeleteModal
 } from '../components/modals';
+import { alunoAPI } from '../services/api';
 
 interface Aluno {
   id: string;
@@ -80,15 +81,39 @@ export function Alunos({
     return matchesSearch && matchesStatus && matchesTurma;
   });
 
-  const handleOpenDialog = (aluno?: Aluno) => {
+  const handleOpenDialog = async (aluno?: Aluno) => {
     if (aluno) {
       setSelectedAluno(aluno);
-      setFormData({
-        nome: aluno.nome,
-        dataNascimento: formatDate(aluno.dataNascimento),
-        turmaId: aluno.turmaId,
-        responsaveis: aluno.responsaveis
-      });
+      try {
+        // Buscar detalhes do aluno com responsáveis
+        const detalhes = await alunoAPI.detalhes(parseInt(aluno.id));
+        if (detalhes) {
+          setFormData({
+            nome: detalhes.nome || aluno.nome,
+            dataNascimento: formatDate(detalhes.dataNascimento || aluno.dataNascimento),
+            turmaId: detalhes.turmaId?.toString() || aluno.turmaId,
+            responsaveis: detalhes.responsaveis?.map((r: any) => ({
+              responsavelId: r.responsavelId?.toString() || '',
+              principal: r.principal || false
+            })) || aluno.responsaveis || []
+          });
+        } else {
+          setFormData({
+            nome: aluno.nome,
+            dataNascimento: formatDate(aluno.dataNascimento),
+            turmaId: aluno.turmaId,
+            responsaveis: aluno.responsaveis || []
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao buscar detalhes do aluno:', error);
+        setFormData({
+          nome: aluno.nome,
+          dataNascimento: formatDate(aluno.dataNascimento),
+          turmaId: aluno.turmaId,
+          responsaveis: aluno.responsaveis || []
+        });
+      }
     } else {
       setSelectedAluno(null);
       setFormData({

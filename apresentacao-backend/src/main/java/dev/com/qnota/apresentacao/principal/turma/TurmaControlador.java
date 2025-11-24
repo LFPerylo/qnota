@@ -43,9 +43,9 @@ class TurmaControlador {
 	}
 
 	@RequestMapping(method = POST, path = "{id}/renomear")
-	void renomear(@PathVariable("id") int id, @RequestBody String novoNome) {
+	void renomear(@PathVariable("id") int id, @RequestBody TurmaFormulario.NomeDto dto) {
 		var turmaId = mapeador.map(id, TurmaId.class);
-		turmaServico.renomear(turmaId, novoNome);
+		turmaServico.renomear(turmaId, dto.nome);
 	}
 
 	@RequestMapping(method = POST, path = "{id}/trocar-professor")

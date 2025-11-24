@@ -43,6 +43,10 @@ public class AlunoFormulario {
 		public double novoValor;
 		public String justificativa;
 	}
+
+	public static class NomeDto {
+		public String nome;
+	}
 }
 
 

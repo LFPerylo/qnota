@@ -45,6 +45,18 @@ public class AlunoServico implements ResponsavelVinculoService {
         return repo.salvar(aluno);
     }
 
+    // ---------- CONSULTAR ----------
+    public Aluno porId(AlunoId id) {
+        return repo.porId(id);
+    }
+
+    // ---------- RENOMEAR ----------
+    public void renomear(AlunoId id, String novoNome) {
+        var aluno = repo.porId(id);
+        aluno.renomear(novoNome);
+        repo.salvar(aluno);
+    }
+
     // ---------- TRANSFERIR ----------
     public void transferir(AlunoId id, TurmaId novaTurma) {
         var aluno = repo.porId(id);

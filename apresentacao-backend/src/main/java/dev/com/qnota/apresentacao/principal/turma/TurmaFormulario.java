@@ -18,6 +18,10 @@ public class TurmaFormulario {
 		public Integer anoLetivo;
 		public Integer professorId;
 	}
+
+	public static class NomeDto {
+		public String nome;
+	}
 }
 
 

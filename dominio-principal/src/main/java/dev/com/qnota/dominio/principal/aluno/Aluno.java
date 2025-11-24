@@ -90,6 +90,10 @@ public class Aluno {
         this.turma = Objects.requireNonNull(novaTurma, "'novaTurma' não pode ser nula");
     }
 
+    public void renomear(String novoNome) {
+        this.nome = requireNonBlank(novoNome, "'nome' não pode ser vazio");
+    }
+
     /** Substituição completa de vínculos (validações ficam no serviço). */
     public void substituirResponsaveis(List<ResponsavelId> novaLista, ResponsavelId novoPrincipal) {
         var novos = montarVinculos(novaLista, novoPrincipal);

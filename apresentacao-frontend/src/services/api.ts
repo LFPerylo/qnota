@@ -49,9 +49,14 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 // Alunos
 export const alunoAPI = {
   pesquisar: () => fetchAPI<any[]>('backend/aluno/pesquisa'),
+  detalhes: (id: number) => fetchAPI<any>(`backend/aluno/${id}/detalhes`),
   cadastrar: (dto: any) => fetchAPI<number>('backend/aluno/cadastrar', {
     method: 'POST',
     body: JSON.stringify(dto),
+  }),
+  renomear: (id: number, novoNome: string) => fetchAPI<void>(`backend/aluno/${id}/renomear`, {
+    method: 'POST',
+    body: JSON.stringify({ nome: novoNome }),
   }),
   transferir: (id: number, novaTurmaId: number) => fetchAPI<void>(`backend/aluno/${id}/transferir`, {
     method: 'POST',
@@ -94,7 +99,7 @@ export const turmaAPI = {
   }),
   renomear: (id: number, novoNome: string) => fetchAPI<void>(`backend/turma/${id}/renomear`, {
     method: 'POST',
-    body: JSON.stringify(novoNome),
+    body: JSON.stringify({ nome: novoNome }),
   }),
   trocarProfessor: (id: number, novoProfessorId: number) => fetchAPI<void>(`backend/turma/${id}/trocar-professor`, {
     method: 'POST',

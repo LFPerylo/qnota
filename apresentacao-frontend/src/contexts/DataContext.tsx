@@ -195,6 +195,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const updateAluno = async (id: number, dto: any) => {
+    if (dto.nome !== undefined) {
+      await api.alunoAPI.renomear(id, dto.nome);
+    }
     if (dto.turmaId !== undefined) {
       await api.alunoAPI.transferir(id, dto.turmaId);
     }
