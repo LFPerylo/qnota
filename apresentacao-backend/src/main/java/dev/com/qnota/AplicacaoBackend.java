@@ -2,6 +2,7 @@ package dev.com.qnota;
 
 import static org.springframework.boot.SpringApplication.run;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -80,7 +81,7 @@ public class AplicacaoBackend {
 	}
 
 	@Bean
-	public ResponsavelServico responsavelServico(ResponsavelRepositorio repositorio, ResponsavelVinculoService vinculoService) {
+	public ResponsavelServico responsavelServico(ResponsavelRepositorio repositorio, @Qualifier("responsavelVinculoService") ResponsavelVinculoService vinculoService) {
 		return new ResponsavelServico(repositorio, vinculoService);
 	}
 

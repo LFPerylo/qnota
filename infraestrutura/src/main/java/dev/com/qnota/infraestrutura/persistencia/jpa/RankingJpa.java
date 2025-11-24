@@ -128,10 +128,11 @@ interface RankingJpaRepository extends JpaRepository<RankingJpa, Integer> {
     int marcarCongeladoPorSimulado(@org.springframework.data.repository.query.Param("simuladoId") Integer simuladoId);
 
     // Query para resumos com informações do simulado e quantidade de linhas
+    // Adaptado para H2: usando FORMATDATETIME ao invés de TO_CHAR do PostgreSQL
     @Query(value = """
         SELECT r.id AS id,
                r.simulado_id AS simuladoId,
-               TO_CHAR(s.data_aplicacao, 'DD/MM/YYYY') AS simuladoDataAplicacao,
+               FORMATDATETIME(s.data_aplicacao, 'dd/MM/yyyy') AS simuladoDataAplicacao,
                t.nome AS simuladoTurmaNome,
                r.congelado AS congelado,
                COUNT(rl.aluno_id) AS quantidadeLinhas

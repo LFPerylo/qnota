@@ -26,9 +26,14 @@ class ProfessorControlador {
 	private @Autowired BackendMapeador mapeador;
 
 	@RequestMapping(method = GET, path = "pesquisa")
-	List<ProfessorResumo> pesquisa() {
-		return professorServicoConsulta.pesquisarResumos();
+	List<ProfessorResumoDto> pesquisa() {
+		return professorServicoConsulta.pesquisarResumos().stream()
+			.map(r -> new ProfessorResumoDto(r.getId(), r.getNome(), r.getCpf(), r.getEmail(), r.getEspecialidades()))
+			.toList();
 	}
+	
+	// DTO para serialização JSON
+	public static record ProfessorResumoDto(int id, String nome, String cpf, String email, String especialidades) {}
 
 	@RequestMapping(method = POST, path = "cadastrar")
 	Integer cadastrar(@RequestBody ProfessorFormulario.ProfessorDto dto) {

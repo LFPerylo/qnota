@@ -26,9 +26,13 @@ class ResponsavelControlador {
 	private @Autowired BackendMapeador mapeador;
 
 	@RequestMapping(method = GET, path = "pesquisa")
-	List<ResponsavelResumo> pesquisa() {
-		return responsavelServicoConsulta.pesquisarResumos();
+	List<ResponsavelResumoDto> pesquisa() {
+		return responsavelServicoConsulta.pesquisarResumos().stream()
+			.map(r -> new ResponsavelResumoDto(r.getId(), r.getNome(), r.getEmail(), r.getCpf(), r.getQuantidadeAlunos(), r.getStatus().name()))
+			.toList();
 	}
+	
+	public static record ResponsavelResumoDto(int id, String nome, String email, String cpf, int quantidadeAlunos, String status) {}
 
 	@RequestMapping(method = POST, path = "cadastrar")
 	Integer cadastrar(@RequestBody ResponsavelFormulario.ResponsavelDto dto) {

@@ -76,7 +76,7 @@ class DisciplinaJpa {
     @Column(name = "ativo", nullable = false)
     Boolean ativo;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "area_id", nullable = false,
         foreignKey = @ForeignKey(name = "fk_disc_area"))
     AreaConhecimentoJpa area;
@@ -95,6 +95,10 @@ interface AreaConhecimentoJpaRepository extends JpaRepository<AreaConhecimentoJp
 interface DisciplinaJpaRepository extends JpaRepository<DisciplinaJpa, Integer> {
 
     boolean existsByNomeIgnoreCaseAndArea_NomeIgnoreCase(String nome, String areaNome);
+    
+    // Query com JOIN FETCH para garantir que a área seja carregada
+    @Query("SELECT d FROM DisciplinaJpa d JOIN FETCH d.area WHERE d.id = :id")
+    Optional<DisciplinaJpa> findByIdWithArea(@Param("id") Integer id);
 
     // Postgres: retorna boolean diretamente
     @Query(value =
@@ -163,10 +167,69 @@ class DisciplinaRepositorioImpl implements DisciplinaRepositorio, DisciplinaRepo
     }
 
     private static AreaConhecimento toVO(AreaConhecimentoJpa a) {
-        return new AreaConhecimento(a.id, a.nome);
+        if (a == null) {
+            throw new IllegalArgumentException("AreaConhecimentoJpa não pode ser nulo");
+        }
+        // Se o ID for null (não persistido ainda), usa 0 como valor padrão
+        // O ID real será atribuído quando a área for salva
+        // Verificar se o ID é null antes de chamar intValue()
+        // Usar unboxing seguro
+        int areaId = 0;
+        Integer idValue = a.id;
+        if (idValue != null) {
+            areaId = idValue; // Unboxing automático, mas já verificamos null
+        }
+        String nomeArea = (a.nome != null) ? a.nome : "";
+        return new AreaConhecimento(areaId, nomeArea);
     }
 
     private Disciplina toDomain(DisciplinaJpa j) {
+        // Garantir que a área esteja carregada antes de converter
+        if (j.area == null) {
+            throw new IllegalStateException("Disciplina não possui área associada.");
+        }
+        // Forçar o carregamento da área se necessário
+        // Acessar o ID de forma segura para evitar NullPointerException
+        // Primeiro, tentar acessar o nome para forçar o carregamento do proxy
+        String nomeArea = null;
+        try {
+            nomeArea = j.area.nome;
+        } catch (Exception e) {
+            // Se houver erro ao acessar o nome, a área pode ser um proxy não inicializado
+            throw new IllegalStateException("Erro ao acessar área da disciplina: " + e.getMessage(), e);
+        }
+        
+        // Tentar acessar o ID de forma segura
+        Integer areaId = null;
+        try {
+            // Acessar o ID de forma segura
+            Integer tempId = j.area.id;
+            if (tempId != null) {
+                areaId = tempId;
+            }
+        } catch (Exception e) {
+            // Se houver erro ao acessar o ID, tentamos buscar pelo nome
+            if (nomeArea != null && !nomeArea.isEmpty()) {
+                var areaExistente = areaRepo.findByNomeIgnoreCase(nomeArea);
+                if (areaExistente.isPresent()) {
+                    j.area = areaExistente.get();
+                    Integer tempId = j.area.id;
+                    if (tempId != null) {
+                        areaId = tempId;
+                    }
+                }
+            }
+        }
+        
+        // Se ainda não tem ID, tentamos buscar pelo nome
+        if (areaId == null && nomeArea != null && !nomeArea.isEmpty()) {
+            var areaExistente = areaRepo.findByNomeIgnoreCase(nomeArea);
+            if (areaExistente.isPresent()) {
+                j.area = areaExistente.get();
+            }
+        }
+        
+        // Agora podemos converter com segurança
         var voArea = toVO(j.area);
         var d = new Disciplina(j.nome, voArea);       // v1
         d.atribuirIdSeAusente(new DisciplinaId(j.id));
@@ -195,8 +258,18 @@ class DisciplinaRepositorioImpl implements DisciplinaRepositorio, DisciplinaRepo
             return areaRepo.findById(voArea.id())
                 .orElseThrow(() -> new IllegalArgumentException("Area id=" + voArea.id() + " inexistente."));
         }
-        return areaRepo.findByNomeIgnoreCase(voArea.nome())
-            .orElseGet(() -> areaRepo.save(new AreaConhecimentoJpa(voArea.nome().trim())));
+        // Buscar ou criar a área e garantir que tenha ID
+        AreaConhecimentoJpa area = areaRepo.findByNomeIgnoreCase(voArea.nome())
+            .orElseGet(() -> {
+                AreaConhecimentoJpa novaArea = new AreaConhecimentoJpa(voArea.nome().trim());
+                return areaRepo.save(novaArea);
+            });
+        // Garantir que a área tenha ID válido
+        if (area.id == null) {
+            // Se ainda não tem ID, salvar novamente para forçar a geração
+            area = areaRepo.save(area);
+        }
+        return area;
     }
 
     @Override
@@ -212,8 +285,84 @@ class DisciplinaRepositorioImpl implements DisciplinaRepositorio, DisciplinaRepo
     @Override
     @Transactional(readOnly = true)
     public Disciplina porId(DisciplinaId id) {
-        var j = disciplinaRepo.findById(id.value())
-            .orElseThrow(() -> new EntityNotFoundException("Disciplina id=" + id.value() + " não encontrada."));
+        // Usar JOIN FETCH para garantir que a área seja carregada
+        var jOpt = disciplinaRepo.findByIdWithArea(id.value());
+        DisciplinaJpa j;
+        if (jOpt.isPresent()) {
+            j = jOpt.get();
+        } else {
+            // Fallback para findById se findByIdWithArea não encontrar
+            j = disciplinaRepo.findById(id.value())
+                .orElseThrow(() -> new EntityNotFoundException("Disciplina id=" + id.value() + " não encontrada."));
+        }
+        
+        // Garantir que a área seja carregada
+        if (j.area == null) {
+            throw new IllegalStateException("Disciplina id=" + id.value() + " não possui área associada.");
+        }
+        
+        // Forçar o carregamento da área acessando o nome primeiro
+        // Isso garante que o proxy do Hibernate seja inicializado
+        String nomeArea = null;
+        try {
+            nomeArea = j.area.nome;
+        } catch (Exception e) {
+            throw new IllegalStateException("Erro ao acessar nome da área da disciplina id=" + id.value() + ": " + e.getMessage(), e);
+        }
+        
+        // Tentar acessar o ID de forma segura
+        Integer areaIdValue = null;
+        try {
+            // Acessar o ID de forma segura
+            Integer tempId = j.area.id;
+            if (tempId != null) {
+                areaIdValue = tempId;
+            }
+        } catch (Exception e) {
+            // Se houver erro, tentar buscar pelo nome
+            if (nomeArea != null && !nomeArea.isEmpty()) {
+                var areaExistente = areaRepo.findByNomeIgnoreCase(nomeArea);
+                if (areaExistente.isPresent()) {
+                    j.area = areaExistente.get();
+                    Integer tempId = j.area.id;
+                    if (tempId != null) {
+                        areaIdValue = tempId;
+                    }
+                }
+            }
+        }
+        
+        // Se ainda não tem ID, buscar pelo nome
+        if (areaIdValue == null) {
+            if (nomeArea == null || nomeArea.isEmpty()) {
+                throw new IllegalStateException("Disciplina id=" + id.value() + " possui área sem nome válido.");
+            }
+            var areaExistente = areaRepo.findByNomeIgnoreCase(nomeArea);
+            if (areaExistente.isPresent()) {
+                j.area = areaExistente.get();
+            } else {
+                throw new IllegalStateException("Disciplina id=" + id.value() + " referencia área '" + nomeArea + "' que não existe no banco de dados.");
+            }
+        }
+        
+        // Garantir que a área tenha ID válido antes de converter
+        Integer finalAreaId = null;
+        try {
+            finalAreaId = j.area.id;
+        } catch (Exception e) {
+            // Se ainda houver erro, tentar buscar novamente
+            if (nomeArea != null && !nomeArea.isEmpty()) {
+                var areaExistente = areaRepo.findByNomeIgnoreCase(nomeArea);
+                if (areaExistente.isPresent()) {
+                    j.area = areaExistente.get();
+                    finalAreaId = j.area.id;
+                }
+            }
+        }
+        if (finalAreaId == null) {
+            throw new IllegalStateException("Disciplina id=" + id.value() + " possui área sem ID válido após processamento.");
+        }
+        
         return toDomain(j);
     }
 

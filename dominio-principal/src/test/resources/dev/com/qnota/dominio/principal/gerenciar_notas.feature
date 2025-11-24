@@ -77,10 +77,11 @@ Feature: Gerenciar Notas
     Then o sistema rejeita a retificação em notas
     And o sistema informa em notas que "RN-37"
 
-  Scenario: Bloquear retificação em simulado finalizado (falha - RN-39)
+  Scenario: Retificar em simulado finalizado (sucesso - RN-39 atualizado)
     Given já existe nota 5.0 para o "aluno" "A1" no "simulado" "S1" na "disciplina" "Matemática"
     And o "simulado" "S1" "está" finalizado
     And existe um "professor" "P1" responsável pela turma "7A"
-    When um coordenador tenta retificar a nota para 6.0 com justificativa "Após revisão detalhada, pontos foram corretamente ajustados."
-    Then o sistema rejeita a retificação em notas
-    And o sistema informa em notas que "RN-39"
+    When um coordenador retifica a nota para 6.0 com justificativa "Após revisão detalhada, pontos foram corretamente ajustados."
+    Then o sistema confirma a retificação da nota
+    And uma nova versão da nota é criada
+    And a justificativa é registrada no histórico

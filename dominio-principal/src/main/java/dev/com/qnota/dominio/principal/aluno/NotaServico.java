@@ -67,8 +67,9 @@ public class NotaServico {
         var aluno = alunoRepo.porId(alunoId);
         var simulado = simuladoRepo.porId(simuladoId);
 
-        if (simulado.getStatus() != Simulado.Status.EM_EDICAO)
-            throw new IllegalStateException("RN-39: Retificação só em simulado EM_EDICAO.");
+        if (simulado.getStatus() != Simulado.Status.EM_EDICAO
+                && simulado.getStatus() != Simulado.Status.FINALIZADO)
+            throw new IllegalStateException("RN-39: Retificação permitida apenas para simulados em edição ou finalizados.");
 
         String txt = justificativa == null ? "" : justificativa.trim();
         if (txt.length() < 20)

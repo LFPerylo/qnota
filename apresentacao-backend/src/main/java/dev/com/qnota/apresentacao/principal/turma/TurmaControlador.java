@@ -27,9 +27,13 @@ class TurmaControlador {
 	private @Autowired BackendMapeador mapeador;
 
 	@RequestMapping(method = GET, path = "pesquisa")
-	List<TurmaResumo> pesquisa() {
-		return turmaServicoConsulta.pesquisarResumos();
+	List<TurmaResumoDto> pesquisa() {
+		return turmaServicoConsulta.pesquisarResumos().stream()
+			.map(r -> new TurmaResumoDto(r.getId(), r.getNome(), r.getAnoLetivo(), r.isAtivo(), r.getProfessorId(), r.getProfessorNome(), r.getQuantidadeAlunos()))
+			.toList();
 	}
+	
+	public static record TurmaResumoDto(int id, String nome, int anoLetivo, boolean ativo, int professorId, String professorNome, int quantidadeAlunos) {}
 
 	@RequestMapping(method = POST, path = "criar")
 	Integer criar(@RequestBody TurmaFormulario.TurmaDto dto) {

@@ -156,4 +156,9 @@ public class SimuladoServico {
             throw new IllegalStateException("RN-15: já existem notas lançadas.");
         repo.remover(id);
     }
+
+    /** Consulta detalhada para exposição na API. */
+    public Simulado detalhar(SimuladoId id) {
+        return repo.porId(id);
+    }
 }

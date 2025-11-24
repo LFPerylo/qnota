@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import dev.com.qnota.aplicacao.principal.simulado.SimuladoResumo;
 import dev.com.qnota.aplicacao.principal.simulado.SimuladoServicoAplicacao;
 import dev.com.qnota.apresentacao.BackendMapeador;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
@@ -29,13 +30,35 @@ class SimuladoControlador {
 	private @Autowired BackendMapeador mapeador;
 
 	@RequestMapping(method = GET, path = "pesquisa")
-	List<? extends Object> pesquisar(@RequestParam(required = false, defaultValue = "false") boolean expandir) {
-		if (expandir) {
-			return simuladoServicoConsulta.pesquisarResumosExpandidos();
-		} else {
-			return simuladoServicoConsulta.pesquisarResumos();
-		}
+	List<SimuladoResumoDto> pesquisar(@RequestParam(required = false, defaultValue = "false") boolean expandir) {
+		var resumos = expandir 
+			? simuladoServicoConsulta.pesquisarResumosExpandidos()
+			: simuladoServicoConsulta.pesquisarResumos();
+		return resumos.stream()
+			.map(r -> new SimuladoResumoDto(r.getId(), r.getDataAplicacao(), r.getStatus().name(), r.getTurmaId(), r.getTurmaNome(), r.getQuantidadeDisciplinas()))
+			.toList();
 	}
+	
+	public static record SimuladoResumoDto(int id, java.time.LocalDate dataAplicacao, String status, int turmaId, String turmaNome, int quantidadeDisciplinas) {}
+
+	@RequestMapping(method = GET, path = "{id}")
+	SimuladoDetalheDto detalhar(@PathVariable("id") int id) {
+		var simuladoId = mapeador.map(id, SimuladoId.class);
+		var simulado = simuladoServico.detalhar(simuladoId);
+		var disciplinas = simulado.getDisciplinas().stream()
+			.map(dp -> new DisciplinaDto(dp.disciplina().value(), dp.peso()))
+			.toList();
+		return new SimuladoDetalheDto(
+			simulado.getId().value(),
+			simulado.getDataAplicacao(),
+			simulado.getStatus().name(),
+			simulado.getTurma().value(),
+			disciplinas
+		);
+	}
+
+	public static record SimuladoDetalheDto(int id, java.time.LocalDate dataAplicacao, String status, int turmaId, List<DisciplinaDto> disciplinas) {}
+	public static record DisciplinaDto(int disciplinaId, double peso) {}
 
 	@RequestMapping(method = POST, path = "criar")
 	Integer criar(@RequestBody SimuladoFormulario.SimuladoDto dto) {

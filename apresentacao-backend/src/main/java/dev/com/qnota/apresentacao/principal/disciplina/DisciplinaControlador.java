@@ -27,9 +27,13 @@ class DisciplinaControlador {
 	private @Autowired BackendMapeador mapeador;
 
 	@RequestMapping(method = GET, path = "pesquisa")
-	List<DisciplinaResumo> pesquisa() {
-		return disciplinaServicoConsulta.pesquisarResumos();
+	List<DisciplinaResumoDto> pesquisa() {
+		return disciplinaServicoConsulta.pesquisarResumos().stream()
+			.map(r -> new DisciplinaResumoDto(r.getId(), r.getNome(), r.getVersao(), r.isAtivo(), r.getAreaNome()))
+			.toList();
 	}
+	
+	public static record DisciplinaResumoDto(int id, String nome, int versao, boolean ativo, String areaNome) {}
 
 	@RequestMapping(method = POST, path = "cadastrar")
 	Integer cadastrar(@RequestBody DisciplinaFormulario.DisciplinaDto dto) {

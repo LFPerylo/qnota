@@ -35,6 +35,14 @@ public class AlunoFormulario {
 		public Integer disciplinaId;
 		public double valor;
 	}
+
+	public static class RetificacaoDto {
+		public Integer simuladoId;
+		public Integer disciplinaId;
+		public Integer professorId;
+		public double novoValor;
+		public String justificativa;
+	}
 }
 
 

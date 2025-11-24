@@ -108,12 +108,13 @@ interface ProfessorJpaRepository extends JpaRepository<ProfessorJpa, Integer> {
     int substituirProfessor(@Param("antigo") int antigo, @Param("substituto") int substituto);
 
     // Query para resumos com especialidades como string (JSON array formatado)
+    // Adaptado para H2: especialidades já é VARCHAR, não precisa de cast
     @Query(value = """
         SELECT p.id AS id,
                p.nome AS nome,
                p.cpf AS cpf,
                p.endereco_eletronico AS email,
-               COALESCE(p.especialidades::text, '[]') AS especialidades
+               COALESCE(p.especialidades, '[]') AS especialidades
           FROM professores p
       ORDER BY p.nome
         """, nativeQuery = true)

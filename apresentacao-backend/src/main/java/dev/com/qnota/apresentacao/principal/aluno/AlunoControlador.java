@@ -32,9 +32,13 @@ class AlunoControlador {
 	private @Autowired BackendMapeador mapeador;
 
 	@RequestMapping(method = GET, path = "pesquisa")
-	List<AlunoResumo> pesquisa() {
-		return alunoServicoConsulta.pesquisarResumos();
+	List<AlunoResumoDto> pesquisa() {
+		return alunoServicoConsulta.pesquisarResumos().stream()
+			.map(r -> new AlunoResumoDto(r.getId(), r.getNome(), r.getDataNascimento(), r.isAtivo(), r.getTurmaId(), r.getTurmaNome(), r.getQuantidadeResponsaveis()))
+			.toList();
 	}
+	
+	public static record AlunoResumoDto(int id, String nome, java.time.LocalDate dataNascimento, boolean ativo, int turmaId, String turmaNome, int quantidadeResponsaveis) {}
 
 	@RequestMapping(method = POST, path = "cadastrar")
 	Integer cadastrar(@RequestBody AlunoFormulario.AlunoDto dto) {
@@ -102,6 +106,15 @@ class AlunoControlador {
 		var simuladoId = mapeador.map(dto.simuladoId, dev.com.qnota.dominio.principal.simulado.SimuladoId.class);
 		var disciplinaId = mapeador.map(dto.disciplinaId, dev.com.qnota.dominio.principal.disciplina.DisciplinaId.class);
 		notaServico.lancar(alunoId, simuladoId, disciplinaId, dto.valor);
+	}
+
+	@RequestMapping(method = POST, path = "{id}/retificar-nota")
+	void retificarNota(@PathVariable("id") int id, @RequestBody AlunoFormulario.RetificacaoDto dto) {
+		var alunoId = mapeador.map(id, AlunoId.class);
+		var simuladoId = mapeador.map(dto.simuladoId, dev.com.qnota.dominio.principal.simulado.SimuladoId.class);
+		var disciplinaId = mapeador.map(dto.disciplinaId, dev.com.qnota.dominio.principal.disciplina.DisciplinaId.class);
+		var professorId = mapeador.map(dto.professorId, dev.com.qnota.dominio.principal.professor.ProfessorId.class);
+		notaServico.retificarNota(alunoId, simuladoId, disciplinaId, dto.novoValor, dto.justificativa, professorId);
 	}
 }
 
