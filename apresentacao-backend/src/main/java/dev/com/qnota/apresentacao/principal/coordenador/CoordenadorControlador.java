@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import dev.com.qnota.aplicacao.principal.coordenador.CoordenadorResumo;
 import dev.com.qnota.aplicacao.principal.coordenador.CoordenadorServicoAplicacao;
 import dev.com.qnota.apresentacao.BackendMapeador;
 import dev.com.qnota.dominio.principal.coordenador.CoordenadorId;
@@ -26,9 +25,13 @@ class CoordenadorControlador {
 	private @Autowired BackendMapeador mapeador;
 
 	@RequestMapping(method = GET, path = "pesquisa")
-	List<CoordenadorResumo> pesquisa() {
-		return coordenadorServicoConsulta.pesquisarResumos();
+	List<CoordenadorResumoDto> pesquisa() {
+		return coordenadorServicoConsulta.pesquisarResumos().stream()
+			.map(r -> new CoordenadorResumoDto(r.getId(), r.getNome(), r.getEmail(), r.isAtivo()))
+			.toList();
 	}
+	
+	public static record CoordenadorResumoDto(int id, String nome, String email, boolean ativo) {}
 
 	@RequestMapping(method = POST, path = "cadastrar")
 	Integer cadastrar(@RequestBody CoordenadorFormulario.CoordenadorDto dto) {

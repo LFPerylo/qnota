@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import dev.com.qnota.aplicacao.principal.turma.TurmaResumo;
 import dev.com.qnota.aplicacao.principal.turma.TurmaServicoAplicacao;
 import dev.com.qnota.apresentacao.BackendMapeador;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;

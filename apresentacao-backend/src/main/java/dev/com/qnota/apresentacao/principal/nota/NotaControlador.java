@@ -49,7 +49,7 @@ class NotaControlador {
 				n.disciplina_id,
 				d.nome AS disciplina_nome,
 				n.valor,
-				n.data_lancamento
+				n.datalancamento
 			FROM notas_do_aluno n
 			LEFT JOIN alunos a ON a.id = n.aluno_id
 			LEFT JOIN disciplinas d ON d.id = n.disciplina_id
@@ -72,7 +72,7 @@ class NotaControlador {
 				rs.getInt("disciplina_id"),
 				rs.getString("disciplina_nome"),
 				rs.getDouble("valor"),
-				rs.getTimestamp("data_lancamento").toLocalDateTime()
+				rs.getTimestamp("datalancamento").toLocalDateTime()
 			)
 		);
 	}

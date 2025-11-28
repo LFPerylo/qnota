@@ -20,8 +20,6 @@ import dev.com.qnota.aplicacao.principal.aluno.AlunoResumo;
 import dev.com.qnota.dominio.principal.aluno.Aluno;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
-
-import java.util.List;
 import dev.com.qnota.dominio.principal.aluno.Justificativa;
 import dev.com.qnota.dominio.principal.aluno.NotaDoAluno;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;

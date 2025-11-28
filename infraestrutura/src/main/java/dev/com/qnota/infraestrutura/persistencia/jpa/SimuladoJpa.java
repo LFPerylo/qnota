@@ -23,8 +23,6 @@ import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.simulado.Simulado;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
-
-import java.util.List;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 import jakarta.persistence.*;
 

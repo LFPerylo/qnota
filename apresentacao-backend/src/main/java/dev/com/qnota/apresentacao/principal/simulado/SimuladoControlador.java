@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import dev.com.qnota.aplicacao.principal.simulado.SimuladoResumo;
 import dev.com.qnota.aplicacao.principal.simulado.SimuladoServicoAplicacao;
 import dev.com.qnota.apresentacao.BackendMapeador;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;

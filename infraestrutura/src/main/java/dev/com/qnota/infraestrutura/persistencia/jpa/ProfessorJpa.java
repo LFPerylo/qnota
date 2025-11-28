@@ -107,8 +107,7 @@ interface ProfessorJpaRepository extends JpaRepository<ProfessorJpa, Integer> {
     @Query(value = "UPDATE turmas SET professor_id = :substituto WHERE professor_id = :antigo", nativeQuery = true)
     int substituirProfessor(@Param("antigo") int antigo, @Param("substituto") int substituto);
 
-    // Query para resumos com especialidades como string (JSON array formatado)
-    // Adaptado para H2: especialidades já é VARCHAR, não precisa de cast
+    // Query para resumos com especialidades como string (JSON array)
     @Query(value = """
         SELECT p.id AS id,
                p.nome AS nome,
