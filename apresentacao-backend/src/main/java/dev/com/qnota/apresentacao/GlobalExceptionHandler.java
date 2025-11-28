@@ -1,4 +1,4 @@
-package dev.com.qnota;
+package dev.com.qnota.apresentacao;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

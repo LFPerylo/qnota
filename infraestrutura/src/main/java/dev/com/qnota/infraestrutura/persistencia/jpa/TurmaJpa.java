@@ -35,7 +35,7 @@ class TurmaJpa {
     @Column(nullable = false)
     String nome;
 
-    @Column(nullable = false)
+    @Column(name = "anoletivo", nullable = false)
     int anoLetivo;
 
     @Column(nullable = false)
@@ -102,7 +102,7 @@ interface TurmaJpaRepository extends JpaRepository<TurmaJpa, Integer> {
     @Query(value = """
         SELECT t.id AS id,
                t.nome AS nome,
-               t.ano_letivo AS anoLetivo,
+               t.anoletivo AS anoLetivo,
                t.ativo AS ativo,
                t.professor_id AS professorId,
                p.nome AS professorNome,
@@ -110,7 +110,7 @@ interface TurmaJpaRepository extends JpaRepository<TurmaJpa, Integer> {
           FROM turmas t
      LEFT JOIN professores p ON p.id = t.professor_id
      LEFT JOIN alunos a ON a.turma_id = t.id
-      GROUP BY t.id, t.nome, t.ano_letivo, t.ativo, t.professor_id, p.nome
+      GROUP BY t.id, t.nome, t.anoletivo, t.ativo, t.professor_id, p.nome
       ORDER BY t.nome
         """, nativeQuery = true)
     List<TurmaResumo> findTurmaResumoByOrderByNome();

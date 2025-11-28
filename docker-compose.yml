@@ -1,7 +1,7 @@
 services:
   postgres:
     container_name: qnota-postgres
-    image: postgres:18
+    image: postgres:17
     environment:
       POSTGRES_DB: qnota
       POSTGRES_USER: qnota
@@ -9,7 +9,7 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     ports:
-      - 5432:5432
+      - 5433:5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U qnota"]
       interval: 10s

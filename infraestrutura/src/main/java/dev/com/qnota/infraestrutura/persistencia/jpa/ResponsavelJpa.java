@@ -42,8 +42,7 @@ class ResponsavelJpa {
     @Column(nullable = false, unique = true)
     String cpf;
 
-    // mantém snake_case para alinhar com o schema H2
-    @Column(name = "endereco_eletronico", nullable = false)
+    @Column(name = "enderecoeletronico", nullable = false)
     String enderecoEletronico;
 
     @Enumerated(EnumType.STRING)
@@ -87,13 +86,13 @@ interface ResponsavelJpaRepository extends JpaRepository<ResponsavelJpa, Integer
     @Query(value = """
         SELECT r.id AS id,
                r.nome AS nome,
-               r.endereco_eletronico AS email,
+               r.enderecoeletronico AS email,
                r.cpf AS cpf,
                COALESCE(COUNT(ar.aluno_id), 0) AS quantidadeAlunos,
                r.status AS status
           FROM responsaveis r
      LEFT JOIN aluno_responsaveis ar ON ar.responsavel_id = r.id
-      GROUP BY r.id, r.nome, r.endereco_eletronico, r.cpf, r.status
+      GROUP BY r.id, r.nome, r.enderecoeletronico, r.cpf, r.status
       ORDER BY r.nome
         """, nativeQuery = true)
     List<ResponsavelResumo> findResponsavelResumoByOrderByNome();

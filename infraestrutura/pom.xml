@@ -40,13 +40,7 @@
 			<version>${project.version}</version>
 		</dependency>
 		
-		<!-- Dependências de banco de dados -->
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		
+		<!-- Dependência de banco de dados PostgreSQL -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>

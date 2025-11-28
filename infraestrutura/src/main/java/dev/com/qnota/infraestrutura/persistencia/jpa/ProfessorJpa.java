@@ -49,7 +49,7 @@ class ProfessorJpa {
     @Column(name = "cpf", nullable = false, unique = true)
     String cpf;
 
-    @Column(name = "endereco_eletronico", nullable = false)
+    @Column(name = "enderecoeletronico", nullable = false)
     String email;
 
     // JSONB em Postgres
@@ -113,7 +113,7 @@ interface ProfessorJpaRepository extends JpaRepository<ProfessorJpa, Integer> {
         SELECT p.id AS id,
                p.nome AS nome,
                p.cpf AS cpf,
-               p.endereco_eletronico AS email,
+               p.enderecoeletronico AS email,
                COALESCE(p.especialidades, '[]') AS especialidades
           FROM professores p
       ORDER BY p.nome

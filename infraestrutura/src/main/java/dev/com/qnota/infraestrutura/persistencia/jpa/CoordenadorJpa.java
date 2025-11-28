@@ -36,10 +36,10 @@ class CoordenadorJpa {
     @Column(name = "nome", nullable = false)
     String nome;
 
-    @Column(name = "endereco_eletronico", nullable = false, unique = true)
+    @Column(name = "enderecoeletronico", nullable = false, unique = true)
     String enderecoEletronico;
 
-    @Column(name = "senha_hash", nullable = false)
+    @Column(name = "senhahash", nullable = false)
     String senhaHash;
 
     @Column(name = "ativo", nullable = false)
@@ -63,7 +63,7 @@ interface CoordenadorJpaRepository extends JpaRepository<CoordenadorJpa, Integer
     @org.springframework.data.jpa.repository.Query(value = """
         SELECT c.id AS id,
                c.nome AS nome,
-               c.endereco_eletronico AS email,
+               c.enderecoeletronico AS email,
                c.ativo AS ativo
           FROM coordenadores c
       ORDER BY c.nome

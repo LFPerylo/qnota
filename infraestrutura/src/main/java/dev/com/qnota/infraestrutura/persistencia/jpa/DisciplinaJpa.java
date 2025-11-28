@@ -70,7 +70,7 @@ class DisciplinaJpa {
     @Column(name = "versao", nullable = false)
     Integer versao;
 
-    @Column(name = "id_versao_origem")
+    @Column(name = "idversaoorigem")
     Integer idVersaoOrigem;
 
     @Column(name = "ativo", nullable = false)

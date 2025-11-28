@@ -62,7 +62,7 @@ class AlunoJpa {
     @Column(nullable = false)
     String nome;
 
-    @Column(name = "data_nascimento", nullable = false)
+    @Column(name = "datanascimento", nullable = false)
     LocalDate dataNascimento;
 
     @Column(nullable = false)
@@ -148,7 +148,7 @@ class NotaAlunoJpa {
 
     @Column(nullable=false) Double valor;
 
-    @Column(name="data_lancamento", nullable=false)
+    @Column(name="datalancamento", nullable=false)
     LocalDateTime dataLancamento;
 
     @OneToMany(mappedBy="nota", cascade=jakarta.persistence.CascadeType.ALL, orphanRemoval=true)
@@ -180,10 +180,10 @@ class JustificativaJpa {
     NotaAlunoJpa nota;
 
     @Column(name="professor_id", nullable=false) Integer professorId;
-    @Column(name="nota_anterior", nullable=false) Double notaAnterior;
-    @Column(name="nota_corrigida", nullable=false) Double notaCorrigida;
+    @Column(name="notaanterior", nullable=false) Double notaAnterior;
+    @Column(name="notacorrigida", nullable=false) Double notaCorrigida;
     @Column(name="texto", nullable=false, columnDefinition="text") String texto;
-    @Column(name="data_hora", nullable=false) LocalDateTime dataHora;
+    @Column(name="datahora", nullable=false) LocalDateTime dataHora;
 
     JustificativaJpa(){}
     JustificativaJpa(NotaAlunoJpa nota, Integer professorId, Double notaAnterior, Double notaCorrigida, String texto, LocalDateTime dataHora){
@@ -206,7 +206,7 @@ interface AlunoJpaRepository extends JpaRepository<AlunoJpa, Integer> {
         select exists(
           select 1 from alunos a
           where lower(a.nome) = lower(:nome)
-            and a.data_nascimento = :data
+            and a.datanascimento = :data
             and a.turma_id = :turmaId
         )
         """, nativeQuery = true)
@@ -224,7 +224,7 @@ interface AlunoJpaRepository extends JpaRepository<AlunoJpa, Integer> {
     @Query(value = """
         SELECT a.id AS id,
                a.nome AS nome,
-               a.data_nascimento AS dataNascimento,
+               a.datanascimento AS dataNascimento,
                a.ativo AS ativo,
                a.turma_id AS turmaId,
                t.nome AS turmaNome,
@@ -232,7 +232,7 @@ interface AlunoJpaRepository extends JpaRepository<AlunoJpa, Integer> {
           FROM alunos a
      LEFT JOIN turmas t ON t.id = a.turma_id
      LEFT JOIN aluno_responsaveis ar ON ar.aluno_id = a.id
-      GROUP BY a.id, a.nome, a.data_nascimento, a.ativo, a.turma_id, t.nome
+      GROUP BY a.id, a.nome, a.datanascimento, a.ativo, a.turma_id, t.nome
       ORDER BY a.nome
         """, nativeQuery = true)
     List<AlunoResumo> findAlunoResumoByOrderByNome();

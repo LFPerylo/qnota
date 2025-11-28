@@ -39,7 +39,7 @@ class SimuladoJpa {
   @GeneratedValue(strategy = IDENTITY)
   Integer id;
 
-  @Column(name = "data_aplicacao", nullable = false)
+  @Column(name = "dataaplicacao", nullable = false)
   LocalDate dataAplicacao;
 
   // armazenado como VARCHAR ('EM_EDICAO' | 'FINALIZADO')
@@ -99,7 +99,7 @@ interface SimuladoJpaRepository extends JpaRepository<SimuladoJpa, Integer> {
   @Query(value = """
       SELECT * FROM simulados
        WHERE turma_id = :turmaId
-       ORDER BY data_aplicacao DESC
+       ORDER BY dataaplicacao DESC
       """, nativeQuery = true)
   List<SimuladoJpa> listarPorTurma(@Param("turmaId") int turmaId);
 
@@ -171,7 +171,7 @@ interface SimuladoJpaRepository extends JpaRepository<SimuladoJpa, Integer> {
   // Query para resumos com informações da turma e quantidade de disciplinas
   @Query(value = """
       SELECT s.id AS id,
-             s.data_aplicacao AS dataAplicacao,
+             s.dataaplicacao AS dataAplicacao,
              s.status AS status,
              s.turma_id AS turmaId,
              t.nome AS turmaNome,
@@ -179,8 +179,8 @@ interface SimuladoJpaRepository extends JpaRepository<SimuladoJpa, Integer> {
         FROM simulados s
    LEFT JOIN turmas t ON t.id = s.turma_id
    LEFT JOIN simulado_disciplinas sd ON sd.simulado_id = s.id
-     GROUP BY s.id, s.data_aplicacao, s.status, s.turma_id, t.nome
-     ORDER BY s.data_aplicacao DESC
+     GROUP BY s.id, s.dataaplicacao, s.status, s.turma_id, t.nome
+     ORDER BY s.dataaplicacao DESC
       """, nativeQuery = true)
   List<SimuladoResumo> findSimuladoResumoByOrderByDataAplicacaoDesc();
 }
