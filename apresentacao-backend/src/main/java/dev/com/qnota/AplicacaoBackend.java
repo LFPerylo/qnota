@@ -44,7 +44,7 @@ import dev.com.qnota.dominio.principal.responsavel.ResponsavelVinculoService;
 import dev.com.qnota.dominio.principal.simulado.SimuladoAuditoria;
 import dev.com.qnota.dominio.principal.simulado.SimuladoAuditoriaConsole;
 import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
-import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorioProxy;
+import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorioDecorator;
 import dev.com.qnota.dominio.principal.simulado.SimuladoServico;
 import dev.com.qnota.dominio.principal.turma.TurmaRepositorio;
 import dev.com.qnota.dominio.principal.turma.TurmaServico;
@@ -147,8 +147,8 @@ public class AplicacaoBackend {
 	                                       AlunoRepositorio alunoRepositorio,
 	                                       SimuladoAuditoria simuladoAuditoria) {
 
-		// Envolve o repositório real com o Proxy antes de entregar ao serviço de domínio
-		SimuladoRepositorio proxy = new SimuladoRepositorioProxy(repositorio, simuladoAuditoria);
+		// Envolve o repositório real com o Decorator antes de entregar ao serviço de domínio
+		SimuladoRepositorio proxy = new SimuladoRepositorioDecorator(repositorio, simuladoAuditoria);
 
 		return new SimuladoServico(proxy, rankingServico,
 		                           turmaRepositorio, professorRepositorio,

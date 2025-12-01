@@ -19,12 +19,12 @@ import dev.com.qnota.dominio.principal.turma.TurmaId;
  *
  * Mantém o mesmo contrato de SimuladoRepositorio.
  */
-public class SimuladoRepositorioProxy implements SimuladoRepositorio {
+public class SimuladoRepositorioDecorator implements SimuladoRepositorio {
 
     private final SimuladoRepositorio alvo;
     private final SimuladoAuditoria auditoria;
 
-    public SimuladoRepositorioProxy(SimuladoRepositorio alvo,
+    public SimuladoRepositorioDecorator(SimuladoRepositorio alvo,
                                     SimuladoAuditoria auditoria) {
         this.alvo = Objects.requireNonNull(alvo);
         this.auditoria = Objects.requireNonNull(auditoria);
