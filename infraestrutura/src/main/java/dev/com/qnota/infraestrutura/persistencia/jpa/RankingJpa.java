@@ -19,7 +19,6 @@ import dev.com.qnota.aplicacao.principal.ranking.RankingRepositorioAplicacao;
 import dev.com.qnota.aplicacao.principal.ranking.RankingResumo;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.ranking.Ranking;
-import dev.com.qnota.dominio.principal.ranking.RankingId;
 import dev.com.qnota.dominio.principal.ranking.RankingRepositorio;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 
@@ -239,43 +238,9 @@ class RankingRepositorioImpl implements RankingRepositorio, RankingRepositorioAp
         return out;
     }
 
-    @Override
-    @Transactional
-    public Ranking salvar(Ranking ranking) {
-        var simId = ranking.getSimulado();
-        var r = garantirRankingDoSimulado(simId);
-
-        linhaRepo.deleteAllByRankingId(r.id);
-        for (var l : ranking.getLinhas()) {
-            linhaRepo.save(new RankingLinhaJpa(r, l.aluno().value(), l.media(), l.posicao()));
-        }
-
-        if (ranking.isCongelado()) {
-            r.congelado = Boolean.TRUE;
-            rankingRepo.save(r);
-        } else if (Boolean.TRUE.equals(r.congelado)) {
-            r.congelado = Boolean.FALSE;
-            rankingRepo.save(r);
-        }
-
-        if (ranking.getId() == null) {
-            ranking.atribuirIdSeAusente(new RankingId(r.id));
-        }
-        return ranking;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<Ranking> carregarAgregado(SimuladoId simulado) {
-        var opt = rankingRepo.findBySimuladoId(simulado.value());
-        if (opt.isEmpty()) return Optional.of(new Ranking(simulado, List.of()));
-        var r = opt.get();
-        var linhas = carregar(simulado);
-        var agg = new Ranking(simulado, linhas);
-        if (Boolean.TRUE.equals(r.congelado)) agg.congelar();
-        agg.atribuirIdSeAusente(new RankingId(r.id));
-        return Optional.of(agg);
-    }
+    // Nota: Métodos salvar(Ranking) e carregarAgregado() foram REMOVIDOS.
+    // A orquestração de agregados agora está corretamente no RankingServico.
+    // Esta implementação fornece apenas operações primitivas (limpar, salvarPosicoes, congelar, carregar).
 
     /* ---------- contrato da aplicação ---------- */
 

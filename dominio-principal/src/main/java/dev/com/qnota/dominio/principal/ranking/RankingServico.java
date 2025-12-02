@@ -41,6 +41,7 @@ public class RankingServico implements SimuladoObserver {
 
         var linhas = calculoRanking.calcular(alunos, pesos);
 
+        // Orquestração movida do repositório para o serviço (camada correta)
         rankingRepo.limpar(simuladoId);
         rankingRepo.salvarPosicoes(simuladoId, linhas);
         return linhas;
@@ -50,10 +51,10 @@ public class RankingServico implements SimuladoObserver {
     public Ranking recalcularComoAgregado(SimuladoId simuladoId) {
         var simulado = simuladoRepo.porId(simuladoId);
 
+        // Se já está congelado, carrega o agregado existente
         if (simulado.getStatus() == Simulado.Status.FINALIZADO
                 || rankingRepo.estaCongelado(simuladoId)) {
-            return rankingRepo.carregarAgregado(simuladoId)
-                    .orElseGet(() -> new Ranking(simuladoId, List.of()));
+            return carregarAgregado(simuladoId); // delegação interna
         }
 
         var pesos = simuladoRepo.pesosDoSimulado(simuladoId);
@@ -61,8 +62,30 @@ public class RankingServico implements SimuladoObserver {
 
         var linhas = calculoRanking.calcular(alunos, pesos);
 
+        // Orquestração movida do repositório para o serviço (camada correta)
         var ranking = new Ranking(simuladoId, linhas);
-        return rankingRepo.salvar(ranking);
+        salvarAgregado(ranking); // delegação interna
+        return ranking;
+    }
+
+    /** Carrega o agregado a partir das linhas e do estado de congelamento. */
+    private Ranking carregarAgregado(SimuladoId simuladoId) {
+        var linhas = rankingRepo.carregar(simuladoId);
+        var ranking = new Ranking(simuladoId, linhas);
+        if (rankingRepo.estaCongelado(simuladoId)) {
+            ranking.congelar();
+        }
+        return ranking;
+    }
+
+    /** Persiste o agregado usando operações primitivas do repositório. */
+    private void salvarAgregado(Ranking ranking) {
+        var simuladoId = ranking.getSimulado();
+        rankingRepo.limpar(simuladoId);
+        rankingRepo.salvarPosicoes(simuladoId, ranking.getLinhas());
+        if (ranking.isCongelado()) {
+            rankingRepo.congelar(simuladoId);
+        }
     }
 
     /** RN-102: congela o ranking após finalização do simulado. */

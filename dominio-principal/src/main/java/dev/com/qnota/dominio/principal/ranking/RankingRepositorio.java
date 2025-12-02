@@ -1,7 +1,6 @@
 package dev.com.qnota.dominio.principal.ranking;
 
 import java.util.List;
-import java.util.Optional;
 
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 
@@ -24,31 +23,8 @@ public interface RankingRepositorio {
     /** carrega as posições atuais (ordenadas por posicao) */
     List<Ranking.Linha> carregar(SimuladoId simulado);
 
-    // ===== agregado =====
-
-    /**
-     * Persiste o agregado. Implementações com auto-incremento podem:
-     * - gerar um RankingId se getId()==null e chamar ranking.atribuirIdSeAusente(...)
-     * - atualizar linhas e flag congelado.
-     * Implementação default: reusa o contrato em linhas (sem id).
-     */
-    default Ranking salvar(Ranking ranking) {
-        var simId = ranking.getSimulado();
-        limpar(simId);
-        salvarPosicoes(simId, ranking.getLinhas());
-        if (ranking.isCongelado()) {
-            congelar(simId);
-        }
-        return ranking;
-    }
-
-    /** Carrega o agregado a partir das linhas e do estado de congelamento. */
-    default Optional<Ranking> carregarAgregado(SimuladoId simulado) {
-        var linhas = carregar(simulado);
-        var r = new Ranking(simulado, linhas);
-        if (estaCongelado(simulado)) {
-            r.congelar();
-        }
-        return Optional.of(r);
-    }
+    // Nota: Métodos de orquestração de agregados foram REMOVIDOS.
+    // A lógica agora está corretamente no RankingServico (camada de domínio).
+    // Implementações concretas (infraestrutura) podem fornecer operações agregadas
+    // se necessário para otimização, mas a interface de domínio permanece simples.
 }
