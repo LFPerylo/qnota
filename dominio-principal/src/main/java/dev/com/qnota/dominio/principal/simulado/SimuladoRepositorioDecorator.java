@@ -1,4 +1,4 @@
-/* Título da análise: QNota - Padrão Proxy aplicado ao SimuladoRepositorio */
+/* Título da análise: QNota - Padrão Decorator aplicado ao SimuladoRepositorio */
 package dev.com.qnota.dominio.principal.simulado;
 
 import java.util.List;
@@ -10,12 +10,15 @@ import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 
 /**
- * Proxy para SimuladoRepositorio.
+ * Decorator para SimuladoRepositorio.
  *
  * Objetivo:
- * - interceptar chamadas ao repositório de Simulado
- * - adicionar comportamentos transversais (ex.: auditoria, logs)
- * - delegar a execução real para um repositório "alvo"
+ * - adicionar comportamentos transversais (ex.: auditoria, logs) ao repositório
+ * - delegar a execução real para um repositório "alvo" (wrapped component)
+ *
+ * Decorator vs Proxy:
+ * - Decorator: adiciona responsabilidades dinamicamente (nosso caso - auditoria)
+ * - Proxy: controla acesso ao objeto (lazy loading, controle de permissões)
  *
  * Mantém o mesmo contrato de SimuladoRepositorio.
  */

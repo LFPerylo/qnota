@@ -131,7 +131,7 @@ public class AplicacaoBackend {
 		return new RankingServico(alunoRepositorio, simuladoRepositorio, rankingRepositorio, calculoRankingStrategy);
 	}
 
-	// ===== Auditoria + Proxy para SimuladoRepositorio (Padrão Proxy) =====
+	// ===== Auditoria + Decorator para SimuladoRepositorio (Padrão Decorator) =====
 
 	@Bean
 	public SimuladoAuditoria simuladoAuditoria() {
@@ -147,10 +147,10 @@ public class AplicacaoBackend {
 	                                       AlunoRepositorio alunoRepositorio,
 	                                       SimuladoAuditoria simuladoAuditoria) {
 
-		// Envolve o repositório real com o Decorator antes de entregar ao serviço de domínio
-		SimuladoRepositorio proxy = new SimuladoRepositorioDecorator(repositorio, simuladoAuditoria);
+		// Envolve o repositório real com o Decorator para adicionar auditoria
+		SimuladoRepositorio decorator = new SimuladoRepositorioDecorator(repositorio, simuladoAuditoria);
 
-		return new SimuladoServico(proxy, rankingServico,
+		return new SimuladoServico(decorator, rankingServico,
 		                           turmaRepositorio, professorRepositorio,
 		                           disciplinaRepositorio, alunoRepositorio);
 	}
