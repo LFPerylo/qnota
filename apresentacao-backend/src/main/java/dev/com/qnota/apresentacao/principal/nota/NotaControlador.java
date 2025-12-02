@@ -1,7 +1,6 @@
 package dev.com.qnota.apresentacao.principal.nota;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -55,16 +54,27 @@ class NotaControlador {
 			LEFT JOIN disciplinas d ON d.id = n.disciplina_id
 		""");
 
-		List<Object> params = new ArrayList<>();
 		if (simuladoId != null) {
 			sql.append(" WHERE n.simulado_id = ?");
-			params.add(simuladoId);
+			sql.append(" ORDER BY n.simulado_id, a.nome, d.nome");
+			return jdbcTemplate.query(
+				sql.toString(),
+				(rs, rowNum) -> new NotaDto(
+					rs.getInt("simulado_id"),
+					rs.getInt("aluno_id"),
+					rs.getString("aluno_nome"),
+					rs.getInt("disciplina_id"),
+					rs.getString("disciplina_nome"),
+					rs.getDouble("valor"),
+					rs.getTimestamp("datalancamento").toLocalDateTime()
+				),
+				simuladoId
+			);
 		}
+		
 		sql.append(" ORDER BY n.simulado_id, a.nome, d.nome");
-
 		return jdbcTemplate.query(
 			sql.toString(),
-			params.toArray(),
 			(rs, rowNum) -> new NotaDto(
 				rs.getInt("simulado_id"),
 				rs.getInt("aluno_id"),

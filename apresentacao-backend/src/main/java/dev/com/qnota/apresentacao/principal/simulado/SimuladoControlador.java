@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import dev.com.qnota.aplicacao.principal.disciplina.DisciplinaServicoAplicacao;
 import dev.com.qnota.aplicacao.principal.simulado.SimuladoServicoAplicacao;
+import dev.com.qnota.aplicacao.principal.turma.TurmaServicoAplicacao;
 import dev.com.qnota.apresentacao.BackendMapeador;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.simulado.Simulado;
@@ -25,8 +27,18 @@ import dev.com.qnota.dominio.principal.turma.TurmaId;
 class SimuladoControlador {
 	private @Autowired SimuladoServico simuladoServico;
 	private @Autowired SimuladoServicoAplicacao simuladoServicoConsulta;
+	private @Autowired DisciplinaServicoAplicacao disciplinaServicoConsulta;
+	private @Autowired TurmaServicoAplicacao turmaServicoConsulta;
 
 	private @Autowired BackendMapeador mapeador;
+
+	@RequestMapping(method = GET, path = "criacao")
+	SimuladoFormulario criacao() {
+		var simulado = new SimuladoFormulario.SimuladoDto();
+		var disciplinas = disciplinaServicoConsulta.pesquisarResumos();
+		var turmas = turmaServicoConsulta.pesquisarResumos();
+		return new SimuladoFormulario(simulado, disciplinas, turmas);
+	}
 
 	@RequestMapping(method = GET, path = "pesquisa")
 	List<SimuladoResumoDto> pesquisar(@RequestParam(required = false, defaultValue = "false") boolean expandir) {

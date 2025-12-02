@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import dev.com.qnota.aplicacao.principal.aluno.AlunoServicoAplicacao;
+import dev.com.qnota.aplicacao.principal.responsavel.ResponsavelServicoAplicacao;
+import dev.com.qnota.aplicacao.principal.turma.TurmaServicoAplicacao;
 import dev.com.qnota.apresentacao.BackendMapeador;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
 import dev.com.qnota.dominio.principal.aluno.AlunoServico;
@@ -26,9 +28,19 @@ import dev.com.qnota.dominio.principal.turma.TurmaId;
 class AlunoControlador {
 	private @Autowired AlunoServico alunoServico;
 	private @Autowired AlunoServicoAplicacao alunoServicoConsulta;
+	private @Autowired ResponsavelServicoAplicacao responsavelServicoConsulta;
+	private @Autowired TurmaServicoAplicacao turmaServicoConsulta;
 	private @Autowired NotaServico notaServico;
 
 	private @Autowired BackendMapeador mapeador;
+
+	@RequestMapping(method = GET, path = "criacao")
+	AlunoFormulario criacao() {
+		var aluno = new AlunoFormulario.AlunoDto();
+		var responsaveis = responsavelServicoConsulta.pesquisarResumos();
+		var turmas = turmaServicoConsulta.pesquisarResumos();
+		return new AlunoFormulario(aluno, responsaveis, turmas);
+	}
 
 	@RequestMapping(method = GET, path = "pesquisa")
 	List<AlunoResumoDto> pesquisa() {
