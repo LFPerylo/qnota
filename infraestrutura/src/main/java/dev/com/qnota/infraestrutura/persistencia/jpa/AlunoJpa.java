@@ -165,9 +165,8 @@ class NotaAlunoJpa {
 @Table(name = "justificativas")
 class JustificativaJpa {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "uuid")
-    java.util.UUID id;
+    @Column(length = 50)
+    String id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumns({
@@ -185,6 +184,7 @@ class JustificativaJpa {
 
     JustificativaJpa(){}
     JustificativaJpa(NotaAlunoJpa nota, Integer professorId, Double notaAnterior, Double notaCorrigida, String texto, LocalDateTime dataHora){
+        this.id = java.util.UUID.randomUUID().toString();
         this.nota = nota;
         this.professorId = professorId;
         this.notaAnterior = notaAnterior;
@@ -246,7 +246,7 @@ interface NotaAlunoJpaRepository extends JpaRepository<NotaAlunoJpa, NotaIdJpa> 
     boolean existsByIdSimuladoId(int simuladoId);
 }
 
-interface JustificativaJpaRepository extends JpaRepository<JustificativaJpa, java.util.UUID> {}
+interface JustificativaJpaRepository extends JpaRepository<JustificativaJpa, String> {}
 
 /* =========================================================
  * IMPLEMENTAÇÃO DO REPOSITÓRIO DO AGREGADO
@@ -345,26 +345,53 @@ class AlunoRepositorioImpl implements AlunoRepositorio, AlunoRepositorioAplicaca
     }
 
     private static void preencherNotasJpa(AlunoJpa j, Collection<NotaDoAluno> notas) {
+        // Mapa das notas existentes por chave composta
+        Map<String, NotaAlunoJpa> notasExistentes = new HashMap<>();
+        for (var nota : j.notas) {
+            String chave = nota.id.simuladoId + "-" + nota.id.disciplinaId;
+            notasExistentes.put(chave, nota);
+        }
+        
         j.notas.clear();
         for (var n : notas) {
-            var nj = new NotaAlunoJpa(
-                    j,
-                    n.getSimuladoId().value(),
-                    n.getDisciplinaId().value(),
-                    n.getValor(),
-                    n.getDataLancamento()
-            );
+            String chave = n.getSimuladoId().value() + "-" + n.getDisciplinaId().value();
+            NotaAlunoJpa nj = notasExistentes.get(chave);
+            
+            if (nj == null) {
+                // Nova nota
+                nj = new NotaAlunoJpa(
+                        j,
+                        n.getSimuladoId().value(),
+                        n.getDisciplinaId().value(),
+                        n.getValor(),
+                        n.getDataLancamento()
+                );
+            } else {
+                // Atualiza valor e data se necessário
+                nj.valor = n.getValor();
+                nj.dataLancamento = n.getDataLancamento();
+            }
+            
+            // Mapa das justificativas existentes por dataHora (identificador único)
+            Map<LocalDateTime, JustificativaJpa> justsExistentes = new HashMap<>();
+            for (var jExist : nj.justificativas) {
+                justsExistentes.put(jExist.dataHora, jExist);
+            }
+            
+            // Adiciona novas justificativas (preservando as existentes)
             if (n.getJustificativas() != null) {
                 for (var jj : n.getJustificativas()) {
-                    var jpaJ = new JustificativaJpa(
-                            nj,
-                            jj.getProfessor().value(),
-                            jj.getNotaAnterior(),
-                            jj.getNotaCorrigida(),
-                            jj.getTexto(),
-                            jj.getDataHora()
-                    );
-                    nj.justificativas.add(jpaJ);
+                    if (!justsExistentes.containsKey(jj.getDataHora())) {
+                        var jpaJ = new JustificativaJpa(
+                                nj,
+                                jj.getProfessor().value(),
+                                jj.getNotaAnterior(),
+                                jj.getNotaCorrigida(),
+                                jj.getTexto(),
+                                jj.getDataHora()
+                        );
+                        nj.justificativas.add(jpaJ);
+                    }
                 }
             }
             j.notas.add(nj);

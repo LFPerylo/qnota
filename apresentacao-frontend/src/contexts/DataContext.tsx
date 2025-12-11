@@ -30,12 +30,12 @@ interface DataContextType {
   addAluno: (dto: any) => Promise<void>;
   updateAluno: (id: number, dto: any) => Promise<void>;
   deleteAluno: (id: number) => Promise<void>;
-  inativarAluno: (id: number) => Promise<void>;
+  inativarAluno: (id: number, ativo?: boolean) => Promise<void>;
 
   addTurma: (dto: any) => Promise<void>;
   updateTurma: (id: number, dto: any) => Promise<void>;
   deleteTurma: (id: number) => Promise<void>;
-  inativarTurma: (id: number) => Promise<void>;
+  inativarTurma: (id: number, ativo?: boolean) => Promise<void>;
 
   addProfessor: (dto: any) => Promise<void>;
   updateProfessor: (id: number, dto: any) => Promise<void>;
@@ -209,8 +209,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await refreshAlunos();
   };
 
-  const inativarAluno = async (id: number) => {
-    await api.alunoAPI.inativar(id);
+  const inativarAluno = async (id: number, ativo?: boolean) => {
+    // Se ativo é passado, usa para decidir ação; senão, assume que deve inativar
+    if (ativo === false) {
+      // Aluno está inativo, então ativa
+      await api.alunoAPI.ativar(id);
+    } else {
+      // Aluno está ativo, então inativa
+      await api.alunoAPI.inativar(id);
+    }
     await refreshAlunos();
   };
 
@@ -234,8 +241,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await refreshTurmas();
   };
 
-  const inativarTurma = async (id: number) => {
-    await api.turmaAPI.inativar(id);
+  const inativarTurma = async (id: number, ativo?: boolean) => {
+    if (ativo) {
+      await api.turmaAPI.inativar(id);
+    } else {
+      await api.turmaAPI.ativar(id);
+    }
     await refreshTurmas();
   };
 
@@ -245,7 +256,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProfessor = async (id: number, dto: any) => {
-    await api.professorAPI.atualizarContato(id, dto);
+    // Helper para normalizar especialidades (remove aspas e lowercase)
+    const normalizar = (s: string) => s.replace(/^"|"$/g, '').toLowerCase().trim();
+    
+    // Atualizar nome e email
+    if (dto.nome || dto.email) {
+      await api.professorAPI.atualizarContato(id, { nome: dto.nome, email: dto.email });
+    }
+    
+    // Atualizar especialidades se fornecidas
+    if (dto.especialidades && Array.isArray(dto.especialidades)) {
+      // Buscar especialidades atuais do professor (comparar como string)
+      const professor = professores.find((p: any) => String(p.id) === String(id));
+      const especialidadesAtuais: string[] = professor?.especialidades || [];
+      const novasEspecialidades: string[] = dto.especialidades;
+      
+      // Normalizar para comparação (remove aspas e ignora case)
+      const novasNorm = novasEspecialidades.map(normalizar);
+      const atuaisNorm = especialidadesAtuais.map(normalizar);
+      
+      // Adicionar novas especialidades
+      for (const esp of novasEspecialidades) {
+        if (!atuaisNorm.includes(normalizar(esp))) {
+          await api.professorAPI.adicionarEspecialidade(id, esp);
+        }
+      }
+      
+      // Remover especialidades que não estão mais na lista
+      for (const esp of especialidadesAtuais) {
+        if (!novasNorm.includes(normalizar(esp))) {
+          await api.professorAPI.removerEspecialidade(id, esp);
+        }
+      }
+    }
+    
     await refreshProfessores();
   };
 

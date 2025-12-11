@@ -69,6 +69,12 @@ class TurmaControlador {
 		turmaServico.inativar(turmaId);
 	}
 
+	@RequestMapping(method = POST, path = "{id}/ativar")
+	void ativar(@PathVariable("id") int id) {
+		var turmaId = mapeador.map(id, TurmaId.class);
+		turmaServico.ativar(turmaId);
+	}
+
 	@RequestMapping(method = POST, path = "{id}/excluir")
 	void excluir(@PathVariable("id") int id) {
 		var turmaId = mapeador.map(id, TurmaId.class);

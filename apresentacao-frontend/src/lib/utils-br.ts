@@ -1,7 +1,23 @@
 export function formatDate(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('pt-BR');
+  if (typeof date === 'string') {
+    // Se for ISO (YYYY-MM-DD), parsear manualmente para evitar problema de timezone
+    const isoMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) {
+      const [, year, month, day] = isoMatch;
+      return `${day}/${month}/${year}`;
+    }
+    // Se já estiver no formato brasileiro, retornar como está
+    if (date.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      return date;
+    }
+    // Fallback: usar Date
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('pt-BR');
+  }
+  // Se for Date object
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('pt-BR');
 }
 
 export function formatDateTime(date: string | Date): string {

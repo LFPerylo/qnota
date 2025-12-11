@@ -6,7 +6,7 @@ import { Badge } from '../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { EmptyState } from '../components/EmptyState';
-import { Plus, Search, Users, Eye, Edit, Ban, Trash2 } from 'lucide-react';
+import { Plus, Search, Users, Eye, Edit, Ban, Trash2, CheckCircle } from 'lucide-react';
 import {
   AlunoModal,
   AlunoDetailModal,
@@ -212,13 +212,15 @@ export function Alunos({
       }
 
       if (selectedAluno) {
-        // Editar - apenas nome e data de nascimento podem ser editados
-        const updateDto: { nome?: string; dataNascimento?: string } = {};
+        // Editar - nome e turma podem ser editados
+        const updateDto: { nome?: string; turmaId?: number } = {};
         if (formData.nome.trim() !== selectedAluno.nome) {
           updateDto.nome = formData.nome.trim();
         }
-        // Nota: Edição de data de nascimento pode não ser permitida pelo backend
-        // Por enquanto, apenas atualizamos se necessário
+        // Verificar se a turma mudou
+        if (formData.turmaId !== selectedAluno.turmaId) {
+          updateDto.turmaId = turmaIdNum;
+        }
         await onUpdate?.(parseInt(selectedAluno.id), updateDto);
       } else {
         // Criar
@@ -380,8 +382,13 @@ export function Alunos({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleInativar(aluno)}
+                          title={aluno.status === 'ATIVO' ? 'Inativar aluno' : 'Reativar aluno'}
                         >
-                          <Ban className="size-4" />
+                          {aluno.status === 'ATIVO' ? (
+                            <Ban className="size-4" />
+                          ) : (
+                            <CheckCircle className="size-4 text-green-600" />
+                          )}
                         </Button>
                         <Button
                           variant="ghost"

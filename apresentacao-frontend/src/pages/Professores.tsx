@@ -20,7 +20,7 @@ interface ProfessoresProps {
   professores: Professor[];
   areasDisponiveis: string[];
   onSave?: (dto: { nome: string; email: string; cpf: string; especialidades?: string[] }) => Promise<void>;
-  onUpdate?: (id: number, dto: { nome: string; email: string }) => Promise<void>;
+  onUpdate?: (id: number, dto: { nome: string; email: string; especialidades?: string[] }) => Promise<void>;
   onDelete?: (id: number, substitutoId: number) => Promise<void>;
 }
 
@@ -46,12 +46,20 @@ export function Professores({
     novaEspecialidade: ''
   });
 
-  const filteredProfessores = professores.filter(prof =>
-    prof.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prof.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prof.cpf.includes(searchTerm.replace(/\D/g, '')) ||
-    (prof.especialidades || []).some(esp => esp.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredProfessores = professores.filter(prof => {
+    const termo = searchTerm.toLowerCase().trim();
+    if (!termo) return true;
+    
+    const cpfLimpo = prof.cpf.replace(/\D/g, '');
+    const termoCpfLimpo = searchTerm.replace(/\D/g, '');
+    
+    return (
+      prof.nome.toLowerCase().includes(termo) ||
+      prof.email.toLowerCase().includes(termo) ||
+      cpfLimpo.includes(termoCpfLimpo) ||
+      (prof.especialidades || []).some(esp => esp.toLowerCase().includes(termo))
+    );
+  });
 
   const handleOpenDialog = (prof?: Professor) => {
     if (prof) {
@@ -128,10 +136,11 @@ export function Professores({
       }
 
       if (selectedProfessor) {
-        // Editar
+        // Editar - sempre envia especialidades para permitir remoção
         await onUpdate?.(parseInt(selectedProfessor.id), {
           nome: formData.nome.trim(),
-          email: formData.email.trim()
+          email: formData.email.trim(),
+          especialidades: especialidadesSelecionadas
         });
       } else {
         // Criar - formato esperado pelo backend
@@ -143,8 +152,8 @@ export function Professores({
         };
         await onSave?.(dto);
       }
-      setDialogOpen(false);
-      // Limpar formulário
+      // Limpar tudo e fechar modal
+      setSelectedProfessor(null);
       setFormData({
         nome: '',
         email: '',
@@ -152,7 +161,7 @@ export function Professores({
         especialidades: [],
         novaEspecialidade: ''
       });
-      setSelectedProfessor(null);
+      setDialogOpen(false);
     } catch (error: any) {
       console.error('Erro ao salvar professor:', error);
       const errorMessage = error.message || 'Erro desconhecido';

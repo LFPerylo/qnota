@@ -27,12 +27,25 @@ class ProfessorControlador {
 	@RequestMapping(method = GET, path = "pesquisa")
 	List<ProfessorResumoDto> pesquisa() {
 		return professorServicoConsulta.pesquisarResumos().stream()
-			.map(r -> new ProfessorResumoDto(r.getId(), r.getNome(), r.getCpf(), r.getEmail(), r.getEspecialidades()))
+			.map(r -> new ProfessorResumoDto(r.getId(), r.getNome(), r.getCpf(), r.getEmail(), parseEspecialidades(r.getEspecialidades())))
 			.toList();
 	}
 	
-	// DTO para serialização JSON
-	public static record ProfessorResumoDto(int id, String nome, String cpf, String email, String especialidades) {}
+	// Converte JSON string para lista de strings
+	private List<String> parseEspecialidades(String json) {
+		if (json == null || json.isBlank() || json.equals("[]")) {
+			return List.of();
+		}
+		try {
+			return new com.fasterxml.jackson.databind.ObjectMapper()
+				.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {});
+		} catch (Exception e) {
+			return List.of();
+		}
+	}
+	
+	// DTO para serialização JSON - especialidades como lista
+	public static record ProfessorResumoDto(int id, String nome, String cpf, String email, List<String> especialidades) {}
 
 	@RequestMapping(method = POST, path = "cadastrar")
 	Integer cadastrar(@RequestBody ProfessorFormulario.ProfessorDto dto) {
@@ -54,13 +67,24 @@ class ProfessorControlador {
 	@RequestMapping(method = POST, path = "{id}/adicionar-especialidade")
 	void adicionarEspecialidade(@PathVariable("id") int id, @RequestBody String area) {
 		var professorId = mapeador.map(id, ProfessorId.class);
-		professorServico.adicionarEspecialidade(professorId, area);
+		professorServico.adicionarEspecialidade(professorId, limparAspasJson(area));
 	}
 
 	@RequestMapping(method = POST, path = "{id}/remover-especialidade")
 	void removerEspecialidade(@PathVariable("id") int id, @RequestBody String area) {
 		var professorId = mapeador.map(id, ProfessorId.class);
-		professorServico.removerEspecialidade(professorId, area);
+		professorServico.removerEspecialidade(professorId, limparAspasJson(area));
+	}
+	
+	// Remove aspas JSON extras que podem vir do frontend
+	private String limparAspasJson(String valor) {
+		if (valor == null) return null;
+		String limpo = valor.trim();
+		// Remove aspas duplas do início e fim se existirem
+		if (limpo.startsWith("\"") && limpo.endsWith("\"") && limpo.length() > 1) {
+			limpo = limpo.substring(1, limpo.length() - 1);
+		}
+		return limpo.trim();
 	}
 
 	@RequestMapping(method = POST, path = "{id}/remover-com-substituto")

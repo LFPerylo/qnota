@@ -65,6 +65,9 @@ export const alunoAPI = {
   inativar: (id: number) => fetchAPI<void>(`backend/aluno/${id}/inativar`, {
     method: 'POST',
   }),
+  ativar: (id: number) => fetchAPI<void>(`backend/aluno/${id}/ativar`, {
+    method: 'POST',
+  }),
   excluir: (id: number) => fetchAPI<void>(`backend/aluno/${id}/excluir`, {
     method: 'POST',
   }),
@@ -106,6 +109,9 @@ export const turmaAPI = {
     body: JSON.stringify(novoProfessorId),
   }),
   inativar: (id: number) => fetchAPI<void>(`backend/turma/${id}/inativar`, {
+    method: 'POST',
+  }),
+  ativar: (id: number) => fetchAPI<void>(`backend/turma/${id}/ativar`, {
     method: 'POST',
   }),
   excluir: (id: number) => fetchAPI<void>(`backend/turma/${id}/excluir`, {

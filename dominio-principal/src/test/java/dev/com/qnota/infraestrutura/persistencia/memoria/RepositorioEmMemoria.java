@@ -237,7 +237,11 @@ public class RepositorioEmMemoria implements
             }
             return t;
         });
-        professores.remove(antigo.value());
+    }
+
+    @Override
+    public void remover(ProfessorId id) {
+        professores.remove(id.value());
     }
 
     // =========================================================

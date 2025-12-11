@@ -85,6 +85,13 @@ public class AlunoServico implements ResponsavelVinculoService {
         repo.salvar(aluno);
     }
 
+    // ---------- ATIVAR ----------
+    public void ativar(AlunoId id) {
+        var aluno = repo.porId(id);
+        aluno.ativar();
+        repo.salvar(aluno);
+    }
+
     // ---------- EXCLUIR ----------
     public void excluir(AlunoId id) {
         // RN-04: não excluir se tiver notas

@@ -64,6 +64,13 @@ public class TurmaServico {
         repo.salvar(turma);
     }
 
+    /** Reativa uma turma inativa. */
+    public void ativar(TurmaId id) {
+        var turma = repo.porId(id);
+        turma.ativar();
+        repo.salvar(turma);
+    }
+
     /** RN-08: não excluir se houver vínculos (alunos ativos ou simulados). */
     public void excluir(TurmaId id) {
         if (repo.possuiAlunosAtivos(id) || repo.possuiSimulados(id))

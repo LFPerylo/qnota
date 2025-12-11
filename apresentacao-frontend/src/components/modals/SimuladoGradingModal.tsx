@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { NumberInputBR } from '../inputs/NumberInputBR';
-import { Edit } from 'lucide-react';
+// Edit removido - simulados finalizados não permitem edição
 
 interface Aluno {
   id: string;
@@ -80,10 +80,12 @@ export function SimuladoGradingModal({
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            Lançar Notas - {turmaNome}
+            {simulado.status === 'FINALIZADO' ? 'Visualizar Notas' : 'Lançar Notas'} - {turmaNome}
           </DialogTitle>
           <DialogDescription>
-            Lance as notas dos alunos para cada disciplina do simulado
+            {simulado.status === 'FINALIZADO' 
+              ? 'Simulado finalizado - notas não podem ser alteradas'
+              : 'Lance as notas dos alunos para cada disciplina do simulado'}
           </DialogDescription>
           <Badge variant={simulado.status === 'FINALIZADO' ? 'default' : 'secondary'}>
             {simulado.status === 'EM_EDICAO' ? 'Em Edição' : 'Finalizado'}
@@ -121,26 +123,27 @@ export function SimuladoGradingModal({
                         n.disciplinaId === disc.disciplinaId
                       );
 
+                      const isFinalizado = simulado.status === 'FINALIZADO';
+                      
                       return (
                         <TableCell key={disc.disciplinaId}>
                           <div className="flex items-center gap-2">
-                            <NumberInputBR
-                              value={gradeData[key] || ''}
-                              onChange={(v) => onGradeDataChange({ ...gradeData, [key]: v })}
-                              placeholder="0,00"
-                              max={10}
-                            />
-                            {notaObj && notaObj.retificacoes && notaObj.retificacoes.length > 0 && simulado.status === 'FINALIZADO' && (
-                              <Badge variant="outline">Retificada</Badge>
+                            {isFinalizado ? (
+                              // Simulado finalizado: apenas exibe o valor
+                              <span className="text-sm font-medium px-2 py-1 bg-muted rounded min-w-[60px] text-center">
+                                {gradeData[key] || '-'}
+                              </span>
+                            ) : (
+                              // Simulado em edição: permite editar
+                              <NumberInputBR
+                                value={gradeData[key] || ''}
+                                onChange={(v) => onGradeDataChange({ ...gradeData, [key]: v })}
+                                placeholder="0,00"
+                                max={10}
+                              />
                             )}
-                            {notaObj && simulado.status === 'FINALIZADO' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onOpenRetificacao(notaObj)}
-                              >
-                                <Edit className="size-4" />
-                              </Button>
+                            {notaObj && notaObj.retificacoes && notaObj.retificacoes.length > 0 && (
+                              <Badge variant="outline" title="Esta nota foi retificada">R</Badge>
                             )}
                           </div>
                         </TableCell>

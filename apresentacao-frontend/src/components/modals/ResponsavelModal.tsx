@@ -57,17 +57,15 @@ export function ResponsavelModal({
               placeholder="email@exemplo.com"
             />
           </div>
-          <div>
-            <Label>CPF * {isEdit && '(imutável)'}</Label>
-            <CPFInput
-              value={formData.cpf}
-              onChange={(v) => onFormDataChange({ ...formData, cpf: v })}
-              disabled={isEdit}
-            />
-            {isEdit && (
-              <p className="text-muted-foreground mt-1">CPF não pode ser alterado após cadastro</p>
-            )}
-          </div>
+          {!isEdit && (
+            <div>
+              <Label>CPF *</Label>
+              <CPFInput
+                value={formData.cpf}
+                onChange={(v) => onFormDataChange({ ...formData, cpf: v })}
+              />
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <Label>Inadimplente</Label>
             <Switch

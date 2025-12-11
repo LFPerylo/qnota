@@ -18,4 +18,6 @@ public interface ProfessorRepositorio {
     List<String> nomesDeAreasDoProfessor(ProfessorId id);  // apoio/compat
 
     void substituirProfessor(ProfessorId antigo, ProfessorId substituto); // RN-125
+
+    void remover(ProfessorId id);
 }

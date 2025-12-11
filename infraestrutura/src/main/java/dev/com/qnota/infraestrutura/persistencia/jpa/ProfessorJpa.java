@@ -22,6 +22,9 @@ import dev.com.qnota.dominio.principal.professor.Professor;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.professor.ProfessorRepositorio;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -52,9 +55,9 @@ class ProfessorJpa {
     @Column(name = "enderecoeletronico", nullable = false)
     String email;
 
-    // JSONB em Postgres
+    // JSONB em Postgres - usando JdbcTypeCode do Hibernate 6+
     @Column(name = "especialidades", columnDefinition = "jsonb")
-    @Convert(converter = StringListJsonConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     List<String> especialidades = new ArrayList<>();
 
     ProfessorJpa() {}
@@ -194,6 +197,12 @@ class ProfessorRepositorioImpl implements ProfessorRepositorio, ProfessorReposit
     @Transactional
     public void substituirProfessor(ProfessorId antigo, ProfessorId substituto) {
         repo.substituirProfessor(antigo.value(), substituto.value());
+    }
+
+    @Override
+    @Transactional
+    public void remover(ProfessorId id) {
+        repo.deleteById(id.value());
     }
 
     /* ---------- contrato da aplicação ---------- */

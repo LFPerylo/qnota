@@ -75,6 +75,7 @@ public class ProfessorServico {
         if (simuladoRepo.possuiSimuladoFinalizadoParaProfessor(aRemover))
             throw new IllegalStateException("RN-26A: Não pode excluir se houver simulados finalizados vinculados.");
         repo.substituirProfessor(aRemover, substituto); // move vínculos p/ o substituto
+        repo.remover(aRemover); // remove o professor após substituição
     }
 
     /** Conveniências para especialidades (invariantes ficam na entidade). */

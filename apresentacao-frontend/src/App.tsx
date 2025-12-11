@@ -106,7 +106,7 @@ function AppContent() {
             await data.updateAluno(id, dto);
           }}
           onViewDetail={(aluno) => {}}
-          onInativar={(aluno) => data.inativarAluno(parseInt(aluno.id))}
+          onInativar={(aluno) => data.inativarAluno(parseInt(aluno.id), aluno.status === 'ATIVO')}
           onDelete={(aluno) => data.deleteAluno(parseInt(aluno.id))}
         />;
       case 'turmas':
@@ -128,7 +128,7 @@ function AppContent() {
           onUpdate={async (id, dto) => {
             await data.updateTurma(id, dto);
           }}
-          onInativar={(turma) => data.inativarTurma(parseInt(turma.id))}
+          onInativar={(turma) => data.inativarTurma(parseInt(turma.id), turma.status === 'ATIVO')}
           onDelete={(turma) => data.deleteTurma(parseInt(turma.id))}
         />;
       case 'professores': {
@@ -141,15 +141,10 @@ function AppContent() {
         );
 
         const professores = data.professores.map((p: any) => {
+          // Especialidades agora vem como array do backend
           let especialidades: string[] = [];
           if (Array.isArray(p.especialidades)) {
-            especialidades = p.especialidades;
-          } else if (typeof p.especialidades === 'string') {
-            try {
-              especialidades = JSON.parse(p.especialidades);
-            } catch {
-              especialidades = p.especialidades.split(',').map((item: string) => item.trim()).filter(Boolean);
-            }
+            especialidades = p.especialidades.filter((e: any) => typeof e === 'string');
           }
           return {
             id: p.id?.toString() || '',
@@ -303,8 +298,8 @@ function AppContent() {
         <div className="p-4">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold">QNota</h2>
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              {sidebarOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
+              <X className="size-4" />
             </Button>
           </div>
           <nav className="space-y-1">
@@ -321,7 +316,7 @@ function AppContent() {
                   }`}
                 >
                   <Icon className="size-4" />
-                  {sidebarOpen && <span>{item.label}</span>}
+                  <span>{item.label}</span>
                 </button>
               );
             })}
@@ -330,7 +325,18 @@ function AppContent() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto relative">
+        {/* Botão para abrir sidebar quando fechada */}
+        {!sidebarOpen && (
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => setSidebarOpen(true)}
+            className="fixed top-4 left-4 z-50 shadow-md"
+          >
+            <Menu className="size-4" />
+          </Button>
+        )}
         {renderPage()}
       </div>
     </div>

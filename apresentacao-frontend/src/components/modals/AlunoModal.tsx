@@ -76,13 +76,15 @@ export function AlunoModal({
               placeholder="Nome completo do aluno"
             />
           </div>
-          <div>
-            <Label>Data de Nascimento *</Label>
-            <DateInput
-              value={formData.dataNascimento}
-              onChange={(v) => onFormDataChange({ ...formData, dataNascimento: v })}
-            />
-          </div>
+          {!isEdit && (
+            <div>
+              <Label>Data de Nascimento *</Label>
+              <DateInput
+                value={formData.dataNascimento}
+                onChange={(v) => onFormDataChange({ ...formData, dataNascimento: v })}
+              />
+            </div>
+          )}
           <div>
             <Label>Turma *</Label>
             <Select value={formData.turmaId} onValueChange={(v) => onFormDataChange({ ...formData, turmaId: v })}>

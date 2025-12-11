@@ -5,7 +5,7 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { EmptyState } from '../components/EmptyState';
-import { Plus, Search, BookOpen, Edit, Ban, Trash } from 'lucide-react';
+import { Plus, Search, BookOpen, Edit, Ban, Trash, Check } from 'lucide-react';
 import { TurmaModal } from '../components/modals';
 
 interface Turma {
@@ -213,8 +213,9 @@ export function Turmas({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleInativar(turma)}
+                          title={turma.status === 'ATIVO' ? 'Inativar turma' : 'Ativar turma'}
                         >
-                          <Ban className="size-4" />
+                          {turma.status === 'ATIVO' ? <Ban className="size-4" /> : <Check className="size-4" />}
                         </Button>
                         <Button
                           variant="ghost"

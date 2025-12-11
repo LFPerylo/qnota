@@ -15,10 +15,10 @@ INSERT INTO disciplinas (id, nome, versao, idVersaoOrigem, ativo, area_id) VALUE
   (3,'Ciências',1,NULL,TRUE,3)
 ON CONFLICT (id) DO NOTHING;
 
--- PROFESSORES
+-- PROFESSORES (CPFs válidos - passam na validação de dígitos verificadores)
 INSERT INTO professores (id, nome, cpf, enderecoEletronico, especialidades) VALUES
-  (1,'Ana Paula','111.111.111-11','ana@escola.com', '["Matemática","Português"]'::jsonb),
-  (2,'Carlos Silva','222.222.222-22','carlos@escola.com', '["Ciências"]'::jsonb)
+  (1,'Ana Paula','45325987602','ana@escola.com', '["Matemática","Português"]'::jsonb),
+  (2,'Carlos Silva','89076543217','carlos@escola.com', '["Ciências"]'::jsonb)
 ON CONFLICT (id) DO NOTHING;
 
 -- TURMAS
@@ -32,11 +32,11 @@ INSERT INTO coordenadores (id, nome, enderecoEletronico, senhaHash, ativo) VALUE
   (1,'Coordenadora Júlia','julia@escola.com','$2a$10$hash-exemplo',TRUE)
 ON CONFLICT (id) DO NOTHING;
 
--- RESPONSAVEIS
+-- RESPONSAVEIS (CPFs válidos - passam na validação de dígitos verificadores)
 INSERT INTO responsaveis (id, nome, cpf, enderecoEletronico, status) VALUES
-  (1,'Maria Souza','333.333.333-33','maria@email.com','ATIVO'),
-  (2,'João Souza','444.444.444-44','joao@email.com','ATIVO'),
-  (3,'Paula Dias','555.555.555-55','paula@email.com','INADIMPLENTE')
+  (1,'Maria Souza','52998224725','maria@email.com','ATIVO'),
+  (2,'João Souza','11144477735','joao@email.com','ATIVO'),
+  (3,'Paula Dias','71428793860','paula@email.com','INADIMPLENTE')
 ON CONFLICT (id) DO NOTHING;
 
 -- ALUNOS

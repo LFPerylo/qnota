@@ -110,6 +110,12 @@ class AlunoControlador {
 		alunoServico.inativar(alunoId);
 	}
 
+	@RequestMapping(method = POST, path = "{id}/ativar")
+	void ativar(@PathVariable("id") int id) {
+		var alunoId = mapeador.map(id, AlunoId.class);
+		alunoServico.ativar(alunoId);
+	}
+
 	@RequestMapping(method = POST, path = "{id}/excluir")
 	void excluir(@PathVariable("id") int id) {
 		var alunoId = mapeador.map(id, AlunoId.class);
