@@ -228,3 +228,29 @@ export const notaAPI = {
   porSimulado: (id: number) => fetchAPI<any[]>(`backend/nota/simulado/${id}`),
 };
 
+// Auditoria (Padrao Decorator)
+// Os eventos sao gerados pelo SimuladoRepositorioDecorator
+// que intercepta operacoes do repositorio e registra em SimuladoAuditoriaArmazenada
+export interface EventoAuditoria {
+  dataHora: string;
+  tipo: 'SALVAR' | 'LEITURA' | 'REMOCAO';
+  tipoDescricao: string;
+  simuladoId: number | null;
+  turmaId: number | null;
+  status: string | null;
+  descricao: string;
+}
+
+export interface AuditoriaResumo {
+  totalEventos: number;
+  salvamentos: number;
+  leituras: number;
+  remocoes: number;
+  ultimoEvento: string | null;
+}
+
+export const auditoriaAPI = {
+  listarEventos: (limite = 100) => fetchAPI<EventoAuditoria[]>(`backend/auditoria/eventos?limite=${limite}`),
+  resumo: () => fetchAPI<AuditoriaResumo>('backend/auditoria/resumo'),
+};
+

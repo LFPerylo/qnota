@@ -256,13 +256,7 @@ function AppContent() {
         />;
       case 'auditoria':
         return <Auditoria 
-          notas={data.notas}
-          alunos={data.alunos}
           turmas={data.turmas}
-          simulados={data.simulados}
-          disciplinas={data.disciplinas}
-          formatDateTime={formatDateTime}
-          formatNumber={formatNumber}
         />;
       case 'configuracoes':
         return <Configuracoes />;

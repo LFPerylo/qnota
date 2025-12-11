@@ -41,8 +41,7 @@ import dev.com.qnota.dominio.principal.ranking.RankingServico;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelRepositorio;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelServico;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelVinculoService;
-import dev.com.qnota.dominio.principal.simulado.SimuladoAuditoria;
-import dev.com.qnota.dominio.principal.simulado.SimuladoAuditoriaConsole;
+import dev.com.qnota.dominio.principal.simulado.SimuladoAuditoriaArmazenada;
 import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorio;
 import dev.com.qnota.dominio.principal.simulado.SimuladoRepositorioDecorator;
 import dev.com.qnota.dominio.principal.simulado.SimuladoServico;
@@ -131,11 +130,27 @@ public class AplicacaoBackend {
 		return new RankingServico(alunoRepositorio, simuladoRepositorio, rankingRepositorio, calculoRankingStrategy);
 	}
 
-	// ===== Auditoria + Decorator para SimuladoRepositorio (Padrão Decorator) =====
+	// ===== Auditoria + Decorator para SimuladoRepositorio (Padrao Decorator) =====
+	// 
+	// O padrao Decorator e aplicado aqui para adicionar comportamento de auditoria
+	// ao SimuladoRepositorio sem modificar sua implementacao base.
+	//
+	// Fluxo:
+	// 1. SimuladoServico chama metodos do SimuladoRepositorio (interface)
+	// 2. O Decorator intercepta essas chamadas e registra eventos de auditoria
+	// 3. O Decorator delega para o repositorio real (JPA)
+	// 4. Os eventos ficam disponiveis via /backend/auditoria/eventos
+	//
+	// Beneficios:
+	// - Separacao de responsabilidades (auditoria desacoplada da persistencia)
+	// - Open/Closed: adiciona auditoria sem modificar codigo existente
+	// - Testabilidade: pode testar com ou sem auditoria
 
 	@Bean
-	public SimuladoAuditoria simuladoAuditoria() {
-		return new SimuladoAuditoriaConsole();
+	public SimuladoAuditoriaArmazenada simuladoAuditoria() {
+		// Usa a implementacao que armazena eventos em memoria
+		// Os eventos sao expostos via AuditoriaControlador
+		return new SimuladoAuditoriaArmazenada();
 	}
 
 	@Bean
@@ -145,9 +160,9 @@ public class AplicacaoBackend {
 	                                       ProfessorRepositorio professorRepositorio,
 	                                       DisciplinaRepositorio disciplinaRepositorio,
 	                                       AlunoRepositorio alunoRepositorio,
-	                                       SimuladoAuditoria simuladoAuditoria) {
+	                                       SimuladoAuditoriaArmazenada simuladoAuditoria) {
 
-		// Envolve o repositório real com o Decorator para adicionar auditoria
+		// Envolve o repositorio real com o Decorator para adicionar auditoria
 		SimuladoRepositorio decorator = new SimuladoRepositorioDecorator(repositorio, simuladoAuditoria);
 
 		return new SimuladoServico(decorator, rankingServico,
