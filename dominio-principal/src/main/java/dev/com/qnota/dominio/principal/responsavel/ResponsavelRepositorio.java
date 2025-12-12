@@ -1,7 +1,5 @@
 package dev.com.qnota.dominio.principal.responsavel;
 
-import java.util.Optional;
-
 public interface ResponsavelRepositorio {
 
     /**

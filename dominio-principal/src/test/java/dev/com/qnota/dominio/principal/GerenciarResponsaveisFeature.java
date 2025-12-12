@@ -45,7 +45,7 @@ public class GerenciarResponsaveisFeature {
     @Before
     public void setup() {
         repo = new RepositorioEmMemoria();
-        alunoSrv = new AlunoServico(repo, repo, repo);
+        alunoSrv = new AlunoServico(repo, repo, repo, repo);
         servico = new ResponsavelServico(repo, alunoSrv); // (responsavelRepo, alunoServico)
 
         seq        = new AtomicInteger(1);

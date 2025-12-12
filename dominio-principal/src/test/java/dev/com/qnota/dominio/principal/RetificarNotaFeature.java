@@ -3,7 +3,6 @@ package dev.com.qnota.dominio.principal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -16,6 +15,8 @@ import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.aluno.Justificativa;
 import dev.com.qnota.dominio.principal.aluno.NotaServico;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaPonderada;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingStrategy;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
 import dev.com.qnota.dominio.principal.simulado.Simulado;
 import dev.com.qnota.dominio.principal.simulado.Simulado.DisciplinaPeso;
@@ -63,10 +64,20 @@ public class RetificarNotaFeature {
     /** Localiza a nota do par (aluno, disciplina) neste simulado e guarda o valor. */
     private void capturarNotaOriginalId() {
         var aluno = repo.porId(alunoId);
-        var notaDoAluno = aluno.obterNota(simuladoId, disciplinaId);
+        var notaDoAluno = obterNota(aluno, simuladoId, disciplinaId);
         if (notaDoAluno.isPresent()) {
             valorOriginal = notaDoAluno.get().getValor();
         }
+    }
+    
+    // Helper method para obter nota do agregado Aluno
+    private java.util.Optional<dev.com.qnota.dominio.principal.aluno.NotaDoAluno> obterNota(
+            dev.com.qnota.dominio.principal.aluno.Aluno aluno, 
+            SimuladoId simuladoId, 
+            DisciplinaId disciplinaId) {
+        return aluno.getNotas().stream()
+            .filter(n -> n.getSimuladoId().equals(simuladoId) && n.getDisciplinaId().equals(disciplinaId))
+            .findFirst();
     }
 
     // ===== Given =====
@@ -76,9 +87,9 @@ public class RetificarNotaFeature {
         lastError = null;
 
         repo = new RepositorioEmMemoria();
-        ranking = new RankingServico(repo, repo, repo);
-        // registra justificativas no próprio 'repo'
-        notaSrv = new NotaServico(ranking, repo, repo, repo, repo);
+        notaSrv = new NotaServico(repo, repo, repo, repo);
+        CalculoRankingStrategy calculoRanking = new CalculoRankingMediaPonderada(notaSrv);
+        ranking = new RankingServico(repo, repo, repo, calculoRanking);
 
         // IDs padrão para este cenário
         alunoId = new AlunoId(seq.getAndIncrement());
@@ -158,7 +169,7 @@ public class RetificarNotaFeature {
 
         // Verificar se a nota foi retificada no agregado Aluno
         var aluno = repo.porId(alunoId);
-        var notaDoAluno = aluno.obterNota(simuladoId, disciplinaId);
+        var notaDoAluno = obterNota(aluno, simuladoId, disciplinaId);
         assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
         
         // Verificar se tem justificativas
@@ -172,7 +183,7 @@ public class RetificarNotaFeature {
     public void justificativa_registra_valores(double anterior, double corrigida) {
         // A justificativa está salva no agregado Aluno
         var aluno = repo.porId(alunoId);
-        var notaDoAluno = aluno.obterNota(simuladoId, disciplinaId);
+        var notaDoAluno = obterNota(aluno, simuladoId, disciplinaId);
         assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
         
         var justificativas = notaDoAluno.get().getJustificativas();

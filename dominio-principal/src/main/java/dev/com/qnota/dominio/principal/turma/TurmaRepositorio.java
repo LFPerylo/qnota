@@ -1,7 +1,5 @@
 package dev.com.qnota.dominio.principal.turma;
 
-import java.util.Optional;
-
 public interface TurmaRepositorio {
 
     /**

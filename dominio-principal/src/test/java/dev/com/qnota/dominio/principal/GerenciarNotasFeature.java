@@ -3,7 +3,6 @@ package dev.com.qnota.dominio.principal;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -15,6 +14,8 @@ import dev.com.qnota.infraestrutura.persistencia.memoria.RepositorioEmMemoria;
 import dev.com.qnota.dominio.principal.aluno.NotaServico;
 import dev.com.qnota.dominio.principal.professor.Professor;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaPonderada;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingStrategy;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
 import dev.com.qnota.dominio.principal.responsavel.Responsavel;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelId;
@@ -27,8 +28,9 @@ import io.cucumber.java.en.*;
 public class GerenciarNotasFeature {
 
     private final RepositorioEmMemoria repo = new RepositorioEmMemoria();
-    private final RankingServico rankingServico = new RankingServico(repo, repo, repo);
-    private final NotaServico notaServico = new NotaServico(rankingServico, repo, repo, repo, repo);
+    private final NotaServico notaServico = new NotaServico(repo, repo, repo, repo);
+    private final CalculoRankingStrategy calculoRanking = new CalculoRankingMediaPonderada(notaServico);
+    private final RankingServico rankingServico = new RankingServico(repo, repo, repo, calculoRanking);
     
     private final AtomicInteger seq = new AtomicInteger(1);
     
@@ -70,10 +72,8 @@ public class GerenciarNotasFeature {
 
     @Given("já existe nota para o \"aluno\" {string} no \"simulado\" {string} na \"disciplina\" {string}")
     public void ja_existe_nota_para_aluno_simulado_disciplina(String alunoAlias, String simuladoAlias, String disciplinaNome) {
-        // Adiciona nota diretamente ao agregado Aluno
-        var aluno = repo.porId(currentAlunoId);
-        aluno.adicionarNota(currentSimuladoId, currentDisciplinaId, 6.0);
-        repo.salvar(aluno);
+        // Adiciona nota usando NotaServico
+        notaServico.lancarNota(currentAlunoId, currentSimuladoId, currentDisciplinaId, 6.0);
     }
 
     @Given("o \"aluno\" {string} \"está\" inativo")
@@ -98,10 +98,8 @@ public class GerenciarNotasFeature {
 
     @Given("já existe nota {double} para o \"aluno\" {string} no \"simulado\" {string} na \"disciplina\" {string}")
     public void ja_existe_nota_valor_para_aluno_simulado_disciplina(double valor, String alunoAlias, String simuladoAlias, String disciplinaNome) {
-        // Adiciona nota diretamente ao agregado Aluno
-        var aluno = repo.porId(currentAlunoId);
-        aluno.adicionarNota(currentSimuladoId, currentDisciplinaId, valor);
-        repo.salvar(aluno);
+        // Adiciona nota usando NotaServico
+        notaServico.lancarNota(currentAlunoId, currentSimuladoId, currentDisciplinaId, valor);
     }
 
     @When("um coordenador lança nota {double} para o \"aluno\" {string} no \"simulado\" {string} na \"disciplina\" {string}")
@@ -233,7 +231,7 @@ public class GerenciarNotasFeature {
     public void nova_versao_nota_criada() {
         // Verificar se a nota foi atualizada no agregado Aluno
         var aluno = repo.porId(currentAlunoId);
-        var notaDoAluno = aluno.obterNota(currentSimuladoId, currentDisciplinaId);
+        var notaDoAluno = obterNota(aluno, currentSimuladoId, currentDisciplinaId);
         assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
         assertFalse(notaDoAluno.get().getJustificativas().isEmpty(), "Deveria ter justificativas");
     }
@@ -241,9 +239,19 @@ public class GerenciarNotasFeature {
     @Then("a justificativa é registrada no histórico")
     public void justificativa_registrada_historico() {
         var aluno = repo.porId(currentAlunoId);
-        var notaDoAluno = aluno.obterNota(currentSimuladoId, currentDisciplinaId);
+        var notaDoAluno = obterNota(aluno, currentSimuladoId, currentDisciplinaId);
         assertTrue(notaDoAluno.isPresent(), "Nota deveria existir");
         assertFalse(notaDoAluno.get().getJustificativas().isEmpty(), "Justificativa deveria ter sido registrada");
+    }
+    
+    // Helper method para obter nota do agregado Aluno
+    private java.util.Optional<dev.com.qnota.dominio.principal.aluno.NotaDoAluno> obterNota(
+            dev.com.qnota.dominio.principal.aluno.Aluno aluno, 
+            SimuladoId simuladoId, 
+            DisciplinaId disciplinaId) {
+        return aluno.getNotas().stream()
+            .filter(n -> n.getSimuladoId().equals(simuladoId) && n.getDisciplinaId().equals(disciplinaId))
+            .findFirst();
     }
 
     @Then("o sistema rejeita a retificação em notas")

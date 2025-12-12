@@ -38,3 +38,7 @@ src-gen
 
 # Maven wrapper cache (ok ignorar)
 .mvn/wrapper/maven-wrapper-downloader.jar
+
+# Arquivos de banco H2 locais
+*.mv.db
+*.trace.db

@@ -25,6 +25,9 @@ import dev.com.qnota.dominio.principal.disciplina.Disciplina;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.disciplina.Disciplina.AreaConhecimento;
 
+import dev.com.qnota.dominio.principal.aluno.NotaServico;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaPonderada;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingStrategy;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
 
 import dev.com.qnota.dominio.principal.aluno.Aluno;
@@ -36,6 +39,7 @@ public class GerenciarSimuladosFeature {
     private RepositorioEmMemoria repo;
     private SimuladoServico simuladoSrv;
     private RankingServico rankingSrv;
+    private NotaServico notaSrv;
 
     private AtomicInteger seq;
     private Map<String, TurmaId> aliasTurma;
@@ -53,7 +57,9 @@ public class GerenciarSimuladosFeature {
     @Before
     public void reset() {
         repo = new RepositorioEmMemoria();
-        rankingSrv = new RankingServico(repo, repo, repo);
+        notaSrv = new NotaServico(repo, repo, repo, repo);
+        CalculoRankingStrategy calculoRanking = new CalculoRankingMediaPonderada(notaSrv);
+        rankingSrv = new RankingServico(repo, repo, repo, calculoRanking);
         simuladoSrv = new SimuladoServico(repo, rankingSrv, repo, repo, repo, repo);
 
         seq = new AtomicInteger(1);
@@ -202,10 +208,11 @@ public class GerenciarSimuladosFeature {
         var aluno = new Aluno("Aluno Teste", LocalDate.of(2012, 1, 1), true, currentTurmaId, alunoResponsaveis, responsavel.getId());
         repo.salvar(aluno);
         
-        // Adiciona notas diretamente ao agregado Aluno
-        aluno.adicionarNota(currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0);
-        aluno.adicionarNota(currentSimuladoId, ensureDisciplina("Física", "Exatas"), 7.5);
-        repo.salvar(aluno);
+        // Adiciona notas usando NotaServico (forma correta)
+        var disciplinaMat = ensureDisciplina("Matemática", "Exatas");
+        var disciplinaFis = ensureDisciplina("Física", "Exatas");
+        notaSrv.lancarNota(aluno.getId(), currentSimuladoId, disciplinaMat, 8.0);
+        notaSrv.lancarNota(aluno.getId(), currentSimuladoId, disciplinaFis, 7.5);
         
         // Marcar que todas as notas foram lançadas para este simulado
         repo.setTodasNotasLancadas(currentSimuladoId, true);
@@ -231,9 +238,9 @@ public class GerenciarSimuladosFeature {
         var aluno = new Aluno("Aluno Teste", LocalDate.of(2012, 1, 1), true, currentTurmaId, alunoResponsaveis, responsavel.getId());
         repo.salvar(aluno);
         
-        // Adiciona nota diretamente ao agregado Aluno
-        aluno.adicionarNota(currentSimuladoId, ensureDisciplina("Matemática", "Exatas"), 8.0);
-        repo.salvar(aluno);
+        // Adiciona nota usando NotaServico (forma correta)
+        var disciplinaMat = ensureDisciplina("Matemática", "Exatas");
+        notaSrv.lancarNota(aluno.getId(), currentSimuladoId, disciplinaMat, 8.0);
     }
 
     // ===== Whens =====

@@ -3,7 +3,6 @@ package dev.com.qnota.dominio.principal.aluno;
 import java.time.LocalDate;
 import java.util.List;
 
-import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.simulado.SimuladoId;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 
@@ -26,27 +25,12 @@ public interface AlunoRepositorio {
     // ===== operações de nota (agora parte do agregado Aluno) =====
     
     /**
-     * Verifica se o aluno possui notas pendentes em simulados em edição.
-     */
-    boolean temNotasPendentesEmSimuladosEmEdicao(AlunoId alunoId);
-    
-    /**
      * Verifica se o aluno possui notas lançadas.
      */
     boolean temNotas(AlunoId alunoId);
     
     /**
-     * Verifica se o aluno possui simulados finalizados.
-     */
-    boolean possuiSimuladoFinalizado(AlunoId alunoId);
-    
-    /**
      * Verifica se existe nota para o simulado especificado.
      */
     boolean existeNotaParaSimulado(SimuladoId simuladoId);
-    
-    /**
-     * Verifica se o professor possui simulados finalizados (para RN-26A).
-     */
-    boolean possuiSimuladoFinalizadoParaProfessor(ProfessorId professorId);
 }

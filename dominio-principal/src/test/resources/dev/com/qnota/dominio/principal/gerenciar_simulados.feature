@@ -21,16 +21,16 @@ Feature: Gerenciar simulados
     Then o sistema rejeita o cadastro em simulados
     And o sistema informa em simulados que "RN-53"
 
-  Scenario: Bloquear cadastro com mais de 2 simulados em edição (falha - RN-52)
+  Scenario: Bloquear cadastro com mais de 3 simulados em edição (falha - RN-52)
     Given uma "turma" "7A" "está" ativa com professor "P1" que possui especialidade "Matemática"
-    And a turma "7A" "possui" 2 simulados em edição
+    And a turma "7A" "possui" 3 simulados em edição
     When um coordenador tenta cadastrar um "simulado" para a turma "7A"
     Then o sistema rejeita o cadastro em simulados
     And o sistema informa em simulados que "RN-52"
 
-  Scenario: Permitir cadastro com exatamente 2 simulados em edição (sucesso - RN-52)
+  Scenario: Permitir cadastro com exatamente 3 simulados em edição (sucesso - RN-52)
     Given uma "turma" "7A" "está" ativa com professor "P1" que possui especialidade "Matemática"
-    And a turma "7A" "possui" 1 simulado em edição
+    And a turma "7A" "possui" 2 simulados em edição
     When um coordenador cadastra um "simulado" para a turma "7A" com disciplinas válidas
     Then o sistema confirma o cadastro do "simulado"
 

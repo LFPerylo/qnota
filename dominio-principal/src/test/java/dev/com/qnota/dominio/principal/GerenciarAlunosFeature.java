@@ -22,6 +22,7 @@ import dev.com.qnota.dominio.principal.turma.TurmaId;
 
 import dev.com.qnota.dominio.principal.simulado.Simulado;
 
+import dev.com.qnota.dominio.principal.disciplina.Disciplina;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 
 // novo import para professor
@@ -54,7 +55,7 @@ public class GerenciarAlunosFeature {
     @Before
     public void reset() {
         repo = new RepositorioEmMemoria();
-        alunoSrv = new AlunoServico(repo, repo, repo);
+        alunoSrv = new AlunoServico(repo, repo, repo, repo);
         responsavelSrv = new ResponsavelServico(repo, alunoSrv); // usaremos serviço para cadastrar responsáveis-fixture
 
         seq = new AtomicInteger(1);
@@ -104,7 +105,7 @@ public class GerenciarAlunosFeature {
         });
     }
 
-    private TurmaId ensureTurmaDefault(String alias) { return ensureTurma(alias, 2025); }
+    private TurmaId ensureTurmaDefault(String alias) { return ensureTurma(alias, 2024); }
 
     private ResponsavelId ensureResp(String alias, boolean principal, String grau) {
         return aliasResp.computeIfAbsent(alias, a -> {
@@ -147,6 +148,13 @@ public class GerenciarAlunosFeature {
     // helper para montar disciplinas de Simulado (RN-12 exige >= 2)
     private static Simulado.DisciplinaPeso dp(int id, double peso) {
         return new Simulado.DisciplinaPeso(new DisciplinaId(id), peso);
+    }
+
+    // helper para criar disciplina no repositório
+    private DisciplinaId ensureDisciplina(String nome, String area) {
+        var disciplina = new Disciplina(nome, new Disciplina.AreaConhecimento(seq.getAndIncrement(), area));
+        repo.salvar(disciplina); // o repositório atribui o ID automaticamente
+        return disciplina.getId();
     }
 
     // ===== Givens (agora LITERAIS "aluno") =====
@@ -197,7 +205,7 @@ public class GerenciarAlunosFeature {
 
     @Given("a turma de destino {string} pertence ao ano letivo {string} igual ao da turma atual")
     public void turma_destino_ano_igual(String destinoAlias, String ano) {
-        int origemAno = 2025;
+        int origemAno = 2024;
         anoTurma.putIfAbsent("7A", origemAno);
         ensureTurma("7A", origemAno);
         currentTurmaDestinoId = ensureTurma(destinoAlias, origemAno);
@@ -205,7 +213,7 @@ public class GerenciarAlunosFeature {
 
     @Given("a turma de destino {string} pertence ao ano letivo {string} diferente do atual")
     public void turma_destino_ano_diferente(String destinoAlias, String ano) {
-        int origemAno = 2025;
+        int origemAno = 2024;
         anoTurma.putIfAbsent("7A", origemAno);
         ensureTurma("7A", origemAno);
         currentTurmaDestinoId = ensureTurma(destinoAlias, Integer.parseInt(ano));
@@ -215,18 +223,29 @@ public class GerenciarAlunosFeature {
     public void aluno_registrado_possui_notas(String estado, String possui) {
         aluno_estado_registrado("está");
         if ("possui".equalsIgnoreCase(possui)) {
+            // Criar disciplinas necessárias
+            var disciplina1Id = ensureDisciplina("Matemática", "Exatas");
+            var disciplina2Id = ensureDisciplina("Física", "Exatas");
+            
+            // Criar simulado EM_EDICAO para poder lançar nota
             var sim = new Simulado(
                 LocalDate.now(),
-                Simulado.Status.FINALIZADO,
+                Simulado.Status.EM_EDICAO,
                 currentTurmaId,
-                List.of(dp(1, 6.0), dp(2, 4.0))
+                List.of(
+                    new Simulado.DisciplinaPeso(disciplina1Id, 6.0),
+                    new Simulado.DisciplinaPeso(disciplina2Id, 4.0)
+                )
             );
             repo.salvar(sim);
             
-            // Adiciona nota diretamente ao agregado Aluno
-            var aluno = repo.porId(currentAlunoId);
-            aluno.adicionarNota(sim.getId(), new DisciplinaId(1), 8.0);
-            repo.salvar(aluno);
+            // Adiciona nota usando NotaServico (forma correta)
+            var notaSrv = new dev.com.qnota.dominio.principal.aluno.NotaServico(repo, repo, repo, repo);
+            notaSrv.lancarNota(currentAlunoId, sim.getId(), disciplina1Id, 8.0);
+            
+            // Finalizar simulado após lançar nota para manter comportamento esperado do teste
+            sim.finalizar();
+            repo.salvar(sim);
         }
     }
 
@@ -420,7 +439,7 @@ public class GerenciarAlunosFeature {
         lastError = null;
         try {
             var rA = ensureResp("R1", false, "Parente");
-            var rB = ensureResp("R2", false, "Parente");
+            ensureResp("R2", false, "Parente");
             // Simular "dois principais" criando uma lista onde o mesmo responsável aparece duas vezes
             // Isso deveria gerar o erro "deve haver exatamente um responsável principal"
             var lista = List.of(rA, rA); // mesmo responsável duas vezes

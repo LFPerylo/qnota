@@ -2,10 +2,8 @@ package dev.com.qnota.dominio.principal.professor;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 public class Professor {
 
@@ -23,16 +21,16 @@ public class Professor {
                      String email,
                      List<String> especialidades) {
 
-        this.nome  = requireNonBlank(nome,  "'nome' não pode ser vazio");
-        this.cpf   = requireNonBlank(cpf,   "'cpf' não pode ser vazio");   // plugue um validador se quiser
-        this.email = requireNonBlank(email, "'email' não pode ser vazio");
+        this.nome  = nome;
+        this.cpf   = cpf;
+        this.email = email;
 
         Objects.requireNonNull(especialidades, "'especialidades' não pode ser nulo");
         
         // normaliza especialidades (sem regras de negócio)
         List<String> normalizada = new ArrayList<>(especialidades.size());
         for (String e : especialidades) {
-            String v = requireNonBlank(e, "especialidade não pode ser vazia").trim();
+            String v = e.trim();
             normalizada.add(v);
         }
         
@@ -57,36 +55,31 @@ public class Professor {
 
     // ===== comportamentos locais =====
     public void renomear(String novoNome) {
-        this.nome = requireNonBlank(novoNome, "'nome' não pode ser vazio");
+        this.nome = novoNome;
     }
 
     public void alterarEmail(String novoEmail) {
-        this.email = requireNonBlank(novoEmail, "'email' não pode ser vazio");
+        this.email = novoEmail;
         // se quiser reforçar: if (!this.email.contains("@")) throw new IllegalArgumentException("email inválido");
     }
 
     /** Adiciona especialidade se ainda não existir (case-insensitive). */
     public void adicionarEspecialidade(String nomeArea) {
-        String v = requireNonBlank(nomeArea, "especialidade não pode ser vazia");
+        String v = nomeArea.trim();
         boolean existe = especialidades.stream().anyMatch(e -> e.equalsIgnoreCase(v));
         if (!existe) especialidades.add(v);
     }
 
     /** Remove especialidade. Validação RN-84 fica no ProfessorServico. */
     public void removerEspecialidade(String nomeArea) {
-        String v = requireNonBlank(nomeArea, "especialidade não pode ser vazia");
+        String v = nomeArea.trim();
         especialidades.removeIf(e -> e.equalsIgnoreCase(v));
         // Validação RN-84 removida - fica no ProfessorServico
     }
 
     public boolean possuiEspecialidade(String nomeArea) {
-        String v = requireNonBlank(nomeArea, "especialidade não pode ser vazia");
+        String v = nomeArea.trim();
         return especialidades.stream().anyMatch(e -> e.equalsIgnoreCase(v));
     }
 
-    // ===== helpers =====
-    private static String requireNonBlank(String s, String msg) {
-        if (s == null || s.trim().isEmpty()) throw new IllegalArgumentException(msg);
-        return s.trim();
-    }
 }

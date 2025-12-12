@@ -3,12 +3,12 @@ Feature: Gerenciar alunos
   # ========= H1.1 CADASTRAR ALUNO =========
 
   Scenario: Cadastrar aluno válido em turma (sucesso - RN-03)
-    Given um "aluno" com nome "Maria Silva" e nascimento "2013-04-10" "não está" registrado na turma "7A"
+    Given um "aluno" com nome "Maria Silva" e nascimento "2010-04-10" "não está" registrado na turma "7A"
     When um coordenador cadastra o "aluno" na turma "7A" com responsáveis válidos
     Then o sistema confirma o cadastro do "aluno"
 
   Scenario: Impedir cadastro duplicado por nome e data na mesma turma (falha - RN-03)
-    Given um "aluno" com nome "Maria Silva" e nascimento "2013-04-10" "já está" registrado na turma "7A"
+    Given um "aluno" com nome "Maria Silva" e nascimento "2010-04-10" "já está" registrado na turma "7A"
     When um coordenador tenta cadastrar o mesmo "aluno" novamente na turma "7A"
     Then o sistema rejeita o cadastro em alunos
     And o sistema informa em alunos que "já existe aluno com mesmo nome e data de nascimento na turma"
@@ -33,19 +33,19 @@ Feature: Gerenciar alunos
     Given um "aluno" "não está" registrado
     When um coordenador tenta cadastrar o "aluno" sem nenhum responsável marcado como "principal"
     Then o sistema rejeita o cadastro em alunos
-    And o sistema informa em alunos que "é obrigatório definir um responsável principal"
+    And o sistema informa em alunos que "deve haver exatamente um responsável principal na lista"
 
   # ========= H1 EDITAR / TRANSFERIR TURMA =========
 
   Scenario: Transferir aluno para turma do mesmo ano e sem simulados finalizados (sucesso - RN-57/RN-57a)
     Given um "aluno" da turma "7A" "não possui" simulados finalizados
-    And a turma de destino "7B" pertence ao ano letivo "2025" igual ao da turma atual
+    And a turma de destino "7B" pertence ao ano letivo "2024" igual ao da turma atual
     When um coordenador transfere o "aluno" da turma "7A" para "7B"
     Then o sistema confirma a transferência do "aluno"
 
   Scenario: Bloquear transferência por diferença de ano letivo (falha - RN-57a)
     Given um "aluno" da turma "7A" "não possui" simulados finalizados
-    And a turma de destino "8B" pertence ao ano letivo "2026" diferente do atual
+    And a turma de destino "8B" pertence ao ano letivo "2025" diferente do atual
     When um coordenador tenta transferir o "aluno" para "8B"
     Then o sistema rejeita a transferência em alunos
     And o sistema informa em alunos que "a nova turma deve estar no mesmo ano letivo"
@@ -99,7 +99,7 @@ Feature: Gerenciar alunos
     Given um "aluno" "não está" registrado
     When um coordenador tenta cadastrar o "aluno" na turma "7A" com dois responsáveis marcados como "principal"
     Then o sistema rejeita o cadastro em alunos
-    And o sistema informa em alunos que "deve haver exatamente um responsável principal"
+    And o sistema informa em alunos que "Vínculo de responsável duplicado"
 
   Scenario: Bloquear cadastro sem nome do aluno (falha - NOT NULL)
     Given um "aluno" "não está" registrado e "sem nome"

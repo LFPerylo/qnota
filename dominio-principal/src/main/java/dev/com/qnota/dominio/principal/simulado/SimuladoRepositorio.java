@@ -2,8 +2,9 @@ package dev.com.qnota.dominio.principal.simulado;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
+import dev.com.qnota.dominio.principal.aluno.AlunoId;
+import dev.com.qnota.dominio.principal.professor.ProfessorId;
 import dev.com.qnota.dominio.principal.turma.TurmaId;
 
 public interface SimuladoRepositorio {
@@ -25,6 +26,15 @@ public interface SimuladoRepositorio {
 
     /** RN-16: checar se todas as notas da turma foram lançadas */
     boolean todasNotasLancadas(SimuladoId id);
+
+    /** RN-26A: verificar se professor possui simulados finalizados */
+    boolean possuiSimuladoFinalizadoParaProfessor(ProfessorId professorId);
+    
+    /** Verifica se o aluno possui simulados finalizados */
+    boolean possuiSimuladoFinalizadoParaAluno(AlunoId alunoId);
+    
+    /** Verifica se o aluno possui notas pendentes em simulados em edição */
+    boolean temNotasPendentesEmSimuladosEmEdicao(AlunoId alunoId);
 
     /** RN-15: remover simulado */
     void remover(SimuladoId id);

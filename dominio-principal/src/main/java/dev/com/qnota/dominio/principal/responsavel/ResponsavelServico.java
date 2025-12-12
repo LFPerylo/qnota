@@ -1,18 +1,16 @@
 package dev.com.qnota.dominio.principal.responsavel;
 
 import java.util.Objects;
-import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
 import dev.com.qnota.dominio.principal.aluno.AlunoId;
-import dev.com.qnota.dominio.principal.aluno.AlunoServico;
 
 public class ResponsavelServico {
 
     private final ResponsavelRepositorio responsavelRepo;
-    private final AlunoServico alunoServico;
+    private final ResponsavelVinculoService vinculoService;
 
-    public ResponsavelServico(ResponsavelRepositorio responsavelRepo, AlunoServico alunoServico) {
+    public ResponsavelServico(ResponsavelRepositorio responsavelRepo, ResponsavelVinculoService vinculoService) {
         this.responsavelRepo = Objects.requireNonNull(responsavelRepo);
-        this.alunoServico = Objects.requireNonNull(alunoServico);
+        this.vinculoService = Objects.requireNonNull(vinculoService);
     }
 
     /** Cadastro com checagem de unicidade de CPF. ORM atribui o ID e o repositório o retorna. */
@@ -51,18 +49,19 @@ public class ResponsavelServico {
 
     /** Exclusão (RN-21): só sem vínculos ativos. */
     public void excluir(ResponsavelId id) {
-        if (responsavelRepo.estaVinculadoAAlgumAluno(id))
+        if (vinculoService.possuiVinculosAtivos(id))
             throw new IllegalStateException("o responsável possui vínculos ativos");
+        vinculoService.removerVinculos(id);
         responsavelRepo.excluir(id);
     }
 
     /** Vincula responsável a um aluno. */
     public void vincularAoAluno(ResponsavelId responsavelId, AlunoId alunoId, boolean principal) {
-        alunoServico.vincularResponsavel(alunoId, responsavelId, principal);
+        vinculoService.vincularResponsavel(responsavelId, alunoId, principal);
     }
 
     /** Desvincula responsável de um aluno. */
     public void desvincularDoAluno(ResponsavelId responsavelId, AlunoId alunoId) {
-        alunoServico.desvincularResponsavel(alunoId, responsavelId);
+        vinculoService.desvincularResponsavel(responsavelId, alunoId);
     }
 }

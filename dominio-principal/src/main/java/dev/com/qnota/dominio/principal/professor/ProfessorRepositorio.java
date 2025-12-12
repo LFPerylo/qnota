@@ -1,7 +1,6 @@
 package dev.com.qnota.dominio.principal.professor;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface ProfessorRepositorio {
 
@@ -19,4 +18,6 @@ public interface ProfessorRepositorio {
     List<String> nomesDeAreasDoProfessor(ProfessorId id);  // apoio/compat
 
     void substituirProfessor(ProfessorId antigo, ProfessorId substituto); // RN-125
+
+    void remover(ProfessorId id);
 }
