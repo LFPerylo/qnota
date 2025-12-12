@@ -198,8 +198,6 @@ BoundedContext QNota implements QNota {
         	
         }
 
-        
-        
         ValueObject Justificativa {
         	String notaId
         	double notaAnterior
