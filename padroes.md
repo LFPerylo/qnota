@@ -188,16 +188,29 @@ O padrão Strategy foi aplicado para encapsular diferentes **algoritmos de cálc
 
 #### `CalculoRankingMediaPonderada` (CRIADA - Estratégia Concreta)
 - **Localização**: `dominio-principal/src/main/java/dev/com/qnota/dominio/principal/ranking/CalculoRankingMediaPonderada.java`
-- **Responsabilidade**: Implementa o algoritmo de **média ponderada** usado atualmente no QNota
+- **Responsabilidade**: Implementa o algoritmo de **média ponderada**
 - **Algoritmo**:
   1. Para cada aluno, calcula média ponderada via `NotaServico.calcularMediaPonderada(aluno, pesos)`
   2. Ordena alunos por média (decrescente) e desempata por data de nascimento (mais velho primeiro)
   3. Atribui posições sequenciais (1, 2, 3, ...)
 - **Dependência**: Injeta `NotaServico` para buscar notas e calcular médias
-- **Outras estratégias possíveis** (não implementadas ainda):
-  - `CalculoRankingMediaAritmetica`: Ignora pesos
-  - `CalculoRankingMediana`: Usa mediana em vez de média
-  - `CalculoRankingPorMelhorNota`: Ranking baseado na melhor nota individual
+- **Quando usar**: Quando disciplinas têm importâncias diferentes (ex.: Matemática peso 3, Português peso 2)
+
+#### `CalculoRankingMediaAritmetica` (CRIADA - Estratégia Concreta)
+- **Localização**: `dominio-principal/src/main/java/dev/com/qnota/dominio/principal/ranking/CalculoRankingMediaAritmetica.java`
+- **Responsabilidade**: Implementa o algoritmo de **média aritmética simples**
+- **Algoritmo**:
+  1. Para cada aluno, soma todas as notas e divide pela quantidade (ignora pesos)
+  2. Ordena alunos por média (decrescente) e desempata por data de nascimento (mais velho primeiro)
+  3. Atribui posições sequenciais (1, 2, 3, ...)
+- **Dependência**: Nenhuma - calcula diretamente a partir das notas do aluno
+- **Quando usar**: Quando todas as disciplinas devem ter o mesmo peso no ranking
+- **Diferença da média ponderada**: Ignora completamente o mapa de pesos recebido
+
+#### Outras estratégias possíveis (não implementadas)
+- `CalculoRankingMediana`: Usa mediana em vez de média
+- `CalculoRankingPorMelhorNota`: Ranking baseado na melhor nota individual
+- `CalculoRankingPorFaixas`: Agrupa alunos em faixas (A, B, C, D, E)
 
 #### `RankingServico` (MODIFICADO)
 - **Localização**: `dominio-principal/src/main/java/dev/com/qnota/dominio/principal/ranking/RankingServico.java`
@@ -227,47 +240,106 @@ public class RankingServico {
 **Depois** (usando Strategy):
 ```java
 public class RankingServico {
-    private final CalculoRankingStrategy calculoRanking;
+    private final CalculoRankingStrategy mediaPonderada;
+    private final CalculoRankingStrategy mediaAritmetica;
     
-    public RankingServico(..., CalculoRankingStrategy calculoRanking) {
-        this.calculoRanking = calculoRanking;
+    public RankingServico(..., 
+                          CalculoRankingStrategy mediaPonderada,
+                          CalculoRankingStrategy mediaAritmetica) {
+        this.mediaPonderada = mediaPonderada;
+        this.mediaAritmetica = mediaAritmetica;
     }
     
     public List<Ranking.Linha> recalcular(SimuladoId id) {
+        var simulado = simuladoRepo.porId(id);
         var pesos = simuladoRepo.pesosDoSimulado(id);
         var alunos = alunoRepo.porTurma(simulado.getTurma());
         
-        // Delega o cálculo para a strategy
-        var linhas = calculoRanking.calcular(alunos, pesos);
+        // Seleciona automaticamente a strategy com base nos pesos
+        var estrategia = selecionarEstrategia(pesos);
+        var linhas = estrategia.calcular(alunos, pesos);
         
         rankingRepo.limpar(id);
         rankingRepo.salvarPosicoes(id, linhas);
         return linhas;
     }
+    
+    private CalculoRankingStrategy selecionarEstrategia(Map<Integer, Double> pesos) {
+        return todosPesosIguais(pesos) ? mediaAritmetica : mediaPonderada;
+    }
+    
+    private boolean todosPesosIguais(Map<Integer, Double> pesos) {
+        if (pesos == null || pesos.isEmpty()) return true;
+        var valores = pesos.values();
+        var primeiro = valores.iterator().next();
+        return valores.stream().allMatch(p -> Math.abs(p - primeiro) < 0.001);
+    }
 }
 ```
 
 ### Configuração no Spring Boot
-No `AplicacaoBackend.java`, a strategy concreta é injetada como bean:
+No `AplicacaoBackend.java`, ambas as estratégias são registradas como beans e injetadas no `RankingServico`:
 
 ```java
 @Bean
-public CalculoRankingStrategy calculoRankingStrategy(NotaServico notaServico) {
+public CalculoRankingStrategy mediaPonderada(NotaServico notaServico) {
     return new CalculoRankingMediaPonderada(notaServico);
 }
 
 @Bean
-public RankingServico rankingServico(..., CalculoRankingStrategy strategy) {
-    return new RankingServico(..., strategy);
+public CalculoRankingStrategy mediaAritmetica() {
+    return new CalculoRankingMediaAritmetica();
+}
+
+@Bean
+public RankingServico rankingServico(AlunoRepositorio alunoRepositorio,
+                                     SimuladoRepositorio simuladoRepositorio,
+                                     RankingRepositorio rankingRepositorio,
+                                     CalculoRankingStrategy mediaPonderada,
+                                     CalculoRankingStrategy mediaAritmetica) {
+    return new RankingServico(alunoRepositorio, simuladoRepositorio, rankingRepositorio, 
+                              mediaPonderada, mediaAritmetica);
 }
 ```
 
+O `RankingServico` seleciona automaticamente a estratégia apropriada com base nos pesos das disciplinas, sem necessidade de configuração manual.
+
 ### Benefícios Específicos no Domínio QNota
-- **Flexibilidade pedagógica**: Coordenadores podem escolher diferentes critérios de ranking sem alterar código
+- **Flexibilidade pedagógica**: O sistema escolhe automaticamente entre **média ponderada** (disciplinas com pesos diferentes) ou **média aritmética** (pesos iguais) com base nos pesos configurados
+- **Seleção automática inteligente**: O `RankingServico` analisa os pesos das disciplinas e escolhe a estratégia mais adequada automaticamente, sem intervenção manual
 - **Testabilidade**: Testes do `RankingServico` podem usar strategy mock que retorna rankings fixos
-- **Extensibilidade**: Novos algoritmos (mediana, média geométrica, ranking por faixas) são fáceis de adicionar
+- **Extensibilidade**: Novos algoritmos (mediana, média geométrica, ranking por faixas) são fáceis de adicionar - basta criar nova classe que implementa `CalculoRankingStrategy`
 - **Separação de responsabilidades**: `RankingServico` cuida da orquestração; Strategy cuida do cálculo matemático
-- **Configuração dinâmica**: No futuro, a strategy pode ser escolhida por configuração ou por tipo de simulado
+
+### Comparação das Estratégias Implementadas
+
+| Aspecto | MediaPonderada | MediaAritmetica |
+|---------|----------------|-----------------|
+| **Usa pesos?** | Sim | Não (ignora) |
+| **Dependências** | NotaServico | Nenhuma |
+| **Quando é selecionada** | Pesos diferentes entre disciplinas | Todos os pesos iguais |
+| **Fórmula** | Σ(nota × peso) / Σ(pesos) | Σ(notas) / quantidade |
+
+### Seleção Automática de Estratégia
+
+O `RankingServico` seleciona a estratégia automaticamente analisando os pesos das disciplinas do simulado:
+
+```java
+private CalculoRankingStrategy selecionarEstrategia(Map<Integer, Double> pesos) {
+    return todosPesosIguais(pesos) ? mediaAritmetica : mediaPonderada;
+}
+
+private boolean todosPesosIguais(Map<Integer, Double> pesos) {
+    if (pesos == null || pesos.isEmpty()) return true;
+    var valores = pesos.values();
+    var primeiro = valores.iterator().next();
+    return valores.stream().allMatch(p -> Math.abs(p - primeiro) < 0.001);
+}
+```
+
+**Exemplos de seleção:**
+- Pesos `{Mat: 3, Port: 2, Hist: 2, Geo: 1, Ciên: 2}` → **Média Ponderada** (pesos diferentes)
+- Pesos `{Mat: 2, Port: 2, Hist: 2, Geo: 2, Ciên: 2}` → **Média Aritmética** (todos iguais)
 
 ---
 
@@ -426,8 +498,9 @@ Os quatro padrões trabalham **em conjunto** no fluxo de finalização de simula
 [RankingServico] ← Observer (reage ao evento)
    ↓ congelar(id)
    ↓ recalcular() se necessário
-   ↓ usa CalculoRankingStrategy ← Strategy (algoritmo de cálculo)
-[CalculoRankingMediaPonderada]
+   ↓ analisa pesos das disciplinas (todosPesosIguais?)
+   ↓ seleciona automaticamente a Strategy ← Strategy (algoritmo de cálculo)
+[CalculoRankingMediaPonderada ou CalculoRankingMediaAritmetica]
    ↓ retorna linhas ordenadas
 [RankingRepositorio]
    ↓ salva ranking congelado
@@ -470,7 +543,7 @@ Os quatro padrões trabalham **em conjunto** no fluxo de finalização de simula
   - Nova forma de finalização: Criar nova subclasse do Template
 
 - **L (Liskov Substitution)**: Implementações podem ser substituídas
-  - `CalculoRankingMediaPonderada` pode ser substituída por outra Strategy
+  - `CalculoRankingMediaPonderada` pode ser substituída por `CalculoRankingMediaAritmetica` ou outra Strategy
   - `SimuladoRepositorioDecorator` pode ser substituído pelo repositório base
 
 - **I (Interface Segregation)**: Interfaces específicas e focadas
@@ -487,7 +560,7 @@ Os quatro padrões aplicados no QNota não são "decoração" ou "over-engineeri
 
 - **Decorator**: Auditoria sem poluir código de persistência
 - **Template Method**: Fluxo de finalização consistente e extensível
-- **Strategy**: Algoritmos de ranking flexíveis e testáveis
+- **Strategy**: Algoritmos de ranking flexíveis e testáveis (2 implementações: média ponderada e média aritmética)
 - **Observer**: Reações à finalização desacopladas e extensíveis
 
 Juntos, criam uma arquitetura que é **fácil de estender**, **fácil de testar** e **fácil de manter**, alinhada com os princípios de Clean Architecture e Domain-Driven Design.

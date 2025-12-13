@@ -34,6 +34,7 @@ import dev.com.qnota.dominio.principal.disciplina.DisciplinaRepositorio;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaServico;
 import dev.com.qnota.dominio.principal.professor.ProfessorRepositorio;
 import dev.com.qnota.dominio.principal.professor.ProfessorServico;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaAritmetica;
 import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaPonderada;
 import dev.com.qnota.dominio.principal.ranking.CalculoRankingStrategy;
 import dev.com.qnota.dominio.principal.ranking.RankingRepositorio;
@@ -117,17 +118,34 @@ public class AplicacaoBackend {
 		return new NotaServico(alunoRepositorio, simuladoRepositorio, turmaRepositorio, disciplinaRepositorio);
 	}
 
+	// ===== Estratégias de Cálculo de Ranking (Padrão Strategy) =====
+	//
+	// O padrão Strategy é aplicado aqui para encapsular diferentes algoritmos
+	// de cálculo de ranking. O RankingServico seleciona automaticamente a
+	// estratégia apropriada com base nos pesos das disciplinas:
+	// - Se todos os pesos são iguais → média aritmética (mais eficiente)
+	// - Se pesos diferentes → média ponderada
+
 	@Bean
-	public CalculoRankingStrategy calculoRankingStrategy(NotaServico notaServico) {
+	@Qualifier("mediaPonderada")
+	public CalculoRankingStrategy mediaPonderada(NotaServico notaServico) {
 		return new CalculoRankingMediaPonderada(notaServico);
+	}
+
+	@Bean
+	@Qualifier("mediaAritmetica")
+	public CalculoRankingStrategy mediaAritmetica() {
+		return new CalculoRankingMediaAritmetica();
 	}
 
 	@Bean
 	public RankingServico rankingServico(AlunoRepositorio alunoRepositorio,
 	                                     SimuladoRepositorio simuladoRepositorio,
 	                                     RankingRepositorio rankingRepositorio,
-	                                     CalculoRankingStrategy calculoRankingStrategy) {
-		return new RankingServico(alunoRepositorio, simuladoRepositorio, rankingRepositorio, calculoRankingStrategy);
+	                                     @Qualifier("mediaPonderada") CalculoRankingStrategy mediaPonderada,
+	                                     @Qualifier("mediaAritmetica") CalculoRankingStrategy mediaAritmetica) {
+		return new RankingServico(alunoRepositorio, simuladoRepositorio, rankingRepositorio, 
+		                          mediaPonderada, mediaAritmetica);
 	}
 
 	// ===== Auditoria + Decorator para SimuladoRepositorio (Padrao Decorator) =====

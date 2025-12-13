@@ -26,6 +26,7 @@ import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.disciplina.Disciplina.AreaConhecimento;
 
 import dev.com.qnota.dominio.principal.aluno.NotaServico;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaAritmetica;
 import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaPonderada;
 import dev.com.qnota.dominio.principal.ranking.CalculoRankingStrategy;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
@@ -58,8 +59,9 @@ public class GerenciarSimuladosFeature {
     public void reset() {
         repo = new RepositorioEmMemoria();
         notaSrv = new NotaServico(repo, repo, repo, repo);
-        CalculoRankingStrategy calculoRanking = new CalculoRankingMediaPonderada(notaSrv);
-        rankingSrv = new RankingServico(repo, repo, repo, calculoRanking);
+        CalculoRankingStrategy mediaPonderada = new CalculoRankingMediaPonderada(notaSrv);
+        CalculoRankingStrategy mediaAritmetica = new CalculoRankingMediaAritmetica();
+        rankingSrv = new RankingServico(repo, repo, repo, mediaPonderada, mediaAritmetica);
         simuladoSrv = new SimuladoServico(repo, rankingSrv, repo, repo, repo, repo);
 
         seq = new AtomicInteger(1);

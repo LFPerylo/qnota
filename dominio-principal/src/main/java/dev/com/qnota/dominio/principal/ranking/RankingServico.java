@@ -1,6 +1,7 @@
 package dev.com.qnota.dominio.principal.ranking;
 
 import java.util.List;
+import java.util.Map;
 
 import dev.com.qnota.dominio.principal.aluno.AlunoRepositorio;
 import dev.com.qnota.dominio.principal.simulado.Simulado;
@@ -13,18 +14,40 @@ public class RankingServico implements SimuladoObserver {
     private final AlunoRepositorio alunoRepo;
     private final SimuladoRepositorio simuladoRepo;
     private final RankingRepositorio rankingRepo;
-    private final CalculoRankingStrategy calculoRanking;
+    private final CalculoRankingStrategy mediaPonderada;
+    private final CalculoRankingStrategy mediaAritmetica;
 
-    // Agora só precisa da Strategy
+    // Recebe ambas as estratégias e seleciona automaticamente
 
     public RankingServico(AlunoRepositorio alunoRepo,
                           SimuladoRepositorio simuladoRepo,
                           RankingRepositorio rankingRepo,
-                          CalculoRankingStrategy calculoRanking) {
+                          CalculoRankingStrategy mediaPonderada,
+                          CalculoRankingStrategy mediaAritmetica) {
         this.alunoRepo = alunoRepo;
         this.simuladoRepo = simuladoRepo;
         this.rankingRepo = rankingRepo;
-        this.calculoRanking = calculoRanking;
+        this.mediaPonderada = mediaPonderada;
+        this.mediaAritmetica = mediaAritmetica;
+    }
+
+    /**
+     * Seleciona automaticamente a estratégia de cálculo com base nos pesos.
+     * Se todos os pesos forem iguais → média aritmética (mais eficiente)
+     * Se pesos diferentes → média ponderada
+     */
+    private CalculoRankingStrategy selecionarEstrategia(Map<Integer, Double> pesos) {
+        return todosPesosIguais(pesos) ? mediaAritmetica : mediaPonderada;
+    }
+
+    /**
+     * Verifica se todos os pesos das disciplinas são iguais.
+     */
+    private boolean todosPesosIguais(Map<Integer, Double> pesos) {
+        if (pesos == null || pesos.isEmpty()) return true;
+        var valores = pesos.values();
+        var primeiro = valores.iterator().next();
+        return valores.stream().allMatch(p -> Math.abs(p - primeiro) < 0.001);
     }
 
     /** RN-98/99: recalcula e salva (não congela). Se já estiver congelado, devolve o atual. */
@@ -39,7 +62,9 @@ public class RankingServico implements SimuladoObserver {
         var pesos = simuladoRepo.pesosDoSimulado(simuladoId);
         var alunos = alunoRepo.porTurma(simulado.getTurma());
 
-        var linhas = calculoRanking.calcular(alunos, pesos);
+        // Seleciona automaticamente a estratégia com base nos pesos
+        var estrategia = selecionarEstrategia(pesos);
+        var linhas = estrategia.calcular(alunos, pesos);
 
         // Orquestração movida do repositório para o serviço (camada correta)
         rankingRepo.limpar(simuladoId);
@@ -60,7 +85,9 @@ public class RankingServico implements SimuladoObserver {
         var pesos = simuladoRepo.pesosDoSimulado(simuladoId);
         var alunos = alunoRepo.porTurma(simulado.getTurma());
 
-        var linhas = calculoRanking.calcular(alunos, pesos);
+        // Seleciona automaticamente a estratégia com base nos pesos
+        var estrategia = selecionarEstrategia(pesos);
+        var linhas = estrategia.calcular(alunos, pesos);
 
         // Orquestração movida do repositório para o serviço (camada correta)
         var ranking = new Ranking(simuladoId, linhas);
