@@ -15,6 +15,7 @@ import dev.com.qnota.dominio.principal.disciplina.DisciplinaId;
 import dev.com.qnota.dominio.principal.aluno.Justificativa;
 import dev.com.qnota.dominio.principal.aluno.NotaServico;
 import dev.com.qnota.dominio.principal.professor.ProfessorId;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaAritmetica;
 import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaPonderada;
 import dev.com.qnota.dominio.principal.ranking.CalculoRankingStrategy;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
@@ -88,8 +89,9 @@ public class RetificarNotaFeature {
 
         repo = new RepositorioEmMemoria();
         notaSrv = new NotaServico(repo, repo, repo, repo);
-        CalculoRankingStrategy calculoRanking = new CalculoRankingMediaPonderada(notaSrv);
-        ranking = new RankingServico(repo, repo, repo, calculoRanking);
+        CalculoRankingMediaPonderada calculoPonderada = new CalculoRankingMediaPonderada(notaSrv);
+        CalculoRankingMediaAritmetica calculoAritmetica = new CalculoRankingMediaAritmetica(notaSrv);
+        ranking = new RankingServico(repo, repo, repo, calculoPonderada, calculoAritmetica);
 
         // IDs padrão para este cenário
         alunoId = new AlunoId(seq.getAndIncrement());

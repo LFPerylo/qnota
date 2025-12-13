@@ -13,18 +13,25 @@ public class RankingServico implements SimuladoObserver {
     private final AlunoRepositorio alunoRepo;
     private final SimuladoRepositorio simuladoRepo;
     private final RankingRepositorio rankingRepo;
-    private final CalculoRankingStrategy calculoRanking;
-
-    // Agora só precisa da Strategy
+    private final CalculoRankingMediaPonderada calculoPonderada;
+    private final CalculoRankingMediaAritmetica calculoAritmetica;
 
     public RankingServico(AlunoRepositorio alunoRepo,
                           SimuladoRepositorio simuladoRepo,
                           RankingRepositorio rankingRepo,
-                          CalculoRankingStrategy calculoRanking) {
+                          CalculoRankingMediaPonderada calculoPonderada,
+                          CalculoRankingMediaAritmetica calculoAritmetica) {
         this.alunoRepo = alunoRepo;
         this.simuladoRepo = simuladoRepo;
         this.rankingRepo = rankingRepo;
-        this.calculoRanking = calculoRanking;
+        this.calculoPonderada = calculoPonderada;
+        this.calculoAritmetica = calculoAritmetica;
+    }
+
+    private CalculoRankingStrategy escolherEstrategia(Simulado simulado) {
+        return simulado.getFormulaCalculo() == Simulado.FormulaCalculo.ARITMETICA
+            ? calculoAritmetica
+            : calculoPonderada;
     }
 
     /** RN-98/99: recalcula e salva (não congela). Se já estiver congelado, devolve o atual. */
@@ -39,7 +46,8 @@ public class RankingServico implements SimuladoObserver {
         var pesos = simuladoRepo.pesosDoSimulado(simuladoId);
         var alunos = alunoRepo.porTurma(simulado.getTurma());
 
-        var linhas = calculoRanking.calcular(alunos, pesos);
+        var estrategia = escolherEstrategia(simulado);
+        var linhas = estrategia.calcular(alunos, pesos);
 
         // Orquestração movida do repositório para o serviço (camada correta)
         rankingRepo.limpar(simuladoId);
@@ -60,7 +68,8 @@ public class RankingServico implements SimuladoObserver {
         var pesos = simuladoRepo.pesosDoSimulado(simuladoId);
         var alunos = alunoRepo.porTurma(simulado.getTurma());
 
-        var linhas = calculoRanking.calcular(alunos, pesos);
+        var estrategia = escolherEstrategia(simulado);
+        var linhas = estrategia.calcular(alunos, pesos);
 
         // Orquestração movida do repositório para o serviço (camada correta)
         var ranking = new Ranking(simuladoId, linhas);

@@ -12,6 +12,8 @@ import dev.com.qnota.dominio.principal.turma.TurmaId;
 public class Simulado {
 
     public enum Status { EM_EDICAO, FINALIZADO }
+    
+    public enum FormulaCalculo { PONDERADA, ARITMETICA }
 
     // ID gerado na infraestrutura (repositório)
     private SimuladoId id;
@@ -20,17 +22,24 @@ public class Simulado {
     private Status status;
     private TurmaId turma;
     private final List<DisciplinaPeso> disciplinas;
+    private FormulaCalculo formulaCalculo;
 
     /** Constrói um simulado EM_EDICAO (mais comum). */
     public Simulado(LocalDate dataAplicacao, TurmaId turma, List<DisciplinaPeso> disciplinas) {
-        this(dataAplicacao, Status.EM_EDICAO, turma, disciplinas);
+        this(dataAplicacao, Status.EM_EDICAO, turma, disciplinas, FormulaCalculo.PONDERADA);
     }
 
     /** Constrói permitindo informar o status inicial (sem ID). */
     public Simulado(LocalDate dataAplicacao, Status status, TurmaId turma, List<DisciplinaPeso> disciplinas) {
+        this(dataAplicacao, status, turma, disciplinas, FormulaCalculo.PONDERADA);
+    }
+
+    /** Constrói permitindo informar o status inicial e fórmula de cálculo (sem ID). */
+    public Simulado(LocalDate dataAplicacao, Status status, TurmaId turma, List<DisciplinaPeso> disciplinas, FormulaCalculo formulaCalculo) {
         this.dataAplicacao = Objects.requireNonNull(dataAplicacao, "dataAplicacao não pode ser nula");
         this.status        = Objects.requireNonNull(status,        "status não pode ser nulo");
         this.turma         = Objects.requireNonNull(turma,         "turma não pode ser nula");
+        this.formulaCalculo = Objects.requireNonNull(formulaCalculo, "formulaCalculo não pode ser nula");
 
         var lista = new ArrayList<>(Objects.requireNonNull(disciplinas, "lista de disciplinas não pode ser nula"));
         // Validações RN-12, RN-13, RN-14B removidas - ficam no SimuladoServico
@@ -52,6 +61,7 @@ public class Simulado {
     public Status getStatus()                     { return status; }
     public TurmaId getTurma()                     { return turma; }
     public List<DisciplinaPeso> getDisciplinas()  { return Collections.unmodifiableList(disciplinas); }
+    public FormulaCalculo getFormulaCalculo()     { return formulaCalculo; }
 
     // ===== operações do agregado (regras locais) =====
 
@@ -66,6 +76,11 @@ public class Simulado {
     /** Troca de data — regra transversal (se houver) fica no serviço. */
     public void alterarData(LocalDate novaData) {
         this.dataAplicacao = Objects.requireNonNull(novaData, "dataAplicacao não pode ser nula");
+    }
+
+    /** Altera a fórmula de cálculo do ranking. */
+    public void alterarFormulaCalculo(FormulaCalculo novaFormula) {
+        this.formulaCalculo = Objects.requireNonNull(novaFormula, "formulaCalculo não pode ser nula");
     }
 
     /** Finaliza o simulado. (RN-16 é checada no serviço antes de chamar) */

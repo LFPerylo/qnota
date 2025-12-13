@@ -64,11 +64,12 @@ class SimuladoControlador {
 			simulado.getDataAplicacao(),
 			simulado.getStatus().name(),
 			simulado.getTurma().value(),
-			disciplinas
+			disciplinas,
+			simulado.getFormulaCalculo().name()
 		);
 	}
 
-	public static record SimuladoDetalheDto(int id, java.time.LocalDate dataAplicacao, String status, int turmaId, List<DisciplinaDto> disciplinas) {}
+	public static record SimuladoDetalheDto(int id, java.time.LocalDate dataAplicacao, String status, int turmaId, List<DisciplinaDto> disciplinas, String formulaCalculo) {}
 	public static record DisciplinaDto(int disciplinaId, double peso) {}
 
 	@RequestMapping(method = POST, path = "criar")
@@ -82,7 +83,11 @@ class SimuladoControlador {
 				.toList()
 			: List.<Simulado.DisciplinaPeso>of();
 
-		var simuladoId = simuladoServico.criar(dto.dataAplicacao, turmaId, disciplinas);
+		var formula = dto.formulaCalculo != null 
+			? Simulado.FormulaCalculo.valueOf(dto.formulaCalculo)
+			: Simulado.FormulaCalculo.PONDERADA;
+
+		var simuladoId = simuladoServico.criar(dto.dataAplicacao, turmaId, disciplinas, formula);
 		return simuladoId.value();
 	}
 
@@ -97,6 +102,15 @@ class SimuladoControlador {
 				.toList()
 			: List.<Simulado.DisciplinaPeso>of();
 		simuladoServico.editarDisciplinas(simuladoId, disciplinas);
+	}
+
+	@RequestMapping(method = POST, path = "{id}/editar-formula-calculo")
+	void editarFormulaCalculo(@PathVariable("id") int id, @RequestBody SimuladoFormulario.SimuladoDto dto) {
+		var simuladoId = mapeador.map(id, SimuladoId.class);
+		var formula = dto.formulaCalculo != null 
+			? Simulado.FormulaCalculo.valueOf(dto.formulaCalculo)
+			: Simulado.FormulaCalculo.PONDERADA;
+		simuladoServico.editarFormulaCalculo(simuladoId, formula);
 	}
 
 	@RequestMapping(method = POST, path = "{id}/finalizar")

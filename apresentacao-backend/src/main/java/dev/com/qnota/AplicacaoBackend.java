@@ -34,8 +34,8 @@ import dev.com.qnota.dominio.principal.disciplina.DisciplinaRepositorio;
 import dev.com.qnota.dominio.principal.disciplina.DisciplinaServico;
 import dev.com.qnota.dominio.principal.professor.ProfessorRepositorio;
 import dev.com.qnota.dominio.principal.professor.ProfessorServico;
+import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaAritmetica;
 import dev.com.qnota.dominio.principal.ranking.CalculoRankingMediaPonderada;
-import dev.com.qnota.dominio.principal.ranking.CalculoRankingStrategy;
 import dev.com.qnota.dominio.principal.ranking.RankingRepositorio;
 import dev.com.qnota.dominio.principal.ranking.RankingServico;
 import dev.com.qnota.dominio.principal.responsavel.ResponsavelRepositorio;
@@ -118,16 +118,22 @@ public class AplicacaoBackend {
 	}
 
 	@Bean
-	public CalculoRankingStrategy calculoRankingStrategy(NotaServico notaServico) {
+	public CalculoRankingMediaPonderada calculoRankingPonderada(NotaServico notaServico) {
 		return new CalculoRankingMediaPonderada(notaServico);
+	}
+
+	@Bean
+	public CalculoRankingMediaAritmetica calculoRankingAritmetica(NotaServico notaServico) {
+		return new CalculoRankingMediaAritmetica(notaServico);
 	}
 
 	@Bean
 	public RankingServico rankingServico(AlunoRepositorio alunoRepositorio,
 	                                     SimuladoRepositorio simuladoRepositorio,
 	                                     RankingRepositorio rankingRepositorio,
-	                                     CalculoRankingStrategy calculoRankingStrategy) {
-		return new RankingServico(alunoRepositorio, simuladoRepositorio, rankingRepositorio, calculoRankingStrategy);
+	                                     CalculoRankingMediaPonderada calculoPonderada,
+	                                     CalculoRankingMediaAritmetica calculoAritmetica) {
+		return new RankingServico(alunoRepositorio, simuladoRepositorio, rankingRepositorio, calculoPonderada, calculoAritmetica);
 	}
 
 	// ===== Auditoria + Decorator para SimuladoRepositorio (Padrao Decorator) =====

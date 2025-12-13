@@ -70,7 +70,7 @@ interface SimuladosProps {
   formatNumber: (value: number, decimals: number) => string;
   calcularMedia: (alunoId: string, simuladoId: string) => number;
   fetchSimuladoDetalhe: (id: number) => Promise<any>;
-  onSave?: (dto: { dataAplicacao: string; turmaId: number; disciplinas: Array<{ disciplinaId: number; peso: number }> }) => Promise<void>;
+  onSave?: (dto: { dataAplicacao: string; turmaId: number; disciplinas: Array<{ disciplinaId: number; peso: number }>; formulaCalculo?: string }) => Promise<void>;
   onUpdate?: (id: number, dto: { disciplinas: Array<{ disciplinaId: number; peso: number }> }) => Promise<void>;
   onDelete?: (simulado: Simulado) => void;
   onLancarNotas?: (simulado: Simulado) => void;
@@ -115,7 +115,8 @@ export function Simulados({
   const [formData, setFormData] = useState({
     turmaId: '',
     data: '',
-    disciplinas: [] as { disciplinaId: string; peso: number }[]
+    disciplinas: [] as { disciplinaId: string; peso: number }[],
+    formulaCalculo: 'PONDERADA' as string
   });
 
   const [retificacaoData, setRetificacaoData] = useState({
@@ -448,14 +449,16 @@ export function Simulados({
       setFormData({
         turmaId: detalhado.turmaId,
         data: formatDate(detalhado.data),
-        disciplinas: detalhado.disciplinas
+        disciplinas: detalhado.disciplinas,
+        formulaCalculo: detalhado.formulaCalculo || 'PONDERADA'
       });
     } else {
       setSelectedSimulado(null);
       setFormData({
         turmaId: '',
         data: '',
-        disciplinas: []
+        disciplinas: [],
+        formulaCalculo: 'PONDERADA'
       });
     }
     setDialogOpen(true);
@@ -588,7 +591,8 @@ export function Simulados({
         await onSave?.({
           dataAplicacao: dataAplicacaoISO,
           turmaId: turmaIdNum,
-          disciplinas: disciplinasDto
+          disciplinas: disciplinasDto,
+          formulaCalculo: formData.formulaCalculo || 'PONDERADA'
         });
       }
       
@@ -597,7 +601,8 @@ export function Simulados({
       setFormData({
         turmaId: '',
         data: '',
-        disciplinas: []
+        disciplinas: [],
+        formulaCalculo: 'PONDERADA'
       });
       setSelectedSimulado(null);
     } catch (error: any) {

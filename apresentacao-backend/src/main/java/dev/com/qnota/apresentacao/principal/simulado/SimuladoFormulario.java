@@ -21,6 +21,7 @@ public class SimuladoFormulario {
 		public LocalDate dataAplicacao;
 		public Integer turmaId;
 		public List<DisciplinaPesoDto> disciplinas;
+		public String formulaCalculo; // "PONDERADA" ou "ARITMETICA"
 	}
 
 	public static class DisciplinaPesoDto {

@@ -61,6 +61,12 @@ public class SimuladoServico {
         return criar(s);
     }
 
+    /** Factory de conveniência para criar EM_EDICAO com fórmula de cálculo. */
+    public SimuladoId criar(LocalDate dataAplicacao, TurmaId turma, List<Simulado.DisciplinaPeso> disciplinas, Simulado.FormulaCalculo formulaCalculo) {
+        var s = new Simulado(dataAplicacao, Simulado.Status.EM_EDICAO, turma, disciplinas, formulaCalculo);
+        return criar(s);
+    }
+
     /** Criação: RN-52 (máx. 2 em edição por turma) + RN-96 + RN-12 + RN-53. */
     public SimuladoId criar(Simulado s) {
         // RN-12: pelo menos duas disciplinas
@@ -91,6 +97,19 @@ public class SimuladoServico {
             throw new IllegalStateException("RN-52: Máximo de 3 simulados em edição por turma.");
 
         return repo.salvar(s); // ORM atribui o ID se estiver nulo
+    }
+
+    /** Edição de fórmula de cálculo: RN-14C + recalcula ranking. */
+    public void editarFormulaCalculo(SimuladoId id, Simulado.FormulaCalculo novaFormula) {
+        var s = repo.porId(id);
+
+        // RN-14C: verificar se está finalizado primeiro
+        if (s.getStatus() == Simulado.Status.FINALIZADO)
+            throw new IllegalStateException("RN-14C: Não é permitido editar simulado finalizado.");
+
+        s.alterarFormulaCalculo(novaFormula);
+        repo.salvar(s);
+        rankingServico.recalcular(id); // RN-98/99
     }
 
     /** Edição de disciplinas: RN-12/13/14B/14C (entidade) + RN-34 + RN-53 + recalcula ranking. */

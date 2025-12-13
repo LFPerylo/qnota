@@ -46,6 +46,10 @@ class SimuladoJpa {
 
   @Column(name = "turma_id", nullable = false)
   Integer turmaId;
+
+  // armazenado como VARCHAR ('PONDERADA' | 'ARITMETICA')
+  @Column(name = "formula_calculo", nullable = false)
+  String formulaCalculo;
 }
 
 /** Join-table com peso da disciplina no simulado. */
@@ -210,11 +214,16 @@ class SimuladoRepositorioImpl implements SimuladoRepositorio, SimuladoRepositori
         .map(sd -> new Simulado.DisciplinaPeso(new DisciplinaId(sd.id.disciplinaId), sd.peso))
         .collect(Collectors.toList());
 
+    var formula = jpa.formulaCalculo != null 
+        ? Simulado.FormulaCalculo.valueOf(jpa.formulaCalculo)
+        : Simulado.FormulaCalculo.PONDERADA; // default para compatibilidade com dados antigos
+
     var s = new Simulado(
         jpa.dataAplicacao,
         Simulado.Status.valueOf(jpa.status),
         new TurmaId(jpa.turmaId),
-        disciplinas
+        disciplinas,
+        formula
     );
     s.atribuirIdSeAusente(new SimuladoId(jpa.id));
     return s;
@@ -226,6 +235,7 @@ class SimuladoRepositorioImpl implements SimuladoRepositorio, SimuladoRepositori
     j.dataAplicacao = s.getDataAplicacao();
     j.status        = s.getStatus().name();
     j.turmaId       = s.getTurma().value();
+    j.formulaCalculo = s.getFormulaCalculo().name();
     return j;
   }
 

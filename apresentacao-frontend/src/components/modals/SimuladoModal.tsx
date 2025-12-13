@@ -26,6 +26,7 @@ interface SimuladoModalProps {
     turmaId: string;
     data: string;
     disciplinas: { disciplinaId: string; peso: number }[];
+    formulaCalculo?: string;
   };
   turmas: Turma[];
   disciplinas: Disciplina[];
@@ -33,6 +34,7 @@ interface SimuladoModalProps {
     turmaId: string;
     data: string;
     disciplinas: { disciplinaId: string; peso: number }[];
+    formulaCalculo?: string;
   }) => void;
   onAddDisciplina: () => void;
   onRemoveDisciplina: (index: number) => void;
@@ -87,6 +89,27 @@ export function SimuladoModal({
               value={formData.data}
               onChange={(v) => onFormDataChange({ ...formData, data: v })}
             />
+          </div>
+
+          <div>
+            <Label>Fórmula de Cálculo do Ranking *</Label>
+            <Select 
+              value={formData.formulaCalculo || 'PONDERADA'} 
+              onValueChange={(v) => onFormDataChange({ ...formData, formulaCalculo: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a fórmula" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PONDERADA">Média Ponderada</SelectItem>
+                <SelectItem value="ARITMETICA">Média Aritmética</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground mt-1">
+              {formData.formulaCalculo === 'ARITMETICA' 
+                ? 'A média aritmética calcula a média simples das notas, ignorando os pesos das disciplinas.'
+                : 'A média ponderada considera os pesos das disciplinas no cálculo da média.'}
+            </p>
           </div>
 
           <div>
